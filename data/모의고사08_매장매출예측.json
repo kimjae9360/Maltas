@@ -1,0 +1,411 @@
+{
+  "exam_id": "모의고사08_매장매출예측",
+  "title": "08 매장매출예측",
+  "time_limit_minutes": 90,
+  "setup_code": "",
+  "total_points_v1": 100,
+  "problems": [
+    {
+      "no": 1,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`pandas`, `numpy`, `matplotlib.pyplot`, `seaborn`을 각각 `pd`, `np`, `plt`, `sns`로 불러오고, `../data/retail_sales.csv`을 `sales`로 불러와 shape을 확인하세요.",
+      "answer_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\nsales = pd.read_csv('data/retail_sales.csv')\nprint(sales.shape)",
+      "points": 8,
+      "checks": [
+        {
+          "var": "sales",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            300,
+            6
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 2,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`sales`의 결측치 개수를 컬럼별로 확인하세요.",
+      "answer_code": "print(sales.isnull().sum())  # 컬럼별 결측치 개수를 먼저 확인",
+      "points": 8,
+      "checks": [
+        {
+          "var": "sales",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            300,
+            6
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 3,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`매출_만원`의 boxplot으로 이상치가 있는지 확인하세요.",
+      "answer_code": "sns.boxplot(x=sales['매출_만원'])  # 이상치와 사분위수를 확인하기 위해 상자 수염 그림 시각화\nplt.show()",
+      "points": 8,
+      "checks": [
+        {
+          "var": "sales",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            300,
+            6
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 4,
+      "session": "2교시: 데이터 시각화",
+      "prompt_markdown": "`지역`별 평균 매출을 bar 그래프로 그리세요.",
+      "answer_code": "sales.groupby('지역')['매출_만원'].mean().plot(kind='bar')  # groupby+mean으로 만든 Series에 바로 .plot()을 연결해 빠르게 시각화\nplt.title('지역별 평균 매출')\nplt.show()",
+      "points": 8,
+      "checks": [
+        {
+          "var": "sales",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            300,
+            6
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 5,
+      "session": "2교시: 데이터 시각화",
+      "prompt_markdown": "`매장크기_m2`와 `매출_만원`의 관계를 scatterplot으로 그리세요.",
+      "answer_code": "sns.scatterplot(data=sales, x='매장크기_m2', y='매출_만원')  # 두 변수 간의 관계를 산점도로 시각화\nplt.show()",
+      "points": 8,
+      "checks": [
+        {
+          "var": "sales",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            300,
+            6
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 6,
+      "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`광고비_만원`의 결측치를 중앙값으로 채우세요.",
+      "answer_code": "sales['광고비_만원'] = sales['광고비_만원'].fillna(sales['광고비_만원'].median())  # 결측치를 지정한 값(평균, 중앙값 등)으로 안전하게 대체",
+      "points": 8,
+      "checks": [
+        {
+          "var": "sales",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            300,
+            6
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 7,
+      "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`매출_만원`에서 IQR 기준 이상치를 상한값으로 clip하세요.",
+      "answer_code": "q1, q3 = sales['매출_만원'].quantile([0.25, 0.75])\niqr = q3 - q1\nupper = q3 + 1.5 * iqr\nsales['매출_만원'] = sales['매출_만원'].clip(upper=upper)  # 상한값/하한값을 벗어나는 이상치를 해당 임계값으로 자름(제한)\nsns.boxplot(x=sales['매출_만원'])  # 이상치와 사분위수를 확인하기 위해 상자 수염 그림 시각화\nplt.show()",
+      "points": 8,
+      "checks": [
+        {
+          "var": "sales",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            300,
+            6
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 8,
+      "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`지역`, `주말여부`를 `get_dummies(drop_first=True)`로 인코딩하고, `train_test_split(test_size=0.2, random_state=42)`로 분할하세요.",
+      "answer_code": "sales_enc = pd.get_dummies(sales, columns=['지역', '주말여부'], drop_first=True)  # 문자로 된 범주형 데이터를 기계가 이해할 수 있는 0과 1 형태(원-핫 인코딩)로 변환\nfrom sklearn.model_selection import train_test_split\nX = sales_enc.drop(columns=['매출_만원'])\ny = sales_enc['매출_만원']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)  # 데이터를 모델 학습용(train)과 검증용(test)으로 분리\nprint(X_train.shape)",
+      "points": 8,
+      "checks": [
+        {
+          "var": "X",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            300,
+            8
+          ]
+        },
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            60,
+            8
+          ]
+        },
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            240,
+            8
+          ]
+        },
+        {
+          "var": "sales",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            300,
+            6
+          ]
+        },
+        {
+          "var": "sales_enc",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            300,
+            9
+          ]
+        },
+        {
+          "var": "y",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            300
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            60
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            240
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 9,
+      "session": "4교시: 머신러닝 모델링",
+      "prompt_markdown": "`LinearRegression`을 학습시켜 R2를 구하세요.",
+      "answer_code": "from sklearn.linear_model import LinearRegression\nfrom sklearn.metrics import r2_score\nlr = LinearRegression()  # 선형 회귀 모델 생성\nlr.fit(X_train, y_train)\nlr_r2 = r2_score(y_test, lr.predict(X_test))  # 회귀 모델의 설명력(R-squared) 계산 (1에 가까울수록 우수)\nprint('Linear R2:', lr_r2)",
+      "points": 9,
+      "checks": [
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            60,
+            8
+          ]
+        },
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            240,
+            8
+          ]
+        },
+        {
+          "var": "lr_r2",
+          "op": "gte",
+          "expected": 0.829,
+          "tolerance": 0.0
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            60
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            240
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 10,
+      "session": "4교시: 머신러닝 모델링",
+      "prompt_markdown": "`RandomForestRegressor(random_state=42)`를 학습시켜 R2를 비교하세요.",
+      "answer_code": "from sklearn.ensemble import RandomForestRegressor\nfrom sklearn.metrics import r2_score\nrf = RandomForestRegressor(random_state=42)  # 랜덤 포레스트 회귀 모델 생성\nrf.fit(X_train, y_train)\nrf_r2 = r2_score(y_test, rf.predict(X_test))  # 회귀 모델의 설명력(R-squared) 계산 (1에 가까울수록 우수)\nprint('RF R2:', rf_r2)",
+      "points": 9,
+      "checks": [
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            60,
+            8
+          ]
+        },
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            240,
+            8
+          ]
+        },
+        {
+          "var": "rf_r2",
+          "op": "gte",
+          "expected": 0.7785,
+          "tolerance": 0.0
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            60
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            240
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 11,
+      "session": "5교시: 딥러닝 모델링",
+      "prompt_markdown": "`StandardScaler`로 스케일링한 뒤, 출력층 1노드(활성화 없음)의 Sequential 모델을 만들고 `mse`로 compile하세요.",
+      "answer_code": "from sklearn.preprocessing import StandardScaler\nfrom tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\nscaler = StandardScaler()  # 데이터를 평균 0, 표준편차 1이 되도록 스케일링 (거리 기반, 딥러닝 알고리즘에 필수)\nX_train_s = scaler.fit_transform(X_train)  # 훈련 데이터로 스케일링 기준을 학습(fit)하고 변환(transform)까지 수행\nX_test_s = scaler.transform(X_test)  # 훈련 데이터에서 학습된 기준을 그대로 적용하여 평가 데이터를 변환 (데이터 누수 방지)\nmodel = Sequential()  # 딥러닝 층(Layer)을 순서대로 쌓기 위한 기본 틀(모델) 생성\nmodel.add(Dense(16, activation='relu', input_shape=(X_train_s.shape[1],)))  # 이전 층의 모든 노드와 연결되는 완전 연결층(Dense Layer) 추가\nmodel.add(Dense(8, activation='relu'))  # 이전 층의 모든 노드와 연결되는 완전 연결층(Dense Layer) 추가\nmodel.add(Dense(1))  # 회귀이므로 활성화 함수 없이 출력 노드 1개\nmodel.compile(optimizer='adam', loss='mse', metrics=['mae'])  # 모델 학습 과정(최적화 기법, 손실 함수, 평가지표) 설정",
+      "points": 9,
+      "checks": [
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            60,
+            8
+          ]
+        },
+        {
+          "var": "X_test_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            60,
+            8
+          ]
+        },
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            240,
+            8
+          ]
+        },
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            240,
+            8
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 12,
+      "session": "5교시: 딥러닝 모델링",
+      "prompt_markdown": "`EarlyStopping(patience=5)`을 사용해 학습시키고 R2를 구하세요.",
+      "answer_code": "from tensorflow.keras.callbacks import EarlyStopping\nes = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)  # 성능이 개선되지 않으면 무의미한 학습을 일찍 멈춤\nmodel.fit(X_train_s, y_train, epochs=50, batch_size=16, validation_data=(X_test_s, y_test), callbacks=[es], verbose=0)\nprint(r2_score(y_test, model.predict(X_test_s).flatten()))  # 회귀 모델의 설명력(R-squared) 계산 (1에 가까울수록 우수)",
+      "points": 9,
+      "checks": [
+        {
+          "var": "X_test_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            60,
+            8
+          ]
+        },
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            240,
+            8
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            60
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            240
+          ]
+        }
+      ],
+      "manual_review": false
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+nbformat
+pandas
+numpy
+scikit-learn
+matplotlib
+seaborn
+xgboost
+imbalanced-learn
+PySide6
+markdown
+pyinstaller

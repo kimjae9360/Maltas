@@ -1,0 +1,417 @@
+{
+  "exam_id": "모의고사06_유방암진단",
+  "title": "06 유방암진단",
+  "time_limit_minutes": 90,
+  "setup_code": "",
+  "total_points_v1": 100,
+  "problems": [
+    {
+      "no": 1,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`pandas`, `numpy`, `matplotlib.pyplot`, `seaborn`을 각각 `pd`, `np`, `plt`, `sns`로 불러오고, `../data/breast_cancer.csv`을 `df`로 불러와 shape을 확인하세요.",
+      "answer_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\ndf = pd.read_csv('data/breast_cancer.csv')\nprint(df.shape)",
+      "points": 9,
+      "checks": [
+        {
+          "var": "df",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            569,
+            31
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 2,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`df`의 shape과 `target` 분포를 확인하세요. (target: 0=악성, 1=양성)",
+      "answer_code": "print(df.shape)\nprint(df['target'].value_counts())  # 악성/양성 클래스 개수를 확인해 불균형 여부를 미리 체크  # 범주형 데이터의 항목별 개수를 세어 데이터 분포 확인",
+      "points": 9,
+      "checks": [
+        {
+          "var": "df",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            569,
+            31
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 3,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`target`과 상관관계가 가장 강한 변수 5개를 구하세요.",
+      "answer_code": "corr = df.corr()['target'].drop('target')  # 수치형 변수 간의 상관계수를 계산하여 서로의 연관성 파악\nprint(corr.abs().sort_values(ascending=False).head())",
+      "points": 9,
+      "checks": [
+        {
+          "var": "corr",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            30
+          ]
+        },
+        {
+          "var": "df",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            569,
+            31
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 4,
+      "session": "2교시: 데이터 시각화",
+      "prompt_markdown": "`mean radius`를 `target`별로 histplot(hue='target')으로 비교하세요.",
+      "answer_code": "sns.histplot(data=df, x='mean radius', hue='target', kde=True)  # hue로 악성/양성 그룹을 나눠 분포가 얼마나 겹치는지 비교\nplt.show()",
+      "points": 9,
+      "checks": [
+        {
+          "var": "df",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            569,
+            31
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 5,
+      "session": "2교시: 데이터 시각화",
+      "prompt_markdown": "`mean radius`, `mean texture`, `mean area`, `target` 네 컬럼만 상관관계 heatmap으로 그리세요.",
+      "answer_code": "cols = ['mean radius', 'mean texture', 'mean area', 'target']\nsns.heatmap(df[cols].corr(), annot=True, cmap='coolwarm')  # 수치형 변수 간의 상관계수를 계산하여 서로의 연관성 파악\nplt.show()",
+      "points": 9,
+      "checks": [
+        {
+          "var": "corr",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            30
+          ]
+        },
+        {
+          "var": "df",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            569,
+            31
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 6,
+      "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`target`을 y로, 나머지를 X로 하여 `train_test_split(test_size=0.2, stratify=y, random_state=42)`로 분할하세요.",
+      "answer_code": "from sklearn.model_selection import train_test_split\nX = df.drop(columns=['target'])\ny = df['target']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)  # 데이터를 모델 학습용(train)과 검증용(test)으로 분리\nprint(X_train.shape)",
+      "points": 9,
+      "checks": [
+        {
+          "var": "X",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            569,
+            30
+          ]
+        },
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            114,
+            30
+          ]
+        },
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            455,
+            30
+          ]
+        },
+        {
+          "var": "df",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            569,
+            31
+          ]
+        },
+        {
+          "var": "y",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            569
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            114
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            455
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 7,
+      "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`StandardScaler`를 X_train/X_test에 적용하세요.",
+      "answer_code": "from sklearn.preprocessing import StandardScaler\nscaler = StandardScaler()  # 데이터를 평균 0, 표준편차 1이 되도록 스케일링 (거리 기반, 딥러닝 알고리즘에 필수)\nX_train_s = scaler.fit_transform(X_train)  # 훈련 데이터로 스케일링 기준을 학습(fit)하고 변환(transform)까지 수행\nX_test_s = scaler.transform(X_test)  # 훈련 데이터에서 학습된 기준을 그대로 적용하여 평가 데이터를 변환 (데이터 누수 방지)",
+      "points": 9,
+      "checks": [
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            114,
+            30
+          ]
+        },
+        {
+          "var": "X_test_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            114,
+            30
+          ]
+        },
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            455,
+            30
+          ]
+        },
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            455,
+            30
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 8,
+      "session": "4교시: 머신러닝 모델링",
+      "prompt_markdown": "`LogisticRegression(max_iter=5000)`을 학습시키고 accuracy, recall, roc_auc를 구하세요.",
+      "answer_code": "from sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score, recall_score, roc_auc_score\nlogi = LogisticRegression(max_iter=5000)  # 주로 이진 분류에 쓰이는 로지스틱 회귀 모델 생성\nlogi.fit(X_train_s, y_train)\npred = logi.predict(X_test_s)\nproba = logi.predict_proba(X_test_s)[:, 1]\nprint(accuracy_score(y_test, pred))  # 전체 예측 중 올바르게 맞춘 비율(정확도) 계산\nprint(recall_score(y_test, pred))\nprint(roc_auc_score(y_test, proba))",
+      "points": 9,
+      "checks": [
+        {
+          "var": "X_test_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            114,
+            30
+          ]
+        },
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            455,
+            30
+          ]
+        },
+        {
+          "var": "pred",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            114
+          ]
+        },
+        {
+          "var": "proba",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            114
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            114
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            455
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 9,
+      "session": "4교시: 머신러닝 모델링",
+      "prompt_markdown": "ROC curve를 그리세요.",
+      "answer_code": "from sklearn.metrics import roc_curve\nfpr, tpr, _ = roc_curve(y_test, proba)  # thresholds는 여기서 쓰지 않으므로 _로 무시\nplt.plot(fpr, tpr)\nplt.plot([0,1],[0,1],'k--')  # 대각선(랜덤 추측 수준)과 비교해 곡선이 왼쪽 위로 많이 벗어날수록 좋은 모델\nplt.xlabel('FPR'); plt.ylabel('TPR')\nplt.show()",
+      "points": 9,
+      "checks": [
+        {
+          "var": "_",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            6
+          ]
+        },
+        {
+          "var": "fpr",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            6
+          ]
+        },
+        {
+          "var": "proba",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            114
+          ]
+        },
+        {
+          "var": "tpr",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            6
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            114
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 10,
+      "session": "5교시: 딥러닝 모델링",
+      "prompt_markdown": "출력층 1노드(sigmoid)인 Sequential 모델을 만들고 `binary_crossentropy`로 compile하세요.",
+      "answer_code": "from tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\nmodel = Sequential()  # 딥러닝 층(Layer)을 순서대로 쌓기 위한 기본 틀(모델) 생성\nmodel.add(Dense(16, activation='relu', input_shape=(X_train_s.shape[1],)))  # 이전 층의 모든 노드와 연결되는 완전 연결층(Dense Layer) 추가\nmodel.add(Dense(8, activation='relu'))  # 이전 층의 모든 노드와 연결되는 완전 연결층(Dense Layer) 추가\nmodel.add(Dense(1, activation='sigmoid'))  # 이진분류이므로 출력 노드 1개 + sigmoid\nmodel.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])  # 모델 학습 과정(최적화 기법, 손실 함수, 평가지표) 설정",
+      "points": 9,
+      "checks": [
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            455,
+            30
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 11,
+      "session": "5교시: 딥러닝 모델링",
+      "prompt_markdown": "`EarlyStopping(patience=10)`을 사용해 학습시키고 recall을 구하세요.",
+      "answer_code": "from tensorflow.keras.callbacks import EarlyStopping\nes = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)  # 성능이 개선되지 않으면 무의미한 학습을 일찍 멈춤\nmodel.fit(X_train_s, y_train, epochs=100, batch_size=16, validation_data=(X_test_s, y_test), callbacks=[es], verbose=0)\npred_dl = (model.predict(X_test_s).flatten() > 0.5).astype(int)\nprint(recall_score(y_test, pred_dl))",
+      "points": 10,
+      "checks": [
+        {
+          "var": "X_test_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            114,
+            30
+          ]
+        },
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            455,
+            30
+          ]
+        },
+        {
+          "var": "pred_dl",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            114
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            114
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            455
+          ]
+        }
+      ],
+      "manual_review": false
+    }
+  ]
+}

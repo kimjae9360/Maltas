@@ -1,0 +1,451 @@
+{
+  "exam_id": "모의고사02_캘리포니아_집값예측",
+  "title": "02 캘리포니아 집값예측",
+  "time_limit_minutes": 90,
+  "setup_code": "",
+  "total_points_v1": 100,
+  "problems": [
+    {
+      "no": 1,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`pandas`, `numpy`, `matplotlib.pyplot`, `seaborn`을 각각 `pd`, `np`, `plt`, `sns`로 불러오고, `../data/california_housing.csv`을 `housing`로 불러와 shape을 확인하세요.",
+      "answer_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\nhousing = pd.read_csv('data/california_housing.csv')\nprint(housing.shape)",
+      "points": 7,
+      "checks": [
+        {
+          "var": "housing",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            20640,
+            9
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 2,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`housing`의 shape과 결측치 개수를 확인하세요.",
+      "answer_code": "print(housing.shape)\nprint(housing.isnull().sum().sum())  # sum()을 두 번 써서 전체 결측치 합계를 확인(0이면 결측치 없음)",
+      "points": 7,
+      "checks": [
+        {
+          "var": "housing",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            20640,
+            9
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 3,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`housing.describe()`로 통계 요약을 확인하고, `MedInc`의 최댓값을 `max_medinc`에 저장하세요.",
+      "answer_code": "print(housing.describe())  # 수치형 컬럼들의 개수/평균/표준편차/사분위수를 한 번에 요약\nmax_medinc = housing['MedInc'].max()\nprint(max_medinc)",
+      "points": 7,
+      "checks": [
+        {
+          "var": "housing",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            20640,
+            9
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 4,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`MedHouseVal`과 나머지 변수들의 상관계수를 내림차순으로 정렬하세요.",
+      "answer_code": "print(housing.corr()['MedHouseVal'].sort_values(ascending=False))  # 내림차순 정렬로 타깃과 가장 관련 높은 변수를 위에서부터 바로 확인",
+      "points": 7,
+      "checks": [
+        {
+          "var": "housing",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            20640,
+            9
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 5,
+      "session": "2교시: 데이터 시각화",
+      "prompt_markdown": "`MedHouseVal`의 분포를 히스토그램(kde=True)으로 그리세요.",
+      "answer_code": "sns.histplot(housing['MedHouseVal'], kde=True)  # kde=True로 히스토그램 위에 부드러운 분포 곡선을 함께 표시\nplt.title('MedHouseVal distribution')\nplt.show()",
+      "points": 7,
+      "checks": [
+        {
+          "var": "housing",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            20640,
+            9
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 6,
+      "session": "2교시: 데이터 시각화",
+      "prompt_markdown": "`MedInc`(x)와 `MedHouseVal`(y)의 관계를 jointplot(kind='reg')으로 그리세요.",
+      "answer_code": "sns.jointplot(data=housing, x='MedInc', y='MedHouseVal', kind='reg')  # kind='reg'로 회귀선을 함께 그려 선형 관계를 확인\nplt.show()",
+      "points": 7,
+      "checks": [
+        {
+          "var": "housing",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            20640,
+            9
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 7,
+      "session": "2교시: 데이터 시각화",
+      "prompt_markdown": "전체 변수 간 상관관계를 heatmap으로 그리세요.",
+      "answer_code": "sns.heatmap(housing.corr(), annot=True, fmt='.2f', cmap='coolwarm')  # fmt='.2f'로 소수점 둘째 자리까지만 표시해 칸이 지저분해지지 않게 함\nplt.show()",
+      "points": 7,
+      "checks": [
+        {
+          "var": "housing",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            20640,
+            9
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 8,
+      "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`MedHouseVal`을 y로, 나머지를 X로 분리하고 `train_test_split(test_size=0.2, random_state=42)`로 나누세요.",
+      "answer_code": "from sklearn.model_selection import train_test_split\nX = housing.drop(columns=['MedHouseVal'])  # 타깃 컬럼을 제외한 나머지가 X\ny = housing['MedHouseVal']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)  # 회귀는 클래스 비율 개념이 없어 stratify를 쓰지 않음(분류와의 차이)\nprint(X_train.shape)",
+      "points": 7,
+      "checks": [
+        {
+          "var": "X",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            20640,
+            8
+          ]
+        },
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            4128,
+            8
+          ]
+        },
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            16512,
+            8
+          ]
+        },
+        {
+          "var": "housing",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            20640,
+            9
+          ]
+        },
+        {
+          "var": "y",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            20640
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            4128
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            16512
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 9,
+      "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`StandardScaler`로 X_train/X_test를 스케일링하세요.",
+      "answer_code": "from sklearn.preprocessing import StandardScaler\nscaler = StandardScaler()\nX_train_s = scaler.fit_transform(X_train)  # train에만 fit\nX_test_s = scaler.transform(X_test)  # test는 transform만 적용(데이터 누수 방지)",
+      "points": 7,
+      "checks": [
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            4128,
+            8
+          ]
+        },
+        {
+          "var": "X_test_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            4128,
+            8
+          ]
+        },
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            16512,
+            8
+          ]
+        },
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            16512,
+            8
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 10,
+      "session": "4교시: 머신러닝 모델링",
+      "prompt_markdown": "`RandomForestRegressor(n_estimators=100, random_state=42)`를 학습시키고 R2, MAE를 구하세요.",
+      "answer_code": "from sklearn.ensemble import RandomForestRegressor\nfrom sklearn.metrics import r2_score, mean_absolute_error\nrf = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)  # n_jobs=-1: 가용 CPU를 모두 사용해 학습 속도를 높임\nrf.fit(X_train_s, y_train)\npred = rf.predict(X_test_s)\nprint(r2_score(y_test, pred))  # R2는 1에 가까울수록 좋음\nprint(mean_absolute_error(y_test, pred))  # MAE는 오차 절댓값의 평균(단위가 원래 값과 동일해 해석이 쉬움)",
+      "points": 7,
+      "checks": [
+        {
+          "var": "X_test_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            4128,
+            8
+          ]
+        },
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            16512,
+            8
+          ]
+        },
+        {
+          "var": "pred",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            4128
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            4128
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            16512
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 11,
+      "session": "4교시: 머신러닝 모델링",
+      "prompt_markdown": "`XGBRegressor(n_estimators=100, random_state=42)`를 학습시켜 R2를 비교하세요.",
+      "answer_code": "from xgboost import XGBRegressor\nxgb = XGBRegressor(n_estimators=100, random_state=42)  # 부스팅 계열: 이전 모델의 오차를 보완하며 순차적으로 학습\nxgb.fit(X_train_s, y_train)\nprint(r2_score(y_test, xgb.predict(X_test_s)))",
+      "points": 7,
+      "checks": [
+        {
+          "var": "X_test_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            4128,
+            8
+          ]
+        },
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            16512,
+            8
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            4128
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            16512
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 12,
+      "session": "4교시: 머신러닝 모델링",
+      "prompt_markdown": "예측 vs 실제 산점도를 그리세요.",
+      "answer_code": "plt.scatter(y_test, pred, alpha=0.3)\nplt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')  # y=x 대각선에 가까울수록 예측이 정확함\nplt.xlabel('Actual'); plt.ylabel('Predicted')\nplt.show()",
+      "points": 7,
+      "checks": [
+        {
+          "var": "pred",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            4128
+          ]
+        },
+        {
+          "var": "y",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            20640
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            4128
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 13,
+      "session": "5교시: 딥러닝 모델링",
+      "prompt_markdown": "출력층 1노드(활성화 없음)의 Sequential 모델을 만들고 `loss='mse'`로 컴파일하세요.",
+      "answer_code": "from tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\nmodel = Sequential()\nmodel.add(Dense(32, activation='relu', input_shape=(X_train_s.shape[1],)))\nmodel.add(Dense(16, activation='relu'))\nmodel.add(Dense(1))  # 회귀 출력층: 노드 1개, activation 없음\nmodel.compile(optimizer='adam', loss='mse', metrics=['mae'])  # 회귀는 loss='mse'가 기본",
+      "points": 8,
+      "checks": [
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            16512,
+            8
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 14,
+      "session": "5교시: 딥러닝 모델링",
+      "prompt_markdown": "`EarlyStopping(patience=5)`으로 학습시키고 loss curve를 그리세요.",
+      "answer_code": "from tensorflow.keras.callbacks import EarlyStopping\nes = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)\nhistory = model.fit(X_train_s, y_train, epochs=50, batch_size=64, validation_data=(X_test_s, y_test), callbacks=[es], verbose=0)\nplt.plot(history.history['loss'], label='train')\nplt.plot(history.history['val_loss'], label='val')  # 두 곡선이 함께 내려가면 정상, val만 다시 올라가면 과적합 신호\nplt.legend(); plt.show()",
+      "points": 8,
+      "checks": [
+        {
+          "var": "X_test_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            4128,
+            8
+          ]
+        },
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            16512,
+            8
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            4128
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            16512
+          ]
+        }
+      ],
+      "manual_review": false
+    }
+  ]
+}
