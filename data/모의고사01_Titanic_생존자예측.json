@@ -488,13 +488,13 @@
         {
           "var": "acc",
           "op": "gte",
-          "expected": 0.7245,
+          "expected": 0.7077,
           "tolerance": 0.0
         },
         {
           "var": "loss",
           "op": "lte",
-          "expected": 0.5261,
+          "expected": 0.5265,
           "tolerance": 0.0
         },
         {

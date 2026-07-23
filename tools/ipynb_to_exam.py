@@ -8,7 +8,7 @@ import sys
 import pandas as pd
 import numpy as np
 
-def parse_notebook(filepath):
+def parse_notebook(filepath, exec_cwd=None):
     with open(filepath, 'r', encoding='utf-8') as f:
         nb = nbformat.read(f, as_version=4)
         
@@ -72,6 +72,10 @@ def parse_notebook(filepath):
                         if m_ans:
                             answer_code = m_ans.group(1).strip()
 
+                # 노트북은 09_모의고사 폴더 기준 상대경로('../data/...')를 쓰지만,
+                # exe/엔진은 AICE_Simulator 루트를 working_dir로 실행하므로 'data/...'로 보정합니다.
+                answer_code = answer_code.replace("../data/", "data/")
+
                 # 5교시(딥러닝) 포함 전 문제를 채점 대상으로 삼습니다 (exe가 통합됐으므로).
                 problems.append({
                     "no": prob_no,
@@ -90,7 +94,9 @@ def parse_notebook(filepath):
         
     namespace = {}
     original_cwd = os.getcwd()
-    os.chdir(os.path.dirname(filepath))
+    # answer_code는 이미 'data/...'(AICE_Simulator 기준)로 보정했으므로, 체크 생성용 실행도
+    # 노트북 폴더가 아니라 AICE_Simulator 루트(exe/엔진이 실제로 도는 위치)에서 해야 합니다.
+    os.chdir(exec_cwd if exec_cwd else os.path.dirname(filepath))
     
     # Pre-inject matplotlib backends to prevent popups
     exec("import matplotlib; matplotlib.use('Agg')", namespace)
@@ -185,13 +191,15 @@ def parse_notebook(filepath):
     return exam_data
 
 def main():
-    target_dir = r"c:\project\Aice\09_모의고사"
-    out_dir = r"c:\project\Aice\AICE_Simulator\data"
+    target_dir = r"C:\myfolder\certification\following-along-aice-associate\09_모의고사"
+    out_dir = r"C:\myfolder\project\AICE_Simulator\data"
     os.makedirs(out_dir, exist_ok=True)
     
+    sim_root = os.path.dirname(out_dir)
+
     nb_files = glob.glob(os.path.join(target_dir, "*.ipynb"))
     for f in nb_files:
-        exam_data = parse_notebook(f)
+        exam_data = parse_notebook(f, exec_cwd=sim_root)
         
         out_file = os.path.join(out_dir, f"{exam_data['exam_id']}.json")
         with open(out_file, 'w', encoding='utf-8') as out_f:
