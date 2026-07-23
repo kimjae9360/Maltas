@@ -10,7 +10,7 @@
       "session": "1교시: 데이터 로딩 & EDA",
       "prompt_markdown": "`pandas`, `numpy`, `matplotlib.pyplot`, `seaborn`을 각각 `pd`, `np`, `plt`, `sns`로 불러오고, `../data/marketing_conversion.csv`을 `df`로 불러와 shape을 확인하세요.",
       "answer_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\ndf = pd.read_csv('data/marketing_conversion.csv')\nprint(df.shape)",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "df",
@@ -29,7 +29,7 @@
       "session": "1교시: 데이터 로딩 & EDA",
       "prompt_markdown": "`df`의 결측치와 `구매여부` 분포를 확인하세요.",
       "answer_code": "print(df.isnull().sum())\nprint(df['구매여부'].value_counts(normalize=True))  # 범주형 데이터의 항목별 개수를 세어 데이터 분포 확인",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "df",
@@ -48,7 +48,7 @@
       "session": "1교시: 데이터 로딩 & EDA",
       "prompt_markdown": "수치형 변수(`나이`, `이전구매금액` 등) 간 상관계수를 `corr()`로 확인하세요.",
       "answer_code": "numeric_cols = df.select_dtypes(include='number')\ncorr_matrix = numeric_cols.corr()\nprint(corr_matrix)  # 수치형 변수 간의 연관성 파악 (1에 가까울수록 강한 양의 상관관계)",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "corr_matrix",
@@ -82,10 +82,10 @@
     },
     {
       "no": 4,
-      "session": "2교시: 데이터 시각화",
-      "prompt_markdown": "`기기종류`별 `구매여부`를 countplot(hue)으로 비교하세요.",
-      "answer_code": "sns.countplot(x='기기종류', hue='구매여부', data=df)  # 범주형 변수의 항목별 개수를 막대 그래프로 시각화\nplt.show()",
-      "points": 8,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`나이`, `이전구매금액`의 요약통계(`describe()`)를 확인하세요.",
+      "answer_code": "print(df[['나이', '이전구매금액']].describe())",
+      "points": 7,
       "checks": [
         {
           "var": "df",
@@ -102,9 +102,9 @@
     {
       "no": 5,
       "session": "2교시: 데이터 시각화",
-      "prompt_markdown": "`이전구매금액`을 `구매여부`별로 kdeplot으로 비교하세요.",
-      "answer_code": "sns.kdeplot(data=df, x='이전구매금액', hue='구매여부')  # 데이터의 분포를 부드러운 곡선(밀도 함수)으로 시각화\nplt.show()",
-      "points": 8,
+      "prompt_markdown": "`기기종류`별 `구매여부`를 countplot(hue)으로 비교하세요.",
+      "answer_code": "sns.countplot(x='기기종류', hue='구매여부', data=df)  # 범주형 변수의 항목별 개수를 막대 그래프로 시각화\nplt.show()",
+      "points": 7,
       "checks": [
         {
           "var": "df",
@@ -120,10 +120,10 @@
     },
     {
       "no": 6,
-      "session": "3교시: 데이터 전처리",
-      "prompt_markdown": "`나이`의 결측치를 평균으로 채우세요.",
-      "answer_code": "df['나이'] = df['나이'].fillna(df['나이'].mean())  # 결측치를 지정한 값(평균, 중앙값 등)으로 안전하게 대체",
-      "points": 8,
+      "session": "2교시: 데이터 시각화",
+      "prompt_markdown": "`이전구매금액`을 `구매여부`별로 kdeplot으로 비교하세요.",
+      "answer_code": "sns.kdeplot(data=df, x='이전구매금액', hue='구매여부')  # 데이터의 분포를 부드러운 곡선(밀도 함수)으로 시각화\nplt.show()",
+      "points": 7,
       "checks": [
         {
           "var": "df",
@@ -140,9 +140,28 @@
     {
       "no": 7,
       "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`나이`의 결측치를 평균으로 채우세요.",
+      "answer_code": "df['나이'] = df['나이'].fillna(df['나이'].mean())  # 결측치를 지정한 값(평균, 중앙값 등)으로 안전하게 대체",
+      "points": 7,
+      "checks": [
+        {
+          "var": "df",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            1000,
+            7
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 8,
+      "session": "3교시: 데이터 전처리",
       "prompt_markdown": "`기기종류`, `유입경로`를 `get_dummies(drop_first=True)`로 인코딩하고, `train_test_split(test_size=0.2, stratify=y, random_state=42)`로 분할한 뒤 스케일링하세요.",
       "answer_code": "df_enc = pd.get_dummies(df, columns=['기기종류', '유입경로'], drop_first=True)  # 문자로 된 범주형 데이터를 기계가 이해할 수 있는 0과 1 형태(원-핫 인코딩)로 변환\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\nX = df_enc.drop(columns=['구매여부'])\ny = df_enc['구매여부']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)  # 데이터를 모델 학습용(train)과 검증용(test)으로 분리\nscaler = StandardScaler()  # 데이터를 평균 0, 표준편차 1이 되도록 스케일링 (거리 기반, 딥러닝 알고리즘에 필수)\nX_train_s = scaler.fit_transform(X_train)  # 훈련 데이터로 스케일링 기준을 학습(fit)하고 변환(transform)까지 수행\nX_test_s = scaler.transform(X_test)  # 훈련 데이터에서 학습된 기준을 그대로 적용하여 평가 데이터를 변환 (데이터 누수 방지)",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "X",
@@ -235,11 +254,30 @@
       "manual_review": false
     },
     {
-      "no": 8,
+      "no": 9,
+      "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`StandardScaler`가 실제로 평균 0, 표준편차 1로 변환했는지, `X_train_s`의 평균과 표준편차를 확인하세요.",
+      "answer_code": "import numpy as np\nprint('스케일링 후 평균:', np.round(X_train_s.mean(axis=0), 4))\nprint('스케일링 후 표준편차:', np.round(X_train_s.std(axis=0), 4))",
+      "points": 7,
+      "checks": [
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            800,
+            9
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 10,
       "session": "4교시: 머신러닝 모델링",
       "prompt_markdown": "`LogisticRegression(class_weight='balanced', max_iter=1000)`을 학습시켜 recall, precision, f1을 구하세요.",
       "answer_code": "from sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import recall_score, precision_score, f1_score\nlogi = LogisticRegression(class_weight='balanced', max_iter=1000)  # 주로 이진 분류에 쓰이는 로지스틱 회귀 모델 생성\nlogi.fit(X_train_s, y_train)\npred = logi.predict(X_test_s)\nprint(recall_score(y_test, pred))\nprint(precision_score(y_test, pred))\nprint(f1_score(y_test, pred))  # 정밀도와 재현율의 조화 평균, 데이터가 불균형할 때 중요한 평가지표",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "X_test_s",
@@ -287,11 +325,11 @@
       "manual_review": false
     },
     {
-      "no": 9,
+      "no": 11,
       "session": "4교시: 머신러닝 모델링",
       "prompt_markdown": "`RandomForestClassifier(class_weight='balanced', random_state=42)`와 성능을 비교하세요.",
       "answer_code": "from sklearn.ensemble import RandomForestClassifier\nrf = RandomForestClassifier(class_weight='balanced', random_state=42)  # 여러 개의 의사결정 나무를 묶어 예측하는 랜덤 포레스트 분류 모델 생성\nrf.fit(X_train_s, y_train)\nprint(recall_score(y_test, rf.predict(X_test_s)))",
-      "points": 9,
+      "points": 7,
       "checks": [
         {
           "var": "X_test_s",
@@ -331,11 +369,11 @@
       "manual_review": false
     },
     {
-      "no": 10,
+      "no": 12,
       "session": "4교시: 머신러닝 모델링",
       "prompt_markdown": "`logi`와 `rf`의 ROC-AUC를 비교하세요.",
       "answer_code": "from sklearn.metrics import roc_auc_score\nproba_logi = logi.predict_proba(X_test_s)[:, 1]\nproba_rf = rf.predict_proba(X_test_s)[:, 1]\nprint('LogisticRegression ROC-AUC:', roc_auc_score(y_test, proba_logi))\nprint('RandomForest ROC-AUC:', roc_auc_score(y_test, proba_rf))  # 불균형 데이터에서 accuracy보다 신뢰할 수 있는 지표",
-      "points": 9,
+      "points": 7,
       "checks": [
         {
           "var": "X_test_s",
@@ -374,11 +412,11 @@
       "manual_review": false
     },
     {
-      "no": 11,
+      "no": 13,
       "session": "5교시: 딥러닝 모델링",
       "prompt_markdown": "출력층 1노드(sigmoid)인 Sequential 모델을 만들고 `binary_crossentropy`로 compile하세요.",
       "answer_code": "from tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\nmodel = Sequential()  # 딥러닝 층(Layer)을 순서대로 쌓기 위한 기본 틀(모델) 생성\nmodel.add(Dense(16, activation='relu', input_shape=(X_train_s.shape[1],)))  # 이전 층의 모든 노드와 연결되는 완전 연결층(Dense Layer) 추가\nmodel.add(Dense(8, activation='relu'))  # 이전 층의 모든 노드와 연결되는 완전 연결층(Dense Layer) 추가\nmodel.add(Dense(1, activation='sigmoid'))  # 이진분류이므로 출력 노드 1개 + sigmoid\nmodel.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])  # 모델 학습 과정(최적화 기법, 손실 함수, 평가지표) 설정",
-      "points": 9,
+      "points": 8,
       "checks": [
         {
           "var": "X_train_s",
@@ -393,11 +431,11 @@
       "manual_review": false
     },
     {
-      "no": 12,
+      "no": 14,
       "session": "5교시: 딥러닝 모델링",
       "prompt_markdown": "`EarlyStopping(patience=10)`을 사용해 학습시키고 confusion matrix를 그리세요.",
       "answer_code": "from tensorflow.keras.callbacks import EarlyStopping\nfrom sklearn.metrics import confusion_matrix\nes = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)  # 성능이 개선되지 않으면 무의미한 학습을 일찍 멈춤\nmodel.fit(X_train_s, y_train, epochs=100, batch_size=32, validation_data=(X_test_s, y_test), callbacks=[es], verbose=0)\npred_dl = (model.predict(X_test_s).flatten() > 0.5).astype(int)\ncm = confusion_matrix(y_test, pred_dl)  # 실제 정답과 예측 결과를 교차 표(오차 행렬)로 확인\nsns.heatmap(cm, annot=True, fmt='d', cmap='Reds')  # 상관계수 등을 색상으로 표현하여 한눈에 파악\nplt.show()",
-      "points": 9,
+      "points": 8,
       "checks": [
         {
           "var": "X_test_s",

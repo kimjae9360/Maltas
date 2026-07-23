@@ -10,7 +10,7 @@
       "session": "1교시: 데이터 로딩 & EDA",
       "prompt_markdown": "`pandas`, `numpy`, `matplotlib.pyplot`, `seaborn`을 각각 `pd`, `np`, `plt`, `sns`로 불러오고, `../data/digits.csv`을 `digits`로 불러와 shape을 확인하세요.",
       "answer_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\ndigits = pd.read_csv('data/digits.csv')\nprint(digits.shape)",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "digits",
@@ -29,7 +29,7 @@
       "session": "1교시: 데이터 로딩 & EDA",
       "prompt_markdown": "`digits`의 shape과 `target` 값 분포(0~9)를 확인하세요.",
       "answer_code": "print(digits.shape)\nprint(digits['target'].value_counts().sort_index())  # 범주형 데이터의 항목별 개수를 세어 데이터 분포 확인",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "digits",
@@ -48,7 +48,7 @@
       "session": "1교시: 데이터 로딩 & EDA",
       "prompt_markdown": "`digits`에 결측치가 있는지 확인하고, 픽셀 값(0~63번 컬럼)의 최소값과 최대값을 확인하세요.",
       "answer_code": "print(digits.isnull().sum().sum())  # 결측치 총 개수 확인 (0이면 결측치 없음)\npixel_cols = digits.drop(columns=['target'])\nprint(pixel_cols.values.min(), pixel_cols.values.max())  # 전체 픽셀 값의 범위 확인 (보통 0~16)",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "digits",
@@ -73,10 +73,29 @@
     },
     {
       "no": 4,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`digits`의 수치형 컬럼 전체에 대한 요약통계(`describe()`)를 확인하세요.",
+      "answer_code": "print(digits.describe())",
+      "points": 7,
+      "checks": [
+        {
+          "var": "digits",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            1797,
+            65
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 5,
       "session": "2교시: 데이터 시각화",
       "prompt_markdown": "첫 번째 샘플의 64개 픽셀 값을 8x8로 reshape하여 `plt.imshow()`로 실제 숫자 모양을 확인하세요.",
       "answer_code": "sample = digits.drop(columns=['target']).iloc[0].values.reshape(8, 8)  # 64개 픽셀값을 원래 8x8 이미지 형태로 되돌림\nplt.imshow(sample, cmap='gray')  # 흑백 손글씨 이미지를 회색조로 표시\nplt.title(f\"label: {digits['target'].iloc[0]}\")\nplt.show()",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "digits",
@@ -100,11 +119,11 @@
       "manual_review": false
     },
     {
-      "no": 5,
+      "no": 6,
       "session": "2교시: 데이터 시각화",
       "prompt_markdown": "`target` 분포를 countplot으로 그리세요.",
       "answer_code": "sns.countplot(x='target', data=digits)  # 범주형 변수의 항목별 개수를 막대 그래프로 시각화\nplt.show()",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "digits",
@@ -119,11 +138,11 @@
       "manual_review": false
     },
     {
-      "no": 6,
+      "no": 7,
       "session": "3교시: 데이터 전처리",
       "prompt_markdown": "`target`을 y로, 나머지를 X로 하여 `train_test_split(test_size=0.2, stratify=y, random_state=42)`로 분할하세요.",
       "answer_code": "from sklearn.model_selection import train_test_split\nX = digits.drop(columns=['target'])\ny = digits['target']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)  # 데이터를 모델 학습용(train)과 검증용(test)으로 분리\nprint(X_train.shape)",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "X",
@@ -189,11 +208,11 @@
       "manual_review": false
     },
     {
-      "no": 7,
+      "no": 8,
       "session": "3교시: 데이터 전처리",
       "prompt_markdown": "`StandardScaler`를 X_train/X_test에 적용하세요.",
       "answer_code": "from sklearn.preprocessing import StandardScaler\nscaler = StandardScaler()  # 데이터를 평균 0, 표준편차 1이 되도록 스케일링 (거리 기반, 딥러닝 알고리즘에 필수)\nX_train_s = scaler.fit_transform(X_train)  # 훈련 데이터로 스케일링 기준을 학습(fit)하고 변환(transform)까지 수행\nX_test_s = scaler.transform(X_test)  # 훈련 데이터에서 학습된 기준을 그대로 적용하여 평가 데이터를 변환 (데이터 누수 방지)",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "X_test",
@@ -235,11 +254,30 @@
       "manual_review": false
     },
     {
-      "no": 8,
+      "no": 9,
+      "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`StandardScaler`가 실제로 평균 0, 표준편차 1로 변환했는지, `X_train_s`의 평균과 표준편차 일부를 확인하세요.",
+      "answer_code": "import numpy as np\nprint('스케일링 후 평균(일부):', np.round(X_train_s.mean(axis=0), 4)[:5])\nprint('스케일링 후 표준편차(일부):', np.round(X_train_s.std(axis=0), 4)[:5])",
+      "points": 7,
+      "checks": [
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            1437,
+            64
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 10,
       "session": "4교시: 머신러닝 모델링",
       "prompt_markdown": "`RandomForestClassifier(n_estimators=200, random_state=42)`를 학습시키고 accuracy와 macro f1을 구하세요.",
       "answer_code": "from sklearn.ensemble import RandomForestClassifier\nfrom sklearn.metrics import accuracy_score, f1_score\nrf = RandomForestClassifier(n_estimators=200, random_state=42)  # 여러 개의 의사결정 나무를 묶어 예측하는 랜덤 포레스트 분류 모델 생성\nrf.fit(X_train_s, y_train)\npred = rf.predict(X_test_s)\nprint(accuracy_score(y_test, pred))  # 전체 예측 중 올바르게 맞춘 비율(정확도) 계산\nprint(f1_score(y_test, pred, average='macro'))  # 정밀도와 재현율의 조화 평균, 데이터가 불균형할 때 중요한 평가지표",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "X_test_s",
@@ -287,11 +325,11 @@
       "manual_review": false
     },
     {
-      "no": 9,
+      "no": 11,
       "session": "4교시: 머신러닝 모델링",
       "prompt_markdown": "`rf` 모델의 일반화 성능을 검증하기 위해 `cross_val_score(rf, X_train_s, y_train, cv=5)`로 5-fold 교차검증 평균 정확도를 구하세요.",
       "answer_code": "from sklearn.model_selection import cross_val_score\ncv_scores = cross_val_score(rf, X_train_s, y_train, cv=5)\nprint(cv_scores)\nprint('평균 교차검증 정확도:', cv_scores.mean())  # 단일 test set 결과가 우연이 아닌지, 데이터를 5등분해 반복 검증",
-      "points": 9,
+      "points": 7,
       "checks": [
         {
           "var": "X_train_s",
@@ -322,11 +360,11 @@
       "manual_review": false
     },
     {
-      "no": 10,
+      "no": 12,
       "session": "4교시: 머신러닝 모델링",
       "prompt_markdown": "10x10 confusion matrix를 heatmap으로 그리세요.",
       "answer_code": "from sklearn.metrics import confusion_matrix\ncm = confusion_matrix(y_test, pred)  # 실제 정답과 예측 결과를 교차 표(오차 행렬)로 확인\nsns.heatmap(cm, annot=True, fmt='d', cmap='Blues')  # 상관계수 등을 색상으로 표현하여 한눈에 파악\nplt.show()",
-      "points": 9,
+      "points": 7,
       "checks": [
         {
           "var": "cm",
@@ -357,11 +395,11 @@
       "manual_review": false
     },
     {
-      "no": 11,
+      "no": 13,
       "session": "5교시: 딥러닝 모델링",
       "prompt_markdown": "출력층 노드=10(softmax)인 Sequential 모델을 만들고 `sparse_categorical_crossentropy`로 compile하세요.",
       "answer_code": "from tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\nmodel = Sequential()  # 딥러닝 층(Layer)을 순서대로 쌓기 위한 기본 틀(모델) 생성\nmodel.add(Dense(64, activation='relu', input_shape=(X_train_s.shape[1],)))  # 이전 층의 모든 노드와 연결되는 완전 연결층(Dense Layer) 추가\nmodel.add(Dense(32, activation='relu'))  # 이전 층의 모든 노드와 연결되는 완전 연결층(Dense Layer) 추가\nmodel.add(Dense(10, activation='softmax'))  # 클래스 수(10)만큼 출력 노드를 만들고 softmax로 확률 분포 산출\nmodel.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])  # 다중분류이므로 sparse_categorical_crossentropy 사용",
-      "points": 9,
+      "points": 8,
       "checks": [
         {
           "var": "X_train_s",
@@ -376,11 +414,11 @@
       "manual_review": false
     },
     {
-      "no": 12,
+      "no": 14,
       "session": "5교시: 딥러닝 모델링",
       "prompt_markdown": "`EarlyStopping(patience=10)`을 사용해 학습시키고 argmax로 accuracy를 구하세요.",
       "answer_code": "from tensorflow.keras.callbacks import EarlyStopping\nfrom sklearn.metrics import accuracy_score\nes = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)  # 성능이 개선되지 않으면 무의미한 학습을 일찍 멈춤\nmodel.fit(X_train_s, y_train, epochs=100, batch_size=32, validation_data=(X_test_s, y_test), callbacks=[es], verbose=0)\npred_label = np.argmax(model.predict(X_test_s), axis=1)  # 다중 분류 결과에서 각 샘플 중 가장 확률이 높은 클래스 인덱스를 추출\nprint(accuracy_score(y_test, pred_label))  # 전체 예측 중 올바르게 맞춘 비율(정확도) 계산",
-      "points": 9,
+      "points": 8,
       "checks": [
         {
           "var": "X_test_s",

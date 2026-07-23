@@ -10,7 +10,7 @@
       "session": "1교시: 데이터 로딩 & EDA",
       "prompt_markdown": "`pandas`, `numpy`, `matplotlib.pyplot`, `seaborn`을 각각 `pd`, `np`, `plt`, `sns`로 불러오고, `../data/telco_churn.csv`을 `df`로 불러와 shape을 확인하세요.",
       "answer_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\ndf = pd.read_csv('data/telco_churn.csv')\nprint(df.shape)",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "df",
@@ -29,7 +29,7 @@
       "session": "1교시: 데이터 로딩 & EDA",
       "prompt_markdown": "`df.info()`로 `TotalCharges`의 타입을 확인하고, 왜 object인지 원인을 코드로 찾아보세요.",
       "answer_code": "df.info()  # TotalCharges가 숫자여야 하는데 object(문자열) 타입으로 나옴\nprint((df['TotalCharges'] == ' ').sum(), '개의 공백 문자열')  # 결측치가 NaN이 아니라 공백 문자열(' ')로 숨어있어 isnull()로는 안 잡힘",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "df",
@@ -48,7 +48,7 @@
       "session": "1교시: 데이터 로딩 & EDA",
       "prompt_markdown": "`Churn` 값 분포를 비율(`normalize=True`)로 확인하세요.",
       "answer_code": "print(df['Churn'].value_counts(normalize=True))  # normalize=True로 개수 대신 비율을 확인해 불균형 정도를 파악  # 범주형 데이터의 항목별 개수를 세어 데이터 분포 확인",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "df",
@@ -64,10 +64,10 @@
     },
     {
       "no": 4,
-      "session": "2교시: 데이터 시각화",
-      "prompt_markdown": "`Churn` 분포를 countplot으로 그리세요.",
-      "answer_code": "sns.countplot(x='Churn', data=df)  # 범주형 변수의 항목별 개수를 막대 그래프로 시각화\nplt.title('Churn (imbalanced)')\nplt.show()",
-      "points": 8,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`tenure`, `MonthlyCharges`의 요약통계(`describe()`)를 확인하세요.",
+      "answer_code": "print(df[['tenure', 'MonthlyCharges']].describe())",
+      "points": 7,
       "checks": [
         {
           "var": "df",
@@ -84,9 +84,9 @@
     {
       "no": 5,
       "session": "2교시: 데이터 시각화",
-      "prompt_markdown": "`Contract`별 `tenure` 분포를 boxplot으로 비교하세요.",
-      "answer_code": "sns.boxplot(x='Contract', y='tenure', data=df)  # 이상치와 사분위수를 확인하기 위해 상자 수염 그림 시각화\nplt.show()",
-      "points": 8,
+      "prompt_markdown": "`Churn` 분포를 countplot으로 그리세요.",
+      "answer_code": "sns.countplot(x='Churn', data=df)  # 범주형 변수의 항목별 개수를 막대 그래프로 시각화\nplt.title('Churn (imbalanced)')\nplt.show()",
+      "points": 7,
       "checks": [
         {
           "var": "df",
@@ -102,10 +102,10 @@
     },
     {
       "no": 6,
-      "session": "3교시: 데이터 전처리",
-      "prompt_markdown": "`TotalCharges`의 공백을 NaN으로 바꾼 뒤 float로 변환하고 중앙값으로 결측치를 채우세요.",
-      "answer_code": "df['TotalCharges'] = df['TotalCharges'].replace(' ', np.nan).astype(float)  # 공백을 NaN으로 바꿔야 비로소 float 변환이 가능해짐\ndf['TotalCharges'] = df['TotalCharges'].fillna(df['TotalCharges'].median())  # 이상치 영향이 적은 중앙값으로 결측치 대체  # 결측치를 지정한 값(평균, 중앙값 등)으로 안전하게 대체",
-      "points": 8,
+      "session": "2교시: 데이터 시각화",
+      "prompt_markdown": "`Contract`별 `tenure` 분포를 boxplot으로 비교하세요.",
+      "answer_code": "sns.boxplot(x='Contract', y='tenure', data=df)  # 이상치와 사분위수를 확인하기 위해 상자 수염 그림 시각화\nplt.show()",
+      "points": 7,
       "checks": [
         {
           "var": "df",
@@ -122,9 +122,28 @@
     {
       "no": 7,
       "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`TotalCharges`의 공백을 NaN으로 바꾼 뒤 float로 변환하고 중앙값으로 결측치를 채우세요.",
+      "answer_code": "df['TotalCharges'] = df['TotalCharges'].replace(' ', np.nan).astype(float)  # 공백을 NaN으로 바꿔야 비로소 float 변환이 가능해짐\ndf['TotalCharges'] = df['TotalCharges'].fillna(df['TotalCharges'].median())  # 이상치 영향이 적은 중앙값으로 결측치 대체  # 결측치를 지정한 값(평균, 중앙값 등)으로 안전하게 대체",
+      "points": 7,
+      "checks": [
+        {
+          "var": "df",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            7043,
+            21
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 8,
+      "session": "3교시: 데이터 전처리",
       "prompt_markdown": "`customerID`를 삭제하고, `Churn`을 0/1로 변환하고, 나머지 object 컬럼을 `get_dummies(drop_first=True)`로 인코딩하세요.",
       "answer_code": "df = df.drop(columns=['customerID'])\ndf['Churn'] = df['Churn'].map({'Yes': 1, 'No': 0})\ncat_cols = df.select_dtypes(include='object').columns.tolist()\ndf = pd.get_dummies(df, columns=cat_cols, drop_first=True)  # 문자로 된 범주형 데이터를 기계가 이해할 수 있는 0과 1 형태(원-핫 인코딩)로 변환\ndf.info()",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "df",
@@ -139,11 +158,11 @@
       "manual_review": false
     },
     {
-      "no": 8,
+      "no": 9,
       "session": "3교시: 데이터 전처리",
       "prompt_markdown": "`train_test_split(test_size=0.2, stratify=y, random_state=42)`로 분할하세요.",
       "answer_code": "from sklearn.model_selection import train_test_split\nX = df.drop(columns=['Churn'])\ny = df['Churn']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)  # 데이터를 모델 학습용(train)과 검증용(test)으로 분리\nprint(X_train.shape)",
-      "points": 8,
+      "points": 7,
       "checks": [
         {
           "var": "X",
@@ -209,11 +228,11 @@
       "manual_review": false
     },
     {
-      "no": 9,
+      "no": 10,
       "session": "4교시: 머신러닝 모델링",
       "prompt_markdown": "`RandomForestClassifier(class_weight='balanced', random_state=42)`를 학습시키고 recall, precision을 구하세요.",
       "answer_code": "from sklearn.ensemble import RandomForestClassifier\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.metrics import recall_score, precision_score\nscaler = StandardScaler()  # 데이터를 평균 0, 표준편차 1이 되도록 스케일링 (거리 기반, 딥러닝 알고리즘에 필수)\nX_train_s = scaler.fit_transform(X_train)  # 훈련 데이터로 스케일링 기준을 학습(fit)하고 변환(transform)까지 수행\nX_test_s = scaler.transform(X_test)  # 훈련 데이터에서 학습된 기준을 그대로 적용하여 평가 데이터를 변환 (데이터 누수 방지)\nrf = RandomForestClassifier(class_weight='balanced', random_state=42)  # 여러 개의 의사결정 나무를 묶어 예측하는 랜덤 포레스트 분류 모델 생성\nrf.fit(X_train_s, y_train)\npred = rf.predict(X_test_s)\nprint(recall_score(y_test, pred))\nprint(precision_score(y_test, pred))",
-      "points": 9,
+      "points": 7,
       "checks": [
         {
           "var": "X_test",
@@ -279,11 +298,11 @@
       "manual_review": false
     },
     {
-      "no": 10,
+      "no": 11,
       "session": "4교시: 머신러닝 모델링",
       "prompt_markdown": "`imblearn.SMOTE`로 오버샘플링한 뒤 같은 모델을 다시 학습시켜 recall 변화를 비교하세요.",
       "answer_code": "from imblearn.over_sampling import SMOTE\nsmote = SMOTE(random_state=42)\nX_over, y_over = smote.fit_resample(X_train_s, y_train)\nrf2 = RandomForestClassifier(random_state=42)  # 여러 개의 의사결정 나무를 묶어 예측하는 랜덤 포레스트 분류 모델 생성\nrf2.fit(X_over, y_over)\nprint(recall_score(y_test, rf2.predict(X_test_s)))",
-      "points": 9,
+      "points": 7,
       "checks": [
         {
           "var": "X_over",
@@ -340,11 +359,38 @@
       "manual_review": false
     },
     {
-      "no": 11,
+      "no": 12,
+      "session": "4교시: 머신러닝 모델링",
+      "prompt_markdown": "원본 데이터로 학습한 `rf`와 SMOTE로 학습한 `rf2`의 f1-score를 나란히 비교하세요.",
+      "answer_code": "from sklearn.metrics import f1_score\nprint('RF (원본):', f1_score(y_test, rf.predict(X_test_s)))\nprint('RF (SMOTE):', f1_score(y_test, rf2.predict(X_test_s)))",
+      "points": 7,
+      "checks": [
+        {
+          "var": "X_test_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            1409,
+            30
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            1409
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 13,
       "session": "5교시: 딥러닝 모델링",
       "prompt_markdown": "출력층 1노드(sigmoid)인 Sequential 모델에 Dropout(0.3)을 포함해서 만들고 `binary_crossentropy`로 compile하세요.",
       "answer_code": "from tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense, Dropout\nmodel = Sequential()  # 딥러닝 층(Layer)을 순서대로 쌓기 위한 기본 틀(모델) 생성\nmodel.add(Dense(32, activation='relu', input_shape=(X_train_s.shape[1],)))  # 이전 층의 모든 노드와 연결되는 완전 연결층(Dense Layer) 추가\nmodel.add(Dropout(0.3))  # 학습 중 일부 노드를 무작위로 꺼서 과적합을 방지\nmodel.add(Dense(16, activation='relu'))  # 이전 층의 모든 노드와 연결되는 완전 연결층(Dense Layer) 추가\nmodel.add(Dense(1, activation='sigmoid'))  # 이진분류이므로 출력 노드 1개 + sigmoid\nmodel.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])  # 모델 학습 과정(최적화 기법, 손실 함수, 평가지표) 설정",
-      "points": 9,
+      "points": 8,
       "checks": [
         {
           "var": "X_train_s",
@@ -359,11 +405,11 @@
       "manual_review": false
     },
     {
-      "no": 12,
+      "no": 14,
       "session": "5교시: 딥러닝 모델링",
       "prompt_markdown": "SMOTE로 오버샘플링한 데이터로 `EarlyStopping(patience=5)`을 사용해 학습시키고 recall을 구하세요.",
       "answer_code": "from tensorflow.keras.callbacks import EarlyStopping\nes = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)  # 성능이 개선되지 않으면 무의미한 학습을 일찍 멈춤\nmodel.fit(X_over, y_over, epochs=50, batch_size=32, validation_data=(X_test_s, y_test), callbacks=[es], verbose=0)\npred_label = (model.predict(X_test_s).flatten() > 0.5).astype(int)\nprint(recall_score(y_test, pred_label))",
-      "points": 9,
+      "points": 8,
       "checks": [
         {
           "var": "X_over",

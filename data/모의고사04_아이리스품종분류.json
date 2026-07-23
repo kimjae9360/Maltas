@@ -10,7 +10,7 @@
       "session": "1교시: 데이터 로딩 & EDA",
       "prompt_markdown": "`pandas`, `numpy`, `matplotlib.pyplot`, `seaborn`을 각각 `pd`, `np`, `plt`, `sns`로 불러오고, `../data/iris.csv`을 `iris`로 불러와 shape을 확인하세요.",
       "answer_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\niris = pd.read_csv('data/iris.csv')\nprint(iris.shape)",
-      "points": 9,
+      "points": 7,
       "checks": [
         {
           "var": "iris",
@@ -29,7 +29,7 @@
       "session": "1교시: 데이터 로딩 & EDA",
       "prompt_markdown": "`iris`의 `target` 분포가 균형인지 확인하세요.",
       "answer_code": "print(iris['target'].value_counts())  # 각 클래스 개수가 비슷하면 균형 데이터라는 뜻  # 범주형 데이터의 항목별 개수를 세어 데이터 분포 확인",
-      "points": 9,
+      "points": 7,
       "checks": [
         {
           "var": "iris",
@@ -48,7 +48,7 @@
       "session": "1교시: 데이터 로딩 & EDA",
       "prompt_markdown": "`petal length (cm)`과 `petal width (cm)`의 상관계수를 구하세요.",
       "answer_code": "print(iris['petal length (cm)'].corr(iris['petal width (cm)']))  # 1에 가까울수록 두 변수가 함께 커지는 강한 양의 상관관계  # 수치형 변수 간의 상관계수를 계산하여 서로의 연관성 파악",
-      "points": 9,
+      "points": 7,
       "checks": [
         {
           "var": "iris",
@@ -64,10 +64,10 @@
     },
     {
       "no": 4,
-      "session": "2교시: 데이터 시각화",
-      "prompt_markdown": "`sepal length (cm)`, `sepal width (cm)`를 `target`으로 색을 나눠 scatterplot을 그리세요.",
-      "answer_code": "sns.scatterplot(data=iris, x='sepal length (cm)', y='sepal width (cm)', hue='target', palette='Set1')  # 두 변수 간의 관계를 산점도로 시각화\nplt.show()",
-      "points": 9,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`iris`에 결측치가 있는지 확인하고, 수치형 컬럼의 요약통계(`describe()`)를 확인하세요.",
+      "answer_code": "print(iris.isnull().sum().sum())  # 결측치 총 개수 확인 (0이면 결측치 없음)\nprint(iris.describe())",
+      "points": 7,
       "checks": [
         {
           "var": "iris",
@@ -84,9 +84,9 @@
     {
       "no": 5,
       "session": "2교시: 데이터 시각화",
-      "prompt_markdown": "`target`별 `petal length (cm)` 분포를 violinplot으로 비교하세요.",
-      "answer_code": "sns.violinplot(x='target', y='petal length (cm)', data=iris)  # 값의 분포와 밀도를 바이올린 형태로 시각화\nplt.show()",
-      "points": 9,
+      "prompt_markdown": "`sepal length (cm)`, `sepal width (cm)`를 `target`으로 색을 나눠 scatterplot을 그리세요.",
+      "answer_code": "sns.scatterplot(data=iris, x='sepal length (cm)', y='sepal width (cm)', hue='target', palette='Set1')  # 두 변수 간의 관계를 산점도로 시각화\nplt.show()",
+      "points": 7,
       "checks": [
         {
           "var": "iris",
@@ -102,10 +102,29 @@
     },
     {
       "no": 6,
+      "session": "2교시: 데이터 시각화",
+      "prompt_markdown": "`target`별 `petal length (cm)` 분포를 violinplot으로 비교하세요.",
+      "answer_code": "sns.violinplot(x='target', y='petal length (cm)', data=iris)  # 값의 분포와 밀도를 바이올린 형태로 시각화\nplt.show()",
+      "points": 7,
+      "checks": [
+        {
+          "var": "iris",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            150,
+            5
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 7,
       "session": "3교시: 데이터 전처리",
       "prompt_markdown": "`target`을 y로, 나머지를 X로 하여 `train_test_split(test_size=0.2, stratify=y, random_state=42)`로 분할하세요.",
       "answer_code": "from sklearn.model_selection import train_test_split\nX = iris.drop(columns=['target'])\ny = iris['target']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)  # 데이터를 모델 학습용(train)과 검증용(test)으로 분리\nprint(X_train.shape)",
-      "points": 9,
+      "points": 7,
       "checks": [
         {
           "var": "X",
@@ -171,11 +190,11 @@
       "manual_review": false
     },
     {
-      "no": 7,
+      "no": 8,
       "session": "3교시: 데이터 전처리",
       "prompt_markdown": "`StandardScaler`로 X_train/X_test를 스케일링하세요.",
       "answer_code": "from sklearn.preprocessing import StandardScaler\nscaler = StandardScaler()  # 데이터를 평균 0, 표준편차 1이 되도록 스케일링 (거리 기반, 딥러닝 알고리즘에 필수)\nX_train_s = scaler.fit_transform(X_train)  # 훈련 데이터로 스케일링 기준을 학습(fit)하고 변환(transform)까지 수행\nX_test_s = scaler.transform(X_test)  # 훈련 데이터에서 학습된 기준을 그대로 적용하여 평가 데이터를 변환 (데이터 누수 방지)",
-      "points": 9,
+      "points": 7,
       "checks": [
         {
           "var": "X_test",
@@ -217,65 +236,12 @@
       "manual_review": false
     },
     {
-      "no": 8,
-      "session": "4교시: 머신러닝 모델링",
-      "prompt_markdown": "`KNeighborsClassifier(n_neighbors=5)`를 학습시키고 accuracy를 구하세요.",
-      "answer_code": "from sklearn.neighbors import KNeighborsClassifier\nfrom sklearn.metrics import accuracy_score\nknn = KNeighborsClassifier(n_neighbors=5)  # K-최근접 이웃 알고리즘(KNN) 모델 생성\nknn.fit(X_train_s, y_train)\nprint(accuracy_score(y_test, knn.predict(X_test_s)))  # 전체 예측 중 올바르게 맞춘 비율(정확도) 계산",
-      "points": 9,
-      "checks": [
-        {
-          "var": "X_test_s",
-          "attr": "shape",
-          "op": "eq",
-          "expected": [
-            30,
-            4
-          ]
-        },
-        {
-          "var": "X_train_s",
-          "attr": "shape",
-          "op": "eq",
-          "expected": [
-            120,
-            4
-          ]
-        },
-        {
-          "var": "y_test",
-          "attr": "shape",
-          "op": "eq",
-          "expected": [
-            30
-          ]
-        },
-        {
-          "var": "y_train",
-          "attr": "shape",
-          "op": "eq",
-          "expected": [
-            120
-          ]
-        }
-      ],
-      "manual_review": false
-    },
-    {
       "no": 9,
-      "session": "4교시: 머신러닝 모델링",
-      "prompt_markdown": "`SVC(kernel='rbf', random_state=42)`를 학습시키고 classification_report를 출력하세요.",
-      "answer_code": "from sklearn.svm import SVC\nfrom sklearn.metrics import classification_report\nsvc = SVC(kernel='rbf', random_state=42)  # 서포트 벡터 머신(SVM) 분류 모델 생성\nsvc.fit(X_train_s, y_train)\nprint(classification_report(y_test, svc.predict(X_test_s)))",
-      "points": 9,
+      "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`StandardScaler`가 실제로 평균 0, 표준편차 1로 변환했는지, `X_train_s`의 평균과 표준편차를 확인하세요.",
+      "answer_code": "import numpy as np\nprint('스케일링 후 평균:', np.round(X_train_s.mean(axis=0), 4))  # 0에 가까워야 정상\nprint('스케일링 후 표준편차:', np.round(X_train_s.std(axis=0), 4))  # 1에 가까워야 정상",
+      "points": 7,
       "checks": [
-        {
-          "var": "X_test_s",
-          "attr": "shape",
-          "op": "eq",
-          "expected": [
-            30,
-            4
-          ]
-        },
         {
           "var": "X_train_s",
           "attr": "shape",
@@ -283,22 +249,6 @@
           "expected": [
             120,
             4
-          ]
-        },
-        {
-          "var": "y_test",
-          "attr": "shape",
-          "op": "eq",
-          "expected": [
-            30
-          ]
-        },
-        {
-          "var": "y_train",
-          "attr": "shape",
-          "op": "eq",
-          "expected": [
-            120
           ]
         }
       ],
@@ -306,10 +256,133 @@
     },
     {
       "no": 10,
+      "session": "4교시: 머신러닝 모델링",
+      "prompt_markdown": "`KNeighborsClassifier(n_neighbors=5)`를 학습시키고 accuracy를 구하세요.",
+      "answer_code": "from sklearn.neighbors import KNeighborsClassifier\nfrom sklearn.metrics import accuracy_score\nknn = KNeighborsClassifier(n_neighbors=5)  # K-최근접 이웃 알고리즘(KNN) 모델 생성\nknn.fit(X_train_s, y_train)\nprint(accuracy_score(y_test, knn.predict(X_test_s)))  # 전체 예측 중 올바르게 맞춘 비율(정확도) 계산",
+      "points": 7,
+      "checks": [
+        {
+          "var": "X_test_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            30,
+            4
+          ]
+        },
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            120,
+            4
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            30
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            120
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 11,
+      "session": "4교시: 머신러닝 모델링",
+      "prompt_markdown": "`SVC(kernel='rbf', random_state=42)`를 학습시키고 classification_report를 출력하세요.",
+      "answer_code": "from sklearn.svm import SVC\nfrom sklearn.metrics import classification_report\nsvc = SVC(kernel='rbf', random_state=42)  # 서포트 벡터 머신(SVM) 분류 모델 생성\nsvc.fit(X_train_s, y_train)\nprint(classification_report(y_test, svc.predict(X_test_s)))",
+      "points": 7,
+      "checks": [
+        {
+          "var": "X_test_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            30,
+            4
+          ]
+        },
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            120,
+            4
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            30
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            120
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 12,
+      "session": "4교시: 머신러닝 모델링",
+      "prompt_markdown": "`knn` 모델의 일반화 성능을 검증하기 위해 `cross_val_score(knn, X_train_s, y_train, cv=5)`로 5-fold 교차검증 평균 정확도를 구하세요.",
+      "answer_code": "from sklearn.model_selection import cross_val_score\ncv_scores = cross_val_score(knn, X_train_s, y_train, cv=5)\nprint(cv_scores.mean())",
+      "points": 7,
+      "checks": [
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            120,
+            4
+          ]
+        },
+        {
+          "var": "cv_scores",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            5
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            120
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 13,
       "session": "5교시: 딥러닝 모델링",
       "prompt_markdown": "출력층 노드=3(softmax)인 Sequential 모델을 만들고 `sparse_categorical_crossentropy`로 compile하세요.",
       "answer_code": "from tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\nmodel = Sequential()  # 딥러닝 층(Layer)을 순서대로 쌓기 위한 기본 틀(모델) 생성\nmodel.add(Dense(16, activation='relu', input_shape=(X_train_s.shape[1],)))  # 이전 층의 모든 노드와 연결되는 완전 연결층(Dense Layer) 추가\nmodel.add(Dense(3, activation='softmax'))  # 클래스 수(3)만큼 출력 노드를 만들고 softmax로 확률 분포 산출\nmodel.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])  # 다중분류이므로 sparse_categorical_crossentropy 사용",
-      "points": 9,
+      "points": 8,
       "checks": [
         {
           "var": "X_train_s",
@@ -324,11 +397,11 @@
       "manual_review": false
     },
     {
-      "no": 11,
+      "no": 14,
       "session": "5교시: 딥러닝 모델링",
       "prompt_markdown": "`EarlyStopping(patience=10)`을 사용해 학습시키고 argmax로 accuracy를 구하세요.",
       "answer_code": "from tensorflow.keras.callbacks import EarlyStopping\nfrom sklearn.metrics import accuracy_score\nes = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)  # 성능이 개선되지 않으면 무의미한 학습을 일찍 멈춤\nmodel.fit(X_train_s, y_train, epochs=100, batch_size=8, validation_data=(X_test_s, y_test), callbacks=[es], verbose=0)\npred = np.argmax(model.predict(X_test_s), axis=1)  # 다중 분류 결과에서 각 샘플 중 가장 확률이 높은 클래스 인덱스를 추출\nprint(accuracy_score(y_test, pred))  # 전체 예측 중 올바르게 맞춘 비율(정확도) 계산",
-      "points": 10,
+      "points": 8,
       "checks": [
         {
           "var": "X_test_s",

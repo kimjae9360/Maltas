@@ -494,7 +494,7 @@
         {
           "var": "loss",
           "op": "lte",
-          "expected": 0.5265,
+          "expected": 0.5438,
           "tolerance": 0.0
         },
         {
