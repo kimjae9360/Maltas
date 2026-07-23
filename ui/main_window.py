@@ -13,6 +13,7 @@ from engine.code_executor import CodeExecutor
 from engine.grader import Grader
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from resource_path import get_base_dir
+from ui.review_note_dialog import ReviewNoteDialog
 
 class PythonHighlighter(QSyntaxHighlighter):
     def __init__(self, document):
@@ -134,7 +135,7 @@ class MainWindow(QMainWindow):
         
         self.timer_label = QLabel()
         self.timer_label.setFont(QFont("Consolas", 16, QFont.Bold))
-        self.timer_label.setStyleSheet("color: #FF5252;")
+        self.timer_label.setStyleSheet("color: #E0E0E0;")
         
         # Font size buttons
         self.btn_font_minus = QPushButton("A-")
@@ -155,13 +156,14 @@ class MainWindow(QMainWindow):
         self.btn_reset = QPushButton("↺ 처음부터 다시 풀기")
         self.btn_reset.clicked.connect(self.reset_exam)
 
-        btn_submit = QPushButton("최종 제출 (채점하기)")
-        btn_submit.setStyleSheet("""
+        self.btn_submit = QPushButton("최종 제출 (채점하기)")
+        self.btn_submit.setStyleSheet("""
             QPushButton { background-color: #4CAF50; color: white; font-weight: bold; padding: 7px 16px; border-radius: 5px; border: none; }
             QPushButton:hover { background-color: #5CBF60; }
             QPushButton:pressed { background-color: #3E9142; }
+            QPushButton:disabled { background-color: #3A3D42; color: #8A8D92; }
         """)
-        btn_submit.clicked.connect(self.submit_exam)
+        self.btn_submit.clicked.connect(self.submit_exam)
 
         header_layout.addWidget(self.progress_label)
         header_layout.addStretch()
@@ -176,10 +178,22 @@ class MainWindow(QMainWindow):
         header_layout.addSpacing(12)
         header_layout.addWidget(self.btn_reset)
         header_layout.addSpacing(8)
-        header_layout.addWidget(btn_submit)
-        
+        header_layout.addWidget(self.btn_submit)
+
         main_layout.addLayout(header_layout)
-        
+
+        self.nav_layout = QHBoxLayout()
+        self.nav_buttons = {}
+        for p in self.problems:
+            btn = QPushButton(str(p["no"]))
+            btn.setFixedSize(34, 28)
+            btn.setCheckable(True)
+            btn.clicked.connect(lambda checked, no=p["no"]: self._jump_to_problem(no))
+            self.nav_layout.addWidget(btn)
+            self.nav_buttons[p["no"]] = btn
+        self.nav_layout.addStretch()
+        main_layout.addLayout(self.nav_layout)
+
         h_splitter = QSplitter(Qt.Horizontal)
         
         self.md_viewer = QTextBrowser()
@@ -454,10 +468,18 @@ class MainWindow(QMainWindow):
             self.session_manager.update_state(elapsed_seconds=self.elapsed, current_problem_no=curr_prob_no)
             self.submit_exam()
             return
-            
+
         m, s = divmod(rem, 60)
         self.timer_label.setText(f"{m:02d}:{s:02d}")
-        
+        # 남은 시간이 넉넉할 때부터 빨간색이면 시작하자마자 "위험" 신호로 느껴지므로,
+        # 마지막 10분(그리고 그 절반인 5분)부터 단계적으로 경고 색을 씁니다.
+        if rem <= 300:
+            self.timer_label.setStyleSheet("color: #FF5252;")
+        elif rem <= 600:
+            self.timer_label.setStyleSheet("color: #FFB74D;")
+        else:
+            self.timer_label.setStyleSheet("color: #E0E0E0;")
+
         curr_prob_no = self.problems[self.current_idx]["no"]
         self.session_manager.update_state(elapsed_seconds=self.elapsed, current_problem_no=curr_prob_no)
 
@@ -470,23 +492,56 @@ class MainWindow(QMainWindow):
             return
         self.current_idx = idx
         p = self.problems[idx]
-        
+
         self.progress_label.setText(f"문제 {idx+1} / {len(self.problems)} | {p['session']}")
 
         self.md_viewer.setHtml(self._build_problem_html(p))
-        
+
         session_data = self.session_manager.get_data()
         saved_code = session_data["code_by_problem"].get(str(p['no']), "")
-        
+
         self.code_editor.blockSignals(True)
         self.code_editor.setPlainText(saved_code)
         self.code_editor.blockSignals(False)
-        
+
         self._reset_console_placeholder()
         self._reset_answer_placeholder()
         self.clear_plot()
         self._apply_lock_state(p)
         self.tabs.setCurrentWidget(self.answer_output if self._is_revealed(p) else self.console_output)
+
+        self.btn_prev.setEnabled(idx > 0)
+        self.btn_next.setEnabled(idx < len(self.problems) - 1)
+        self._refresh_problem_nav()
+
+    def _jump_to_problem(self, problem_no):
+        for i, p in enumerate(self.problems):
+            if p["no"] == problem_no:
+                self.load_problem(i)
+                return
+
+    def _refresh_problem_nav(self):
+        graded = self.session_manager.get_data()["graded_results"]
+        for p in self.problems:
+            btn = self.nav_buttons[p["no"]]
+            entry = graded.get(str(p["no"]))
+            is_current = (p["no"] == self.problems[self.current_idx]["no"])
+            if entry and entry.get("note") == "정답 보기 사용":
+                color = "#C9A227"  # 정답 보기 사용 (골드)
+            elif entry and entry.get("is_correct"):
+                color = "#4CAF50"  # 정답 (초록)
+            elif entry:
+                color = "#B22222"  # 오답 (빨강)
+            else:
+                color = "#454C5C"  # 미응시 (회색)
+            border = "2px solid #FFFFFF" if is_current else "1px solid #2D3E4E"
+            btn.setChecked(is_current)
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {color}; color: white; font-weight: bold;
+                    border: {border}; border-radius: 4px;
+                }}
+            """)
 
     def prev_problem(self):
         self.load_problem(self.current_idx - 1)
@@ -509,10 +564,11 @@ class MainWindow(QMainWindow):
         p = self.problems[self.current_idx]
         reply = QMessageBox.question(self, "정답 보기", "정답을 보면 이 문제는 0점 처리됩니다. 계속하시겠습니까?", QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
-            self.session_manager.update_state(graded_updates={str(p["no"]): {"is_correct": False, "points_earned": 0, "note": "정답 보기 사용"}})
+            self.session_manager.update_state(graded_updates={str(p["no"]): {"is_correct": False, "points_earned": 0, "note": "정답 보기 사용", "detail": "❌ 코드를 실행해보지 않고 정답을 먼저 확인하여 0점 처리되었습니다."}})
             self.session_manager.save_now()
             self._apply_lock_state(p)
             self.tabs.setCurrentWidget(self.answer_output)
+            self._refresh_problem_nav()
             
     def _on_plot_callback(self, fig):
         self.plot_signal.emit(fig)
@@ -545,6 +601,8 @@ class MainWindow(QMainWindow):
         self._is_running = False
         self._active_run_no = None
         self.btn_run.setEnabled(True)
+        self.btn_submit.setEnabled(True)
+        self._refresh_problem_nav()
 
     def clear_plot(self):
         for i in reversed(range(self.plot_container.count())): 
@@ -568,6 +626,10 @@ class MainWindow(QMainWindow):
         self._is_running = True
         self._active_run_no = p["no"]
         self.btn_run.setEnabled(False)
+        # 채점이 아직 안 끝난 문제가 있는 채로 "최종 제출"이 눌리면, 실행이 끝난 뒤 나올 결과가
+        # 최종 리포트/오답노트에는 전혀 반영되지 않고 그냥 미응시로 처리되어버립니다. 실행 중에는
+        # 아예 제출 버튼을 막아서 이 상황 자체가 생기지 않게 합니다.
+        self.btn_submit.setEnabled(False)
 
         session_data = self.session_manager.get_data()
         all_problems = session_data["code_by_problem"]
@@ -592,10 +654,10 @@ class MainWindow(QMainWindow):
                     # 정답을 이미 확인한 문제는 실행/연습은 자유롭게 허용하되, 채점 결과는
                     # 무엇을 실행하든 항상 0점으로 고정합니다(정답 보기 = 0점 확정 원칙 유지).
                     detail += "  (※ 정답을 확인한 문제라 실행 결과와 무관하게 0점으로 고정됩니다)"
-                    computed_entry = {"is_correct": False, "points_earned": 0, "note": "정답 보기 사용"}
+                    computed_entry = {"is_correct": False, "points_earned": 0, "note": "정답 보기 사용", "detail": detail}
                 else:
                     earned = p["points"] if is_correct else 0
-                    computed_entry = {"is_correct": is_correct, "points_earned": earned}
+                    computed_entry = {"is_correct": is_correct, "points_earned": earned, "detail": detail}
 
                 self.console_signal.emit(f"\n[채점 결과] {detail}")
                 # expected_generation: 실행 도중 reset_exam()으로 세션 자체가 통째로 바뀌었다면
@@ -611,7 +673,39 @@ class MainWindow(QMainWindow):
         t = threading.Thread(target=_run, daemon=True)
         t.start()
         
+    def closeEvent(self, event):
+        # 이미 제출 완료된 뒤(submit_exam이 스스로 self.close()를 호출하는 경로)라면
+        # 다시 확인창을 띄우지 않고 그대로 닫습니다.
+        session_data = self.session_manager.get_data()
+        if session_data.get("is_submitted", False):
+            event.accept()
+            return
+
+        reply = QMessageBox.question(
+            self, "종료 확인",
+            "아직 제출하지 않았습니다. 지금까지 푼 코드는 저장되어 있어 다음에 실행하면 이어서 풀 수 있습니다.\n종료하시겠습니까?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            curr_prob_no = self.problems[self.current_idx]["no"]
+            self.session_manager.update_state(elapsed_seconds=self.elapsed, current_problem_no=curr_prob_no)
+            self.session_manager.stop_all()
+            self.session_manager.save_now()
+            event.accept()
+        else:
+            event.ignore()
+
     def submit_exam(self):
+        if self._is_running:
+            # 시간초과 자동제출은 버튼 비활성화를 거치지 않고 직접 이 메서드를 호출하므로,
+            # 아직 채점 중인 문제가 있다면(최대 180초) 그 결과가 나올 때까지 기다렸다가
+            # 제출합니다. 그렇지 않으면 실행이 끝나기 직전에 결과가 통째로 유실됩니다.
+            if not getattr(self, "_submit_wait_notified", False):
+                self._submit_wait_notified = True
+                self.console_output.append("\n⏳ 아직 채점 중인 문제가 있어, 결과가 나온 뒤 자동으로 제출됩니다...")
+            QTimer.singleShot(300, self.submit_exam)
+            return
+
         self.clock_timer.stop()
         self.session_manager.stop_all()
         # is_submitted 플래그를 남겨야 find_unfinished_sessions()가 이 세션을 완료로 인식합니다
@@ -631,6 +725,11 @@ class MainWindow(QMainWindow):
                 results_list.append((p["no"], p["points"], False))
                 
         report = self.grader.report(results_list, self.exam_data["total_points_v1"])
-        
+
         QMessageBox.information(self, "최종 제출", report)
+
+        review_dialog = ReviewNoteDialog(self.exam_data, self.problems, graded,
+                                          session_data["code_by_problem"], parent=self)
+        review_dialog.exec()
+
         self.close()
