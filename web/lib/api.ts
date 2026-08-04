@@ -9,7 +9,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   };
   
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
+  const timeoutId = setTimeout(() => controller.abort(), 180000); // 180초 — Render cold start 감안
   
   try {
     const res = await fetch(`${API_BASE}${path}`, { 
@@ -104,6 +104,14 @@ export interface StudyRunResult {
 }
 
 export const api = {
+  /** 서버를 미리 깨워두는 ping (Render free-tier cold start 방지용) */
+  ping: () =>
+    fetch(`${API_BASE}/api/exams`, {
+      method: "GET",
+      headers: API_KEY ? { "X-API-Key": API_KEY } : {},
+      signal: AbortSignal.timeout(5000),
+    }).catch(() => {}), // 실패해도 무시
+
   listExams: () => request<ExamSummary[]>("/api/exams"),
   getExam: (examId: string) => request<ExamDetail>(`/api/exams/${encodeURIComponent(examId)}`),
   runProblem: (

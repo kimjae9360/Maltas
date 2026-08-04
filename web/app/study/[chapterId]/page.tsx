@@ -38,6 +38,7 @@ export default function StudyChapterPage() {
   const initedChapterId = useRef<string | null>(null);
 
   useEffect(() => {
+    api.ping(); // Render cold start 방지: 챕터 데이터 로딩과 동시에 서버 워밍업
     api.getChapter(chapterId).then(setChapter).catch(() => setLoadError(true));
   }, [chapterId]);
 

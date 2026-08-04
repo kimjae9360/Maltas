@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StudyPractice, StudyRunResult } from "@/lib/api";
 import { PracticeResult } from "@/lib/storage";
 import { CodeEditor } from "./CodeEditor";
@@ -37,6 +37,25 @@ export function StudyPracticeCard({
   cardRef,
 }: Props) {
   const [tab, setTab] = useState<"console" | "plot" | "answer">("console");
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (running) {
+      setElapsed(0);
+      timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [running]);
+
+  function getRunningMsg(sec: number) {
+    if (sec < 5) return "채점 중...";
+    if (sec < 20) return `서버 실행 중... (${sec}초)`;
+    if (sec < 50) return `서버 워밍업 중... (${sec}초) — 잠시만 기다려주세요`;
+    return `코드 실행 중... (${sec}초) — 딥러닝은 최대 3분 소요`;
+  }
 
   const statusColor = result
     ? result.is_correct
@@ -67,7 +86,7 @@ export function StudyPracticeCard({
           disabled={disabled}
           className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-bold text-white transition hover:bg-[var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {running ? "채점 중..." : "✅ 채점하기"}
+          {running ? getRunningMsg(elapsed) : "✅ 채점하기"}
         </button>
         <button
           onClick={() => {

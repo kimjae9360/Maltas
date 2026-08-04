@@ -50,6 +50,7 @@ export default function ExamPage() {
   const initedExamId = useRef<string | null>(null);
 
   useEffect(() => {
+    api.ping(); // Render cold start 방지
     api.getExam(examId).then(setExam).catch(() => setLoadError(true));
   }, [examId]);
 
