@@ -4,11 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { examStorage, studyStorage, ExamSession, StudySession } from "@/lib/storage";
 
+/** ISO 날짜 문자열("2026-08-04T12:34:56.000Z")을 "2026.08.04 21:34" 같은 한국식 표기로 바꾼다. */
 function formatDate(iso: string) {
   const d = new Date(iso);
+  // padStart(2, "0") : "4" -> "04" 처럼 한 자리 숫자 앞에 0을 채워 항상 두 자리로 맞춘다.
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  // getMonth()는 0(1월)부터 시작하는 JS의 악명 높은 함정이라 +1을 꼭 해줘야 한다.
 }
 
+/** exams/page.tsx의 bestResult와 비슷하지만, 세션 하나의 점수를 그대로 계산해주는 버전. */
 function examScore(s: ExamSession) {
   const earned = Object.values(s.graded_results).reduce((sum, r) => sum + (r.is_correct ? r.points_earned : 0), 0);
   const pct = s.total_points_v1 ? (earned / s.total_points_v1) * 100 : 0;
@@ -20,10 +24,16 @@ export default function HistoryPage() {
   const [studySessions, setStudySessions] = useState<StudySession[] | null>(null);
 
   useEffect(() => {
+    // IndexedDB에서 읽어온 뒤, 최신 시작일이 맨 위로 오도록 미리 정렬해서 상태에 저장해둔다
+    // (이후 화면에서 다시 정렬할 필요 없게).
     examStorage.listAll().then((all) => setExamSessions(all.sort((a, b) => (a.started_at < b.started_at ? 1 : -1))));
     studyStorage.listAll().then((all) => setStudySessions(all.sort((a, b) => (a.started_at < b.started_at ? 1 : -1))));
   }, []);
 
+  // useMemo: submittedExams를 계산하는 비용 자체는 크지 않지만, examSessions가 바뀔 때만
+  // 다시 계산하고 그 외의 리렌더링(예: 다른 상태 변경)에서는 이전 계산 결과를 그대로
+  // 재사용하도록 "기억"해두는 훅. 아래 stats도 이 submittedExams가 바뀔 때만 다시 계산된다 —
+  // 이렇게 계산을 단계별로 나눠 캐싱해두면 화면이 복잡해져도 불필요한 재계산을 피할 수 있다.
   const submittedExams = useMemo(() => examSessions?.filter((s) => s.is_submitted) ?? [], [examSessions]);
 
   const stats = useMemo(() => {
@@ -36,6 +46,8 @@ export default function HistoryPage() {
 
   const completedChapters = useMemo(() => studySessions?.filter((s) => s.is_completed).length ?? 0, [studySessions]);
 
+  // 두 IndexedDB 조회가 "둘 다" 끝나야 "로딩 완료"로 본다 (하나만 끝나면 통계 숫자가
+  // 반쯤만 채워진 어중간한 화면이 잠깐 보일 수 있어서, 둘 다 기다렸다가 한 번에 보여준다).
   const loading = examSessions === null || studySessions === null;
 
   return (
@@ -52,6 +64,7 @@ export default function HistoryPage() {
 
       {!loading && (
         <>
+          {/* 요약 통계 4칸 — 모바일에서는 2x2, sm 이상에서는 가로 4칸 */}
           <div className="mb-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="card p-4">
               <div className="text-2xl font-extrabold text-[var(--brand)]">{stats?.count ?? 0}</div>
@@ -74,6 +87,8 @@ export default function HistoryPage() {
           <section className="mb-10">
             <h2 className="mb-3 text-lg font-bold">📝 모의고사 응시 기록</h2>
             {submittedExams.length === 0 ? (
+              // 빈 상태(empty state): 기록이 없을 때 그냥 "없음"이라고만 하지 않고,
+              // 바로 행동으로 이어지는 버튼(모의고사 보러가기)을 같이 보여준다.
               <div className="card p-6 text-center text-sm text-[var(--muted)]">
                 아직 제출한 모의고사가 없어요.
                 <div className="mt-3">

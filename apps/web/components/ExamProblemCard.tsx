@@ -7,21 +7,30 @@ import { CodeEditor } from "./CodeEditor";
 import { MarkdownView } from "./MarkdownView";
 import { PlotViewer } from "./PlotViewer";
 
+// 모의고사 응시 화면(app/exam/[examId]/page.tsx)에서 문제 하나를 통째로 그리는 카드 컴포넌트.
+// "제어 컴포넌트(controlled component)" 패턴을 쓴다 — 이 컴포넌트 자신은 상태(코드 내용, 채점
+// 결과 등)를 거의 안 들고 있고, 전부 부모(page.tsx)로부터 props로 받아서 화면에 보여주기만 하며,
+// 사용자가 뭔가 하면(코드 입력, 실행 버튼 클릭 등) 부모가 넘겨준 콜백을 불러서 "부모에게 알린다".
+// 이렇게 하면 여러 문제 카드들 사이의 데이터(예: code_by_problem 전체)를 부모 한 곳에서만
+// 관리하면 되고, "이어서 풀기"를 위해 세션 전체를 저장할 때도 부모의 상태 하나만 IndexedDB에
+// 저장하면 된다.
 interface Props {
   problem: ExamProblem;
-  code: string;
-  onCodeChange: (code: string) => void;
-  onRun: () => Promise<void>;
-  running: boolean;
-  disabled: boolean;
-  result?: GradedResult;
-  lastRun?: RunResult;
-  flagged: boolean;
+  code: string;                          // 이 문제에 대해 지금까지 작성된 코드 (부모의 code_by_problem[no])
+  onCodeChange: (code: string) => void;  // 에디터에 타이핑할 때마다 호출 — 부모 상태를 갱신
+  onRun: () => Promise<void>;            // "실행" 버튼 클릭 시 호출 — 실제 API 요청은 부모가 담당
+  running: boolean;                      // 지금 이 문제(또는 다른 문제)가 채점 중인지
+  disabled: boolean;                     // 버튼 비활성화 여부 (running 중이거나 시험 제출 후 등)
+  result?: GradedResult;                 // 이 문제의 채점 결과 (없으면 아직 안 풀었거나 안 채점됨)
+  lastRun?: RunResult;                   // 가장 최근 실행의 콘솔 출력/그래프 (result와 별개로 관리)
+  flagged: boolean;                      // "검토 표시"(나중에 다시 볼 문제) 깃발이 켜져 있는지
   onToggleFlag: () => void;
-  revealed: boolean;
+  revealed: boolean;                     // 정답 보기를 이미 눌렀는지 (누르면 이 문제는 0점 처리됨)
   onReveal: () => void;
-  answerCode?: string;
+  answerCode?: string;                   // 정답 보기를 눌렀을 때만 채워지는 실제 정답 코드
   cardRef: (el: HTMLDivElement | null) => void;
+  // 문제 번호를 클릭해서 "그 문제로 스크롤 이동"하는 네비게이션 기능을 위해, 부모가 이 DOM
+  // 엘리먼트를 참조(ref)로 잡아둘 수 있게 넘겨받는 콜백. React의 ref 콜백 패턴.
 }
 
 export function ExamProblemCard({
@@ -40,8 +49,13 @@ export function ExamProblemCard({
   answerCode,
   cardRef,
 }: Props) {
+  // tab: 이 카드 안에서 "콘솔 출력 / 시각화 / 정답" 중 지금 어떤 탭이 보이는지.
+  // 이건 다른 문제로 넘어가면 다시 초기화돼도 되는 순전히 이 카드만의 화면 상태라서,
+  // 부모가 아니라 이 컴포넌트 안에서 useState로 직접 관리한다(제어 컴포넌트 패턴의 예외).
   const [tab, setTab] = useState<"console" | "plot" | "answer">("console");
 
+  // 채점 결과에 따라 카드 왼쪽 테두리 색을 다르게 — 정답(초록)/오답(빨강)/미채점(투명)을
+  // 한눈에 구분할 수 있게 해서, 여러 문제를 쭉 내려보며 스크롤할 때 상태 파악이 쉽도록 한다.
   const statusColor = result
     ? result.is_correct
       ? "border-l-4 border-l-[var(--ok)]"
@@ -86,8 +100,11 @@ export function ExamProblemCard({
         </button>
         <button
           onClick={() => {
-            onReveal();
-            setTab("answer");
+            onReveal();       // 부모에게 "정답 봤음" 상태를 기록시키고(이 문제는 이후 0점 처리)
+            setTab("answer"); // 동시에 이 카드의 탭도 "정답" 탭으로 바로 전환해서, 버튼을 누르면
+            // 실제로 뭔가 바뀌는 게 눈에 바로 보이도록 한다. (예전엔 이 setTab이 없어서
+            // "버튼 눌러도 아무 반응이 없다"는 사용자 혼란이 있었던 버그였다 — 콘솔 출력 탭에
+            // 그대로 머물러 있으니 정답을 봤다는 게 화면에 안 보였던 것)
           }}
           disabled={disabled || revealed}
           className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--muted)] transition hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-50"
@@ -104,6 +121,10 @@ export function ExamProblemCard({
       <div className="mt-3 rounded-lg border border-[var(--border)]">
         <div className="flex border-b border-[var(--border)] text-xs font-semibold">
           {(["console", "plot", "answer"] as const).map((t) => (
+            // ["console", "plot", "answer"] as const : 이렇게 "as const"를 붙이면 TypeScript가
+            // 이 배열의 타입을 그냥 string[]이 아니라 "console" | "plot" | "answer" 리터럴
+            // 유니언으로 좁혀서 이해한다. 그래야 setTab(t)를 호출할 때 t의 타입이 useState로
+            // 선언한 tab의 타입과 정확히 맞아떨어진다.
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -118,6 +139,9 @@ export function ExamProblemCard({
             <pre className="whitespace-pre-wrap p-3 font-mono text-xs">
               {lastRun ? lastRun.stdout + (lastRun.error ? `\n${lastRun.error}` : "") || "(출력 없음)" : "실행하면 결과가 여기에 표시됩니다."}
             </pre>
+            // lastRun이 있으면 stdout(+에러가 있으면 이어붙여서) 보여주고, 그마저도 빈 문자열이면
+            // "||"로 "(출력 없음)" 문구로 대체한다. lastRun 자체가 없으면(한 번도 실행 안 함)
+            // 아예 다른 안내 문구를 보여준다 — "출력 없음"과 "아직 실행 안 함"을 구분해서 헷갈리지 않게.
           )}
           {tab === "plot" && <PlotViewer plots={lastRun?.plots ?? []} />}
           {tab === "answer" && (
