@@ -7,11 +7,28 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
     ...(options.headers as Record<string, string> | undefined),
   };
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
-  if (!res.ok) {
-    throw new Error(`API 요청 실패 (${res.status}): ${path}`);
+  
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
+  
+  try {
+    const res = await fetch(`${API_BASE}${path}`, { 
+      ...options, 
+      headers,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) {
+      throw new Error(`API 요청 실패 (${res.status}): ${path}`);
+    }
+    return res.json() as Promise<T>;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`요청 시간 초과 (30초): ${path}`);
+    }
+    throw error;
   }
-  return res.json() as Promise<T>;
 }
 
 export interface ExamSummary {
