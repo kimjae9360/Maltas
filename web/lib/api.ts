@@ -9,7 +9,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   };
   
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 180000); // 180초 — Render cold start 감안
+  const TIMEOUT_MS = 200000; // 200초 — 서버 최대 타임아웃(딥러닝 180초)보다 여유를 둬 응답 직전에 끊기는 경쟁 상태 방지
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
   
   try {
     const res = await fetch(`${API_BASE}${path}`, { 
@@ -26,7 +27,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   } catch (error: unknown) {
     clearTimeout(timeoutId);
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error(`요청 시간 초과 (30초): ${path}`);
+      throw new Error(`요청 시간 초과 (${TIMEOUT_MS / 1000}초): ${path}`);
     }
     throw error;
   }
