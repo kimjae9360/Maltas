@@ -32,8 +32,8 @@ temp_headless_all_sessions/
 *.keras
 *.pkl
 *.joblib
-data/fruits_saved.csv
-/iris_backup.csv
+**/data/fruits_saved.csv
+**/iris_backup.csv
 
 # 로컬 개발 서버 로그
 uvicorn_dev.log
