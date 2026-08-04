@@ -114,7 +114,7 @@ export default function StudyChapterPage() {
     } catch (err: any) {
       setLastRuns((prev) => ({
         ...prev,
-        [unit]: { stdout: "", error: `❌ 서버 요청 중 오류가 발생했습니다.\n${err.message}`, plots: [] },
+        [unit]: { stdout: "", error: `❌ 서버 요청 중 오류가 발생했습니다.\n${err.message}`, is_correct: false, detail: "", plots: [] },
       }));
     } finally {
       setRunningUnit(null);
@@ -173,7 +173,7 @@ export default function StudyChapterPage() {
     } catch (err: any) {
       setLastRuns((prev) => ({
         ...prev,
-        [unit]: { stdout: "", error: `❌ 서버 요청 중 오류가 발생했습니다.\n${err.message}`, plots: [] },
+        [unit]: { stdout: "", error: `❌ 서버 요청 중 오류가 발생했습니다.\n${err.message}`, is_correct: false, detail: "", plots: [] },
       }));
     } finally {
       setRunningUnit(null);

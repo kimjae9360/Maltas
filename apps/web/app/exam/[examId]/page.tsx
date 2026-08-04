@@ -225,7 +225,7 @@ export default function ExamPage() {
     } catch (err: any) {
       setLastRuns((prev) => ({
         ...prev,
-        [no]: { stdout: "", error: `❌ 서버 요청 중 오류가 발생했습니다.\n${err.message}`, is_correct: false, points_earned: 0 },
+        [no]: { stdout: "", error: `❌ 서버 요청 중 오류가 발생했습니다.\n${err.message}`, is_correct: false, points_earned: 0, detail: "", plots: [] },
       }));
     } finally {
       // try 블록이 성공하든 에러가 나든(예: 네트워크 오류) 반드시 실행되어 "채점 중" 상태를
