@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect } from "react";
+import { api } from "@/lib/api";
 
 const cards = [
   {
@@ -22,6 +26,11 @@ const cards = [
 ];
 
 export default function Home() {
+  // 홈 진입 즉시 백엔드 서버를 워밍업 — Render free-tier cold start 방지
+  useEffect(() => {
+    api.ping();
+  }, []);
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-6 py-16">
       <div className="mb-10 text-center">
@@ -48,3 +57,4 @@ export default function Home() {
     </div>
   );
 }
+
