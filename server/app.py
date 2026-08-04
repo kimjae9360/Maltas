@@ -10,7 +10,7 @@ import os
 import sys
 import json
 import glob
-import subprocess
+from concurrent.futures import ProcessPoolExecutor, TimeoutError as FuturesTimeout
 
 from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -38,7 +38,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+# ─── 데이터 로딩 ─────────────────────────────────────────────────────────────
 def _load_json_dir(pattern, key_field):
     items = {}
     for path in sorted(glob.glob(os.path.join(DATA_DIR, pattern))):
@@ -47,9 +47,42 @@ def _load_json_dir(pattern, key_field):
         items[data[key_field]] = data
     return items
 
-
 EXAMS = _load_json_dir("모의고사*.json", "exam_id")
 CHAPTERS = _load_json_dir("study_*.json", "chapter_id")
+
+# ─── 지속형 워커 프로세스 풀 ──────────────────────────────────────────────────
+# subprocess.run()은 매 채점마다 Python 인터프리터를 새로 시작해 30초 이상 걸릴 수 있다.
+# ProcessPoolExecutor는 워커 프로세스를 계속 살려두므로 두 번째 요청부터 빠르다.
+sys.path.insert(0, SERVER_DIR)  # worker 모듈을 찾을 수 있도록
+
+_POOL: ProcessPoolExecutor | None = None
+
+
+def _get_pool() -> ProcessPoolExecutor:
+    global _POOL
+    if _POOL is None:
+        _POOL = ProcessPoolExecutor(max_workers=1)
+    return _POOL
+
+
+def _worker_task(worker_input: dict) -> dict:
+    """워커 프로세스 안에서 실행되는 함수."""
+    # 이 함수는 별도 프로세스에서 실행되므로 여기서 import 해야 한다.
+    import sys as _sys
+    import os as _os
+    _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+    from worker import run  # noqa: PLC0415
+    return run(worker_input)
+
+
+def _make_timeout_result(timeout: float) -> dict:
+    return {
+        "stdout": "",
+        "error": f"Execution timed out ({int(timeout)}s limit).",
+        "is_correct": False,
+        "detail": "⏱️ 실행 시간이 초과됐습니다. 다시 시도해주세요. (첫 채점은 서버 워밍업으로 느릴 수 있습니다)",
+        "plots": [],
+    }
 
 
 def _run_worker(setup_code, code_by_problem, current_code, problem_no, checks, manual_review, timeout):
@@ -61,34 +94,35 @@ def _run_worker(setup_code, code_by_problem, current_code, problem_no, checks, m
         "checks": checks,
         "manual_review": manual_review,
     }
+    pool = _get_pool()
+    future = pool.submit(_worker_task, worker_input)
     try:
-        proc = subprocess.run(
-            [sys.executable, WORKER_PATH],
-            input=json.dumps(worker_input),
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            cwd=SERVER_DIR,
-        )
-    except subprocess.TimeoutExpired:
+        return future.result(timeout=timeout)
+    except FuturesTimeout:
+        future.cancel()
+        # 타임아웃 시 워커가 손상됐을 수 있으니 풀을 교체한다.
+        global _POOL
+        try:
+            _POOL.shutdown(wait=False, cancel_futures=True)
+        except Exception:
+            pass
+        _POOL = None
+        return _make_timeout_result(timeout)
+    except Exception as exc:
+        # 워커 프로세스 크래시 시 풀 교체
+        global _POOL  # noqa: F811
+        try:
+            _POOL.shutdown(wait=False, cancel_futures=True)
+        except Exception:
+            pass
+        _POOL = None
         return {
             "stdout": "",
-            "error": f"Execution timed out ({int(timeout)}s limit).",
+            "error": str(exc),
             "is_correct": False,
-            "detail": "⏱️ 서버 응답 시간이 초과되었습니다. 다시 시도해주세요. (서버 첫 실행 시 워밍업으로 인해 느릴 수 있습니다)",
+            "detail": "❌ 코드 실행 중 서버 오류가 발생했습니다.",
             "plots": [],
         }
-
-    if proc.returncode != 0:
-        return {
-            "stdout": proc.stdout,
-            "error": proc.stderr or "worker process crashed",
-            "is_correct": False,
-            "detail": "❌ 코드 실행 중 서버 오류가 발생하여 오답 처리되었습니다.",
-            "plots": [],
-        }
-
-    return json.loads(proc.stdout)
 
 
 def require_api_key(x_api_key: str = Header(default="")):
