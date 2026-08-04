@@ -20,7 +20,7 @@ interface Props {
   result?: PracticeResult;
   lastRun?: StudyRunResult;
   revealed: boolean;
-  onReveal: () => void;
+  onReveal: () => void | Promise<void>;
   answerCode?: string;
   cardRef?: (el: HTMLDivElement | null) => void;
 }
@@ -85,6 +85,8 @@ export function StudyPracticeCard({
       : "border-l-4 border-l-[var(--warn)]"
     : "border-l-4 border-l-transparent";
 
+  const [isRevealing, setIsRevealing] = useState(false);
+
   return (
     <div ref={cardRef} className={`card ${statusColor} p-5`}>
       <div className="mb-2 flex items-center justify-between">
@@ -105,22 +107,27 @@ export function StudyPracticeCard({
       <div className="mt-3 flex items-center gap-2">
         <button
           onClick={onRun}
-          disabled={disabled}
+          disabled={disabled || isRevealing}
           className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-bold text-white transition hover:bg-[var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {running ? getRunningMsg(elapsed) : "✅ 채점하기"}
         </button>
         <button
-          onClick={() => {
-            onReveal();
+          onClick={async () => {
             setTab("answer");
-            // ExamProblemCard와 동일한 이유로, 버튼을 누르면 실제로 "정답" 탭으로 화면이
-            // 전환되게 만들어서 클릭에 대한 반응이 눈에 바로 보이도록 한다.
+            setIsRevealing(true);
+            try {
+              await onReveal();
+            } catch (err: any) {
+              alert(err.message || "정답을 불러오는 데 실패했습니다.");
+            } finally {
+              setIsRevealing(false);
+            }
           }}
-          disabled={disabled}
-          className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--muted)] transition hover:text-[var(--foreground)]"
+          disabled={disabled || isRevealing}
+          className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--muted)] transition hover:text-[var(--foreground)] disabled:opacity-50"
         >
-          💡 힌트 / 정답 보기
+          {isRevealing ? "불러오는 중..." : "💡 힌트 / 정답 보기"}
         </button>
       </div>
 
@@ -145,7 +152,11 @@ export function StudyPracticeCard({
           {tab === "plot" && <PlotViewer plots={lastRun?.plots ?? []} />}
           {tab === "answer" && (
             <pre className="whitespace-pre-wrap p-3 font-mono text-xs">
-              {revealed && answerCode ? answerCode : "힌트/정답 보기를 눌러야 확인할 수 있습니다."}
+              {isRevealing 
+                ? "정답을 불러오는 중입니다... (서버가 켜지는 중이면 최대 50초 소요)" 
+                : revealed && answerCode 
+                  ? answerCode 
+                  : "힌트/정답 보기를 눌러야 확인할 수 있습니다."}
             </pre>
           )}
         </div>
