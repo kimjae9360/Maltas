@@ -211,9 +211,14 @@ export default function StudyChapterPage() {
   return (
     <div className="flex flex-1">
       <aside className="sticky top-0 hidden h-screen w-52 shrink-0 flex-col gap-1 overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] p-4 sm:flex">
-        <Link href="/study" className="mb-4 text-xs font-semibold text-[var(--muted)] hover:text-[var(--brand)]">
-          ← 챕터 목록으로
-        </Link>
+        <div className="mb-3 flex flex-col gap-1">
+          <Link href="/" className="flex items-center gap-1 rounded-lg bg-[var(--brand-tint)] px-3 py-1.5 text-xs font-bold text-[var(--brand)] hover:bg-[var(--brand)] hover:text-white transition">
+            🏠 홈으로
+          </Link>
+          <Link href="/study" className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-[var(--muted)] hover:bg-[var(--brand-tint)] hover:text-[var(--brand)] transition">
+            ← 챕터 목록
+          </Link>
+        </div>
         <div className="mb-2 text-xs font-bold text-[var(--muted)]">{chapter.title}</div>
         {chapter.sections.map((s) => {
           const done = session.completed_sections.includes(s.no);
@@ -249,9 +254,12 @@ export default function StudyChapterPage() {
       </aside>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
-        <div className="mb-4 sm:hidden">
-          <Link href="/study" className="text-xs font-semibold text-[var(--muted)] hover:text-[var(--brand)]">
-            ← 챕터 목록으로
+        <div className="mb-3 flex items-center gap-2 sm:hidden">
+          <Link href="/" className="rounded-lg bg-[var(--brand-tint)] px-3 py-1.5 text-xs font-bold text-[var(--brand)] hover:bg-[var(--brand)] hover:text-white transition">
+            🏠 홈
+          </Link>
+          <Link href="/study" className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--muted)] hover:text-[var(--brand)] transition">
+            ← 챕터 목록
           </Link>
         </div>
         {/* 모바일: 좌측 사이드바 대신 가로 스크롤 섹션 네비게이션 */}
@@ -309,9 +317,14 @@ export default function StudyChapterPage() {
         ) : (
           <div className="flex flex-col gap-5">
             <div className="flex items-center justify-between">
-              <Link href="/study" className="text-sm font-semibold text-[var(--muted)] hover:text-[var(--brand)]">
-                ← 챕터 목록으로
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link href="/" className="rounded-lg bg-[var(--brand-tint)] px-3 py-1.5 text-xs font-bold text-[var(--brand)] hover:bg-[var(--brand)] hover:text-white transition">
+                  🏠 홈으로
+                </Link>
+                <Link href="/study" className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--muted)] hover:text-[var(--brand)] transition">
+                  ← 챕터 목록
+                </Link>
+              </div>
               <div className="flex items-center gap-3">
                 <ThemeToggle />
                 <OpenBookPanel />
