@@ -143,11 +143,7 @@ export function StudyPracticeCard({
           {tab === "plot" && <PlotViewer plots={lastRun?.plots ?? []} />}
           {tab === "answer" && (
             <pre className="whitespace-pre-wrap p-3 font-mono text-xs">
-              {isRevealing 
-                ? "정답을 불러오는 중입니다... (서버가 켜지는 중이면 최대 50초 소요)" 
-                : revealed && answerCode 
-                  ? answerCode 
-                  : "힌트/정답 보기를 눌러야 확인할 수 있습니다."}
+              {revealed && answerCode ? answerCode : "위쪽의 [💡 힌트 / 정답 보기] 버튼을 클릭하셔야 정답이 표시됩니다.\n(아래 탭을 누르는 것이 아니라 버튼을 누르셔야 합니다!)"}
             </pre>
           )}
         </div>
