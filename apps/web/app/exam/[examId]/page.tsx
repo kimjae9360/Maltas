@@ -240,9 +240,20 @@ export default function ExamPage() {
 
     // API 통신 없이 프론트엔드에 전달된 base64 인코딩 정답을 즉시 디코딩
     const problem = exam.problems.find((p) => p.no === no);
-    if (problem && problem.answer_code_b64) {
-      const decodedAnswer = decodeURIComponent(escape(atob(problem.answer_code_b64)));
-      setAnswers((prev) => ({ ...prev, [no]: decodedAnswer }));
+    if (problem) {
+      if (problem.answer_code_b64) {
+        try {
+          const binString = atob(problem.answer_code_b64);
+          const bytes = Uint8Array.from(binString, (m) => m.codePointAt(0)!);
+          const decodedAnswer = new TextDecoder().decode(bytes);
+          setAnswers((prev) => ({ ...prev, [no]: decodedAnswer }));
+        } catch (e) {
+          console.error("Base64 decode failed:", e);
+          setAnswers((prev) => ({ ...prev, [no]: "정답 데이터를 읽는 중 오류가 발생했습니다." }));
+        }
+      } else {
+        setAnswers((prev) => ({ ...prev, [no]: "아직 서버 배포가 완료되지 않아 정답 데이터를 불러올 수 없습니다. 브라우저를 새로고침(F5) 해주세요." }));
+      }
     }
 
     // runProblem과 동일한 이유로, await 이후에는 s(낡은 스냅샷)가 아니라 sessionRef.current를

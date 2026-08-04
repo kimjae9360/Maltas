@@ -190,10 +190,21 @@ export default function StudyChapterPage() {
     const currentSection = chapter.sections.find((sec) => sec.no === sectionNo);
     const practice = currentSection?.practices.find((p) => p.no === practiceNo);
     
-    if (practice && practice.answer_code_b64) {
-      // 한글 주석 등이 포함된 utf-8 문자열의 경우 atob 단독 사용 시 깨지므로 escape와 decodeURIComponent를 조합
-      const decodedAnswer = decodeURIComponent(escape(atob(practice.answer_code_b64)));
-      setAnswers((prev) => ({ ...prev, [unit]: decodedAnswer }));
+    if (practice) {
+      if (practice.answer_code_b64) {
+        try {
+          const binString = atob(practice.answer_code_b64);
+          const bytes = Uint8Array.from(binString, (m) => m.codePointAt(0)!);
+          const decodedAnswer = new TextDecoder().decode(bytes);
+          setAnswers((prev) => ({ ...prev, [unit]: decodedAnswer }));
+        } catch (e) {
+          console.error("Base64 decode failed:", e);
+          setAnswers((prev) => ({ ...prev, [unit]: "정답 데이터를 읽는 중 오류가 발생했습니다." }));
+        }
+      } else {
+        // 백엔드가 아직 구버전이거나 데이터가 없는 경우
+        setAnswers((prev) => ({ ...prev, [unit]: "아직 서버 배포가 완료되지 않아 정답 데이터를 불러올 수 없습니다. 브라우저를 새로고침(F5) 해주세요." }));
+      }
     }
 
     // runPractice와 동일한 이유로 await 이후에는 최신 세션을 다시 읽어서 병합한다.
