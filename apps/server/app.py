@@ -77,6 +77,7 @@ def _load_json_dir(pattern, key_field):
 # (대신 새 문제 JSON을 추가하려면 서버를 재시작해야 반영된다 — 이 앱 규모에선 문제 없는 트레이드오프)
 EXAMS = _load_json_dir("모의고사*.json", "exam_id")
 CHAPTERS = _load_json_dir("study_*.json", "chapter_id")
+KICHUL_EXAMS = _load_json_dir("기출동형*.json", "exam_id")  # 기출동형 문제 4회
 
 # ─── 지속형 워커 프로세스 풀 ──────────────────────────────────────────────────
 # subprocess.run()은 매 채점마다 Python 인터프리터를 새로 시작해 30초 이상 걸릴 수 있다.
@@ -433,3 +434,59 @@ def run_study_unit(chapter_id: str, body: StudyRunRequest, request: Request, _: 
         result["is_correct"] = None
         result["detail"] = None
     return result
+
+
+# ─── 기출동형 엔드포인트 ──────────────────────────────────────────────────────
+# 모의고사 엔드포인트와 구조가 동일하되, KICHUL_EXAMS 딕셔너리를 사용한다.
+
+def _get_kichul_exam(exam_id: str) -> dict:
+    exam = KICHUL_EXAMS.get(exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="kichul exam not found")
+    return exam
+
+
+@app.get("/api/kichul-exams")
+def list_kichul_exams(_: None = Depends(require_api_key)):
+    """기출동형 목록 반환."""
+    return [
+        {
+            "exam_id": e["exam_id"],
+            "title": e["title"],
+            "time_limit_minutes": e["time_limit_minutes"],
+            "total_points_v1": e["total_points_v1"],
+            "exam_type": e.get("exam_type", "kichul"),
+            "difficulty": e.get("difficulty", "-"),
+            "problem_count": len(e["problems"]),
+        }
+        for e in KICHUL_EXAMS.values()
+    ]
+
+
+@app.get("/api/kichul-exams/{exam_id}")
+def get_kichul_exam(exam_id: str, _: None = Depends(require_api_key)):
+    """특정 기출동형 상세 반환 (정답코드 base64, checks 숨김)."""
+    return _public_exam(_get_kichul_exam(exam_id))
+
+
+@app.post("/api/kichul-exams/{exam_id}/run")
+@limiter.limit("20/minute")
+def run_kichul_problem(exam_id: str, body: RunRequest, request: Request, _: None = Depends(require_api_key)):
+    """기출동형 문제 채점. 모의고사 채점(run_problem)과 동일 로직."""
+    exam = _get_kichul_exam(exam_id)
+    problem = _get_problem(exam, body.problem_no)
+
+    is_deep_learning = "딥러닝" in exam_id
+    timeout = 180.0 if is_deep_learning else 90.0
+
+    result = _run_worker(
+        exam.get("setup_code", ""),
+        body.code_by_problem,
+        body.current_code,
+        body.problem_no,
+        problem.get("checks", []),
+        problem.get("manual_review", False),
+        timeout,
+    )
+    return result
+

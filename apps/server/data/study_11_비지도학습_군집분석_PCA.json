@@ -5,39 +5,42 @@
   "sections": [
     {
       "no": 1,
-      "title": "지도학습과 비지도학습",
-      "theory_markdown": "### 📖 이론 설명\n지도학습(회귀·분류)은 정답(target)을 알려주고 \"이 입력이면 이 정답\"이라는 관계를 학습시킵니다. 반면 **비지도학습**은 정답 없이 데이터의 구조나 패턴만 보고 스스로 그룹을 나누거나(군집분석), 중요한 정보만 압축합니다(차원축소).\n\n문제 지문에 \"target 없이\", \"레이블 없이 그룹을 나누세요\" 같은 표현이 나오면 비지도학습 문제라는 신호입니다. 대표적으로 **군집분석(Clustering)**은 비슷한 데이터끼리 그룹으로 묶고, **차원축소(Dimensionality Reduction)**는 변수(컬럼) 개수를 줄이면서 정보 손실을 최소화합니다.",
-      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 구분 | 지도학습 | 비지도학습 |\n|---|---|---|\n| 정답(target) | 있음 | 없음 |\n| 목적 | 정답을 맞히는 모델 학습 | 데이터의 숨은 구조 파악 |\n| 대표 알고리즘 | 회귀, 분류 | 군집분석(K-Means), 차원축소(PCA) |\n| 평가 방법 | accuracy, r2 등 정답과 직접 비교 | 실루엣 계수 등 군집 자체의 응집도로 평가 |",
-      "example_code": "",
+      "title": "지도학습 vs 비지도학습 — 심층 비교 & 언제 무엇을 쓰나",
+      "theory_markdown": "### 📖 이론 설명\n\n#### 핵심 구분 원칙: \"정답(레이블)이 있는가?\"\n\n지도학습(회귀·분류)은 정답(target)을 알려주고 \"이 입력이면 이 정답\"이라는 관계를 학습시킵니다. 반면 **비지도학습**은 정답 없이 데이터의 구조나 패턴만 보고 스스로 그룹을 나누거나(군집분석), 중요한 정보만 압축합니다(차원축소).\n\n문제 지문에 \"target 없이\", \"레이블 없이 그룹을 나누세요\" 같은 표현이 나오면 비지도학습 문제라는 신호입니다.\n\n#### 현실에서 언제 비지도학습을 쓰는가?\n\n| 상황 | 방법 | 예시 |\n|---|---|---|\n| 정답 레이블이 없음 | 비지도학습 (군집분석) | 고객 세분화: VIP/일반/이탈 위험 그룹 나누기 |\n| 변수가 너무 많음 | 비지도학습 (PCA 차원축소) | 100개 특성 → 2~3개 주성분으로 압축 후 시각화 |\n| 정답이 있고 예측 필요 | 지도학습 (분류/회귀) | 이메일 스팸 여부 예측, 집값 예측 |\n| PCA 후 지도학습 | 결합 패턴 | 차원 축소 → 머신러닝 분류 정확도 개선 |\n\n#### 최적 군집 수 k 찾기: Elbow Method\nK-Means에서 k를 몇으로 할지는 데이터를 보고 결정해야 합니다. **Elbow Method**는 k를 1부터 늘려가며 **inertia(군집 내 거리 제곱합)** 값을 그래프로 그렸을 때, 기울기가 급격히 완만해지는 **꺾이는 지점(elbow)**이 최적 k입니다.\n\n```python\ninertias = []\nfor k in range(1, 11):\n    km = KMeans(n_clusters=k, random_state=42, n_init=10)\n    km.fit(X_scaled)\n    inertias.append(km.inertia_)\nplt.plot(range(1, 11), inertias, 'o-')\nplt.xlabel('k')\nplt.ylabel('Inertia')\nplt.title('Elbow Method')\nplt.show()  # 꺾이는 지점이 최적 k!\n```\n\n#### 실루엣 계수(Silhouette Score)로 군집 품질 평가\n실루엣 계수는 **-1~1** 사이 값으로, **1에 가까울수록** 군집이 잘 나뉜 것입니다. 0이면 군집 경계에 걸쳐있고, 음수이면 잘못된 군집에 배정된 것입니다.\n\n```python\nfrom sklearn.metrics import silhouette_score\nscore = silhouette_score(X_scaled, labels)  # labels = km.labels_\n```\n\n#### PCA + 지도학습 결합 패턴 (고득점 포인트)\n차원축소(PCA) 후 머신러닝 모델에 입력하는 패턴도 시험에 출제됩니다.\n```python\npca = PCA(n_components=2)  # 2개 주성분으로 압축\nX_pca = pca.fit_transform(X_scaled)  # shape: (150, 2)\n# 이후 X_pca를 분류/회귀 모델에 사용\n```",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 구분 | 지도학습 | 비지도학습 |\n|---|---|---|\n| 정답(target) | 있음 | **없음** |\n| 목적 | 정답을 맞히는 모델 학습 | 데이터의 숨은 구조 파악 |\n| 대표 알고리즘 | 회귀(LinearRegression), 분류(RandomForest) | 군집(K-Means), 차원축소(PCA) |\n| 평가 방법 | accuracy, r2 등 정답과 직접 비교 | 실루엣 계수, Elbow Method |\n| AICE 지문 신호 | \"예측하세요\", \"분류하세요\" | \"그룹 나누세요\", \"레이블 없이\", \"군집\" |\n| 최적 k 선택 | 해당 없음 | Elbow Method + 실루엣 계수 |\n| PCA 활용 | 입력 특성으로 사용 가능 | 차원 축소 + 시각화 |",
+      "example_code": "# Elbow Method로 최적 k 찾기\ninertias = []\nfor k in range(1, 8):\n    km = KMeans(n_clusters=k, random_state=42, n_init=10)\n    km.fit(X_scaled)\n    inertias.append(km.inertia_)\n\nplt.figure(figsize=(7, 4))\nplt.plot(range(1, 8), inertias, 'bo-')\nplt.xlabel('군집 수 k')\nplt.ylabel('Inertia (군집 내 거리 제곱합)')\nplt.title('Elbow Method — 꺾이는 지점이 최적 k')\nplt.axvline(x=3, color='red', linestyle='--', label='최적 k=3')\nplt.legend()\nplt.tight_layout()\nplt.show()\nprint('각 k별 inertia:', [round(v, 1) for v in inertias])",
       "practices": [
         {
           "no": 1,
           "prompt_markdown": "`iris`에서 `target` 컬럼을 제외한 특성만 `X_unsup`이라는 이름으로 저장하세요. (비지도학습은 target을 쓰지 않는다는 걸 코드로 직접 확인해봅니다.)",
           "answer_code": "X_unsup = iris.drop(columns=['target'])  # target 없이 특성(feature)만 남긴다 = 비지도학습 준비",
           "checks": [
-            {
-              "var": "X_unsup",
-              "attr": "shape",
-              "op": "eq",
-              "expected": [
-                150,
-                4
-              ]
-            },
-            {
-              "var": "iris",
-              "attr": "shape",
-              "op": "eq",
-              "expected": [
-                150,
-                5
-              ]
-            }
+            {"var": "X_unsup", "attr": "shape", "op": "eq", "expected": [150, 4]},
+            {"var": "iris", "attr": "shape", "op": "eq", "expected": [150, 5]}
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "**Elbow Method**로 최적 군집 수 k를 탐색하세요.\n\nk를 1부터 8까지 바꿔가며 `KMeans(n_clusters=k, random_state=42, n_init=10)`을 학습하고, 각 k별 `inertia_` 값을 리스트 `inertias`에 저장한 뒤 출력하세요.",
+          "answer_code": "inertias = []\nfor k in range(1, 9):\n    km_loop = KMeans(n_clusters=k, random_state=42, n_init=10)\n    km_loop.fit(X_scaled)\n    inertias.append(km_loop.inertia_)  # 군집 내 거리 제곱합\nprint('k별 inertia:', [round(v, 1) for v in inertias])\n# inertia가 급격히 줄다가 완만해지는 지점(elbow)이 최적 k",
+          "checks": [
+            {"var": "X_scaled", "attr": "shape", "op": "eq", "expected": [150, 4]}
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 3,
+          "prompt_markdown": "k=3으로 K-Means를 학습한 후, **실루엣 계수(silhouette_score)**를 `sil_score`에 저장하고 출력하세요.\n\n실루엣 계수는 0~1에 가까울수록 군집이 잘 나뉜 것입니다.",
+          "answer_code": "from sklearn.metrics import silhouette_score\nkm_final = KMeans(n_clusters=3, random_state=42, n_init=10)\nkm_final.fit(X_scaled)\nsil_score = silhouette_score(X_scaled, km_final.labels_)  # -1~1, 높을수록 좋은 군집\nprint(f'실루엣 계수: {sil_score:.4f}')\nprint('군집 품질:', '✅ 양호' if sil_score > 0.5 else '⚠️ 개선 필요')",
+          "checks": [
+            {"var": "X_scaled", "attr": "shape", "op": "eq", "expected": [150, 4]}
           ],
           "manual_review": false
         }
       ]
     },
+
     {
       "no": 2,
       "title": "K-Means 군집분석",

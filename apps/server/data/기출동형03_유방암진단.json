@@ -1,0 +1,210 @@
+{
+  "exam_id": "기출동형03_유방암진단",
+  "title": "기출동형 3회 — 유방암 진단 (이진분류)",
+  "time_limit_minutes": 90,
+  "exam_type": "kichul",
+  "difficulty": "중상",
+  "setup_code": "",
+  "total_points_v1": 100,
+  "problems": [
+    {
+      "no": 1,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`pandas`, `numpy`, `matplotlib.pyplot`을 각각 `pd`, `np`, `plt`로 불러오고, `data/breast_cancer.csv`를 `df`로 불러와 shape과 `target` 컬럼의 값 분포를 확인하세요.",
+      "answer_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\n\ndf = pd.read_csv('data/breast_cancer.csv')\nprint(df.shape)\nprint(df['target'].value_counts())",
+      "points": 7,
+      "checks": [
+        {
+          "var": "df",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            569,
+            31
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 2,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`df`의 결측치를 확인하고, 기술 통계(`describe()`)에서 수치형 컬럼의 평균값을 출력하세요. 또한 `target`별 각 수치 컬럼의 평균 차이를 `groupby`로 확인하세요.",
+      "answer_code": "print(df.isnull().sum().sum(), '개의 결측치')\nprint(df.describe().loc['mean'])\nprint(df.groupby('target').mean().T)",
+      "points": 8,
+      "checks": [
+        {
+          "var": "df",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            569,
+            31
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 3,
+      "session": "2교시: 데이터 전처리",
+      "prompt_markdown": "`target`을 `y`에, 나머지 컬럼을 `X`에 저장하세요. `train_test_split(test_size=0.2, random_state=42, stratify=y)`으로 분할하세요.",
+      "answer_code": "from sklearn.model_selection import train_test_split\n\ny = df['target']\nX = df.drop(columns=['target'])\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)\nprint('X_train shape:', X_train.shape)\nprint('class 분포:', y_train.value_counts().to_dict())",
+      "points": 8,
+      "checks": [
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            455,
+            30
+          ]
+        },
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            114,
+            30
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 4,
+      "session": "2교시: 데이터 전처리",
+      "prompt_markdown": "`StandardScaler`로 `X_train`, `X_test`를 스케일링하세요.",
+      "answer_code": "from sklearn.preprocessing import StandardScaler\n\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X_train)\nX_test = scaler.transform(X_test)\nprint('스케일링 완료. X_train:', X_train.shape)",
+      "points": 8,
+      "checks": [
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            455,
+            30
+          ]
+        },
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            114,
+            30
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 5,
+      "session": "3교시: 머신러닝 모델링",
+      "prompt_markdown": "`LogisticRegression(max_iter=1000, random_state=42)`으로 모델을 학습하고, `y_pred`에 예측값을, `y_prob`에 양성 클래스(1) 예측 확률을 저장하세요.",
+      "answer_code": "from sklearn.linear_model import LogisticRegression\n\nmodel = LogisticRegression(max_iter=1000, random_state=42)\nmodel.fit(X_train, y_train)\ny_pred = model.predict(X_test)\ny_prob = model.predict_proba(X_test)[:, 1]  # 양성(1) 클래스 확률\nprint('예측 완료. 첫 5개:', y_pred[:5])",
+      "points": 12,
+      "checks": [
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            455,
+            30
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 6,
+      "session": "3교시: 머신러닝 모델링",
+      "prompt_markdown": "모델 성능을 평가하세요:\n- `accuracy_score`를 `acc`에 저장 (4자리 출력)\n- `classification_report` 출력 (target_names=['악성(0)', '양성(1)'])",
+      "answer_code": "from sklearn.metrics import accuracy_score, classification_report\n\nacc = accuracy_score(y_test, y_pred)\nprint(f'Accuracy: {acc:.4f}')\nprint(classification_report(y_test, y_pred, target_names=['악성(0)', '양성(1)']))",
+      "points": 10,
+      "checks": [
+        {
+          "var": "acc",
+          "attr": "",
+          "op": "gte",
+          "expected": 0.93
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 7,
+      "session": "3교시: 머신러닝 모델링",
+      "prompt_markdown": "`confusion_matrix`를 구해 `cm`에 저장하고, 혼동행렬을 출력하세요. 또한 FP(거짓 양성)와 FN(거짓 음성) 개수를 각각 출력하세요.",
+      "answer_code": "from sklearn.metrics import confusion_matrix\n\ncm = confusion_matrix(y_test, y_pred)\nprint('혼동행렬:\\n', cm)\nTN, FP, FN, TP = cm.ravel()\nprint(f'FP(거짓 양성): {FP}  FN(거짓 음성): {FN}')",
+      "points": 10,
+      "checks": [
+        {
+          "var": "cm",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            2,
+            2
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 8,
+      "session": "3교시: 머신러닝 모델링",
+      "prompt_markdown": "ROC-AUC 점수를 `roc_auc`에 저장하고 출력하세요 (4자리). `y_prob`을 사용하세요.",
+      "answer_code": "from sklearn.metrics import roc_auc_score\n\nroc_auc = roc_auc_score(y_test, y_prob)\nprint(f'ROC-AUC: {roc_auc:.4f}')",
+      "points": 10,
+      "checks": [
+        {
+          "var": "roc_auc",
+          "attr": "",
+          "op": "gte",
+          "expected": 0.97
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 9,
+      "session": "3교시: 머신러닝 모델링",
+      "prompt_markdown": "`RandomForestClassifier(n_estimators=100, random_state=42)`로 두 번째 모델 `model_rf`를 학습하고, `y_pred_rf`를 구하세요. accuracy를 `acc_rf`에 저장하고 Logistic Regression과 비교하세요.",
+      "answer_code": "from sklearn.ensemble import RandomForestClassifier\n\nmodel_rf = RandomForestClassifier(n_estimators=100, random_state=42)\nmodel_rf.fit(X_train, y_train)\ny_pred_rf = model_rf.predict(X_test)\nacc_rf = accuracy_score(y_test, y_pred_rf)\nprint(f'RandomForest Accuracy: {acc_rf:.4f}')\nprint(f'LogisticRegression:    {acc:.4f}')\nprint('더 나은 모델:', 'RandomForest' if acc_rf > acc else 'LogisticRegression')",
+      "points": 12,
+      "checks": [
+        {
+          "var": "acc_rf",
+          "attr": "",
+          "op": "gte",
+          "expected": 0.93
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 10,
+      "session": "3교시: 머신러닝 모델링",
+      "prompt_markdown": "RandomForest 모델로 `X_test`에서 예측 확률이 0.9 이상인 샘플의 개수를 `high_confidence_count`에 저장하고 출력하세요.",
+      "answer_code": "import numpy as np\nproba_rf = model_rf.predict_proba(X_test)\nmax_proba = proba_rf.max(axis=1)\nhigh_confidence_count = int((max_proba >= 0.9).sum())\nprint(f'예측 확신도 90% 이상 샘플 수: {high_confidence_count}개 / 총 {len(X_test)}개')",
+      "points": 15,
+      "checks": [
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            114,
+            30
+          ]
+        }
+      ],
+      "manual_review": false
+    }
+  ]
+}

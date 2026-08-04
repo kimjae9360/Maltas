@@ -1,0 +1,215 @@
+{
+  "exam_id": "기출동형02_당뇨병진행도예측",
+  "title": "기출동형 2회 — 당뇨병 진행도 예측 (회귀)",
+  "time_limit_minutes": 90,
+  "exam_type": "kichul",
+  "difficulty": "중",
+  "setup_code": "",
+  "total_points_v1": 100,
+  "problems": [
+    {
+      "no": 1,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`pandas`, `numpy`를 `pd`, `np`로 불러오고, `data/diabetes.csv`를 `df`로 불러와 shape과 컬럼 목록을 확인하세요.",
+      "answer_code": "import pandas as pd\nimport numpy as np\n\ndf = pd.read_csv('data/diabetes.csv')\nprint(df.shape)\nprint(df.columns.tolist())",
+      "points": 7,
+      "checks": [
+        {
+          "var": "df",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            442,
+            11
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 2,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`df`의 결측치 현황을 확인하고, `target` 컬럼의 기술 통계(describe)를 출력하세요.",
+      "answer_code": "print(df.isnull().sum())\nprint(df['target'].describe())",
+      "points": 7,
+      "checks": [
+        {
+          "var": "df",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            442,
+            11
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 3,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "수치형 컬럼만 골라 `df_numeric`에 저장하고, `target`과 나머지 변수 간 상관계수를 구해 `target`과 상관관계가 가장 높은 컬럼 이름을 `top_feature`에 저장하세요.",
+      "answer_code": "df_numeric = df.select_dtypes(include='number')\ncorr = df_numeric.corr()['target'].drop('target').abs()\ntop_feature = corr.idxmax()\nprint('target과 가장 상관관계 높은 변수:', top_feature)\nprint('상관계수:', round(corr[top_feature], 4))",
+      "points": 8,
+      "checks": [
+        {
+          "var": "df_numeric",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            442,
+            11
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 4,
+      "session": "2교시: 데이터 전처리",
+      "prompt_markdown": "`X`에 `target`을 제외한 모든 컬럼을, `y`에 `target` 컬럼을 저장하세요. 이후 `train_test_split(test_size=0.2, random_state=42)`으로 분할하세요.",
+      "answer_code": "from sklearn.model_selection import train_test_split\n\nX = df.drop(columns=['target'])\ny = df['target']\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\nprint('X_train shape:', X_train.shape)",
+      "points": 8,
+      "checks": [
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            353,
+            10
+          ]
+        },
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            89,
+            10
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 5,
+      "session": "2교시: 데이터 전처리",
+      "prompt_markdown": "`StandardScaler`로 `X_train`, `X_test`를 스케일링하세요 (fit은 train에만 적용).",
+      "answer_code": "from sklearn.preprocessing import StandardScaler\n\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X_train)\nX_test = scaler.transform(X_test)\nprint('스케일링 완료. X_train 평균:', X_train.mean().round(4))",
+      "points": 8,
+      "checks": [
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            353,
+            10
+          ]
+        },
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            89,
+            10
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 6,
+      "session": "3교시: 머신러닝 모델링",
+      "prompt_markdown": "`LinearRegression()`으로 `model_lr`을 만들어 학습하고, `X_test`로 예측해 `y_pred_lr`에 저장하세요.",
+      "answer_code": "from sklearn.linear_model import LinearRegression\n\nmodel_lr = LinearRegression()\nmodel_lr.fit(X_train, y_train)\ny_pred_lr = model_lr.predict(X_test)\nprint('예측 첫 5개:', y_pred_lr[:5].round(2))",
+      "points": 10,
+      "checks": [
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            353,
+            10
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 7,
+      "session": "3교시: 머신러닝 모델링",
+      "prompt_markdown": "`RandomForestRegressor(n_estimators=100, random_state=42)`로 `model_rf`를 만들어 학습하고, `X_test`로 예측해 `y_pred_rf`에 저장하세요.",
+      "answer_code": "from sklearn.ensemble import RandomForestRegressor\n\nmodel_rf = RandomForestRegressor(n_estimators=100, random_state=42)\nmodel_rf.fit(X_train, y_train)\ny_pred_rf = model_rf.predict(X_test)\nprint('예측 첫 5개:', y_pred_rf[:5].round(2))",
+      "points": 10,
+      "checks": [
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            353,
+            10
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 8,
+      "session": "3교시: 머신러닝 모델링",
+      "prompt_markdown": "두 모델의 성능을 비교하세요. 각각 `r2_score`와 `mean_squared_error`를 구하고, 더 좋은 모델 이름을 `best_model_name` 변수에 문자열로 저장하세요.",
+      "answer_code": "from sklearn.metrics import r2_score, mean_squared_error\nimport numpy as np\n\nr2_lr = r2_score(y_test, y_pred_lr)\nr2_rf = r2_score(y_test, y_pred_rf)\nrmse_lr = np.sqrt(mean_squared_error(y_test, y_pred_lr))\nrmse_rf = np.sqrt(mean_squared_error(y_test, y_pred_rf))\n\nprint(f'LinearRegression  R²: {r2_lr:.4f}, RMSE: {rmse_lr:.2f}')\nprint(f'RandomForest      R²: {r2_rf:.4f}, RMSE: {rmse_rf:.2f}')\n\nbest_model_name = 'LinearRegression' if r2_lr >= r2_rf else 'RandomForest'\nprint('더 좋은 모델:', best_model_name)",
+      "points": 12,
+      "checks": [
+        {
+          "var": "r2_lr",
+          "attr": "",
+          "op": "gte",
+          "expected": 0.45
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 9,
+      "session": "3교시: 머신러닝 모델링",
+      "prompt_markdown": "RandomForest 모델의 특성 중요도를 `importance_series`라는 이름의 Series로 저장하고 (인덱스=컬럼명, 값=importance, 내림차순 정렬) 출력하세요.",
+      "answer_code": "X_cols = df.drop(columns=['target']).columns\nimportance_series = pd.Series(model_rf.feature_importances_, index=X_cols).sort_values(ascending=False)\nprint(importance_series.round(4))",
+      "points": 10,
+      "checks": [
+        {
+          "var": "importance_series",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            10
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 10,
+      "session": "3교시: 머신러닝 모델링",
+      "prompt_markdown": "RandomForest 모델로 `X_test`의 첫 3개 샘플을 예측하고, 실제값과 예측값, 오차(절대값)를 데이터프레임 `result_df`로 만들어 출력하세요.\n\n컬럼: `actual`, `predicted`, `error`",
+      "answer_code": "result_df = pd.DataFrame({\n    'actual': y_test.values[:3],\n    'predicted': y_pred_rf[:3].round(2),\n    'error': abs(y_test.values[:3] - y_pred_rf[:3]).round(2)\n})\nprint(result_df)",
+      "points": 20,
+      "checks": [
+        {
+          "var": "result_df",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            3,
+            3
+          ]
+        }
+      ],
+      "manual_review": false
+    }
+  ]
+}

@@ -5,11 +5,30 @@
   "sections": [
     {
       "no": 1,
-      "title": "이진분류 DL이란? 다중분류 DL과 무엇이 다른가",
-      "theory_markdown": "",
-      "concept_table_markdown": "",
-      "example_code": "",
-      "practices": []
+      "title": "🧠 인공신경망 학습 메커니즘 (역전파·활성화함수·손실함수)",
+      "theory_markdown": "### 📖 이론 설명\n\n#### 1. 인공신경망이란?\n인공신경망(Artificial Neural Network)은 사람의 뇌 신경세포(뉴런)에서 영감을 얻은 모델입니다. 입력값을 받아 가중치(weight)를 곱하고 편향(bias)을 더한 뒤, 활성화 함수를 통과시켜 다음 층으로 값을 전달합니다. 이 구조를 여러 층 쌓으면 **다층 퍼셉트론(MLP)**이 되고, 층이 깊어질수록 '딥러닝'이라 부릅니다.\n\n```\n입력층(Input) → 은닉층(Hidden) × n층 → 출력층(Output)\n```\n\n#### 2. 순전파(Forward Propagation)\n학습 시 데이터가 입력층부터 출력층까지 **앞쪽 방향**으로 한 번 흘러가며 예측값을 만드는 과정입니다. 각 층에서 `출력 = 활성화함수(가중치 × 입력 + 편향)` 연산이 반복됩니다.\n\n#### 3. 역전파(Backpropagation) — 핵심 학습 원리\n예측값과 실제값 사이의 **오차(Loss)**를 계산한 뒤, 그 오차를 **출력층 → 은닉층 → 입력층 방향(역방향)**으로 전파하면서 각 가중치가 오차에 얼마나 기여했는지(기울기, Gradient)를 계산합니다. 이 기울기를 이용해 **가중치를 조금씩 오차가 줄어드는 방향으로 업데이트**하는 것이 학습의 본질입니다.\n\n> **한 줄 요약**: 순전파로 예측 → 오차 계산 → 역전파로 기울기 계산 → 가중치 업데이트 → 반복\n\n#### 4. 활성화 함수(Activation Function) 선택 기준\n- **ReLU** (`relu`): 은닉층에 기본으로 사용. 음수는 0, 양수는 그대로 통과. 기울기 소실 문제 완화.\n- **Sigmoid** (`sigmoid`): **이진분류 출력층**에 사용. 0~1 사이 확률값으로 변환.\n- **Softmax** (`softmax`): **다중분류 출력층**에 사용. 모든 클래스 확률의 합이 1.\n- **Linear** (없음/`linear`): **회귀 출력층**에 사용. 실수값을 그대로 출력.\n\n#### 5. 손실함수(Loss Function) 선택 기준\n손실함수는 예측값과 실제값의 차이를 수치로 표현하는 함수입니다. 문제 유형별 표준 선택:\n- **이진분류**: `binary_crossentropy`\n- **다중분류**: `categorical_crossentropy` (원핫) / `sparse_categorical_crossentropy` (정수 레이블)\n- **회귀**: `mse` (Mean Squared Error)\n\n#### 6. Epoch / Batch / Learning Rate\n- **Epoch**: 전체 학습 데이터를 한 번 다 훑는 단위. `epochs=100`이면 100번 반복.\n- **Batch Size**: 가중치를 한 번 업데이트하는 데 사용하는 데이터 묶음 크기. 기본값 32.\n- **Learning Rate (학습률)**: 가중치를 얼마나 크게 업데이트할지 결정. `Adam` 옵티마이저는 자동 조정.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 개념 | 설명 | AICE 시험 포인트 |\n|---|---|---|\n| 순전파 | 입력 → 출력 방향으로 예측값 계산 | 모델 구조를 층 순서대로 쌓는 이유 |\n| 역전파 | 오차를 역방향으로 전파해 기울기 계산 | EarlyStopping이 val_loss 기준인 이유 |\n| ReLU | 은닉층 기본 활성화 함수 | `activation='relu'` |\n| Sigmoid | 이진분류 출력층 | 노드 1개 + `activation='sigmoid'` |\n| Softmax | 다중분류 출력층 | 노드 = 클래스 수 + `activation='softmax'` |\n| binary_crossentropy | 이진분류 손실함수 | `loss='binary_crossentropy'` |\n| Epoch | 전체 데이터 1회 학습 | `epochs=` 파라미터 |\n| Batch Size | 1회 업데이트 데이터 묶음 | `batch_size=` 파라미터 |\n| Adam | 자동 학습률 조정 옵티마이저 | `optimizer='adam'` |",
+      "example_code": "# 딥러닝 학습 과정 시각화 — 역전파가 어떻게 모델을 개선하는지 확인\nimport tensorflow as tf\nfrom tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\n\n# 간단한 이진분류 모델 (이진분류: 출력 노드 1개 + sigmoid)\nmodel_demo = Sequential([\n    Dense(8, activation='relu', input_shape=(X_train.shape[1],)),  # 은닉층: relu\n    Dense(1, activation='sigmoid')                                  # 출력층: sigmoid (이진분류)\n])\nmodel_demo.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])\n\n# epochs=5: 5번만 학습해서 loss가 줄어드는 것(= 역전파 효과)을 직접 확인\nhistory = model_demo.fit(X_train, y_train, epochs=5, batch_size=32, validation_split=0.2, verbose=1)\nprint('\\n초기 loss → 최종 loss:', round(history.history[\"loss\"][0], 4), '→', round(history.history[\"loss\"][-1], 4))\nprint('역전파가 반복될수록 loss가 줄어드는 것이 학습입니다.')",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "이진분류에서 출력층의 노드 수와 활성화 함수를 올바르게 선택한 `model_q1`을 만드세요.\n- 은닉층: `Dense(16, activation='relu')`, `Dense(8, activation='relu')`\n- **출력층**: 이진분류 기준으로 노드 수와 activation을 직접 결정하세요.\n\n(힌트: 이진분류 출력층 = 노드 1개 + sigmoid)",
+          "answer_code": "model_q1 = Sequential([\n    Dense(16, activation='relu', input_shape=(X_train.shape[1],)),\n    Dense(8, activation='relu'),\n    Dense(1, activation='sigmoid')  # 이진분류: 노드 1개 + sigmoid\n])\nmodel_q1.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])\nmodel_q1.summary()",
+          "checks": [
+            {"var": "X_train", "attr": "shape", "op": "eq", "expected": [712, 8]}
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "딥러닝 학습 시 **과적합(Overfitting)**이 발생했는지 판단하는 기준을 코드로 확인하세요.\n\n`model_q1`을 `epochs=30`으로 학습한 뒤 `history`에 저장하고, 마지막 epoch의 `train accuracy`와 `val_accuracy`를 출력하세요.\n(train accuracy가 val_accuracy보다 크게 높으면 과적합 신호입니다.)",
+          "answer_code": "history = model_q1.fit(\n    X_train, y_train,\n    epochs=30,\n    batch_size=32,\n    validation_split=0.2,\n    verbose=0  # 학습 로그 생략\n)\ntrain_acc = history.history['accuracy'][-1]\nval_acc = history.history['val_accuracy'][-1]\nprint(f'Train Accuracy: {train_acc:.4f}')\nprint(f'Val Accuracy  : {val_acc:.4f}')\nprint('과적합 여부:', '⚠️ 과적합 의심' if train_acc - val_acc > 0.05 else '✅ 양호')",
+          "checks": [
+            {"var": "X_train", "attr": "shape", "op": "eq", "expected": [712, 8]}
+          ],
+          "manual_review": false
+        }
+      ]
     },
     {
       "no": 2,

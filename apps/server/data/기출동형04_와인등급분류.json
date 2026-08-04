@@ -1,0 +1,220 @@
+{
+  "exam_id": "기출동형04_와인등급분류",
+  "title": "기출동형 4회 — 와인 등급 분류 (다중분류)",
+  "time_limit_minutes": 90,
+  "exam_type": "kichul",
+  "difficulty": "중상",
+  "setup_code": "",
+  "total_points_v1": 100,
+  "problems": [
+    {
+      "no": 1,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`pandas`, `numpy`를 `pd`, `np`로 불러오고, `data/wine.csv`를 `df`로 불러와 shape과 `target` 컬럼의 클래스 분포를 확인하세요.",
+      "answer_code": "import pandas as pd\nimport numpy as np\n\ndf = pd.read_csv('data/wine.csv')\nprint(df.shape)\nprint(df['target'].value_counts())",
+      "points": 7,
+      "checks": [
+        {
+          "var": "df",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            178,
+            14
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 2,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`df`의 결측치를 확인하고, 수치형 컬럼만 골라 컬럼별 표준편차를 구해 표준편차가 가장 큰 컬럼 이름을 `max_std_col`에 저장하세요.",
+      "answer_code": "print(df.isnull().sum().sum(), '개 결측치')\nnum_df = df.select_dtypes(include='number').drop(columns=['target'])\nmax_std_col = num_df.std().idxmax()\nprint('표준편차 최대 컬럼:', max_std_col, '/ 값:', round(num_df.std()[max_std_col], 4))",
+      "points": 8,
+      "checks": [
+        {
+          "var": "df",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            178,
+            14
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 3,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`target` 클래스별 `alcohol` 평균을 구하고, `target`과 `alcohol`의 상관계수를 출력하세요.",
+      "answer_code": "print(df.groupby('target')['alcohol'].mean())\nprint('target-alcohol 상관계수:', round(df['target'].corr(df['alcohol']), 4))",
+      "points": 8,
+      "checks": [
+        {
+          "var": "df",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            178,
+            14
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 4,
+      "session": "2교시: 데이터 전처리",
+      "prompt_markdown": "`target`을 `y`에, 나머지를 `X`에 저장하세요. `train_test_split(test_size=0.2, random_state=42, stratify=y)`으로 분할하세요.",
+      "answer_code": "from sklearn.model_selection import train_test_split\n\ny = df['target']\nX = df.drop(columns=['target'])\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)\nprint('X_train:', X_train.shape, 'X_test:', X_test.shape)",
+      "points": 8,
+      "checks": [
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            142,
+            13
+          ]
+        },
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            36,
+            13
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 5,
+      "session": "2교시: 데이터 전처리",
+      "prompt_markdown": "`StandardScaler`로 스케일링하고, `X_train`의 평균이 거의 0에 가까운지 확인하세요.",
+      "answer_code": "from sklearn.preprocessing import StandardScaler\n\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X_train)\nX_test = scaler.transform(X_test)\nprint('X_train 평균 (0에 가까워야 함):', X_train.mean().round(6))",
+      "points": 8,
+      "checks": [
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            142,
+            13
+          ]
+        },
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            36,
+            13
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 6,
+      "session": "3교시: 머신러닝 모델링",
+      "prompt_markdown": "3가지 모델을 각각 학습하고 accuracy를 비교하세요:\n- `DecisionTreeClassifier(random_state=42)`\n- `RandomForestClassifier(n_estimators=100, random_state=42)`\n- `GradientBoostingClassifier(n_estimators=100, random_state=42)`\n\n각 모델의 accuracy를 `acc_dt`, `acc_rf`, `acc_gb`에 저장하세요.",
+      "answer_code": "from sklearn.tree import DecisionTreeClassifier\nfrom sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier\nfrom sklearn.metrics import accuracy_score\n\ndt = DecisionTreeClassifier(random_state=42)\ndt.fit(X_train, y_train)\nacc_dt = accuracy_score(y_test, dt.predict(X_test))\n\nrf = RandomForestClassifier(n_estimators=100, random_state=42)\nrf.fit(X_train, y_train)\nacc_rf = accuracy_score(y_test, rf.predict(X_test))\n\ngb = GradientBoostingClassifier(n_estimators=100, random_state=42)\ngb.fit(X_train, y_train)\nacc_gb = accuracy_score(y_test, gb.predict(X_test))\n\nprint(f'DecisionTree: {acc_dt:.4f}')\nprint(f'RandomForest: {acc_rf:.4f}')\nprint(f'GradientBoosting: {acc_gb:.4f}')",
+      "points": 15,
+      "checks": [
+        {
+          "var": "acc_rf",
+          "attr": "",
+          "op": "gte",
+          "expected": 0.95
+        },
+        {
+          "var": "acc_gb",
+          "attr": "",
+          "op": "gte",
+          "expected": 0.95
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 7,
+      "session": "3교시: 머신러닝 모델링",
+      "prompt_markdown": "가장 높은 accuracy의 모델 이름을 `best_name` 변수에 저장하고, 해당 모델의 `classification_report`를 출력하세요.",
+      "answer_code": "results = {'DecisionTree': (acc_dt, dt), 'RandomForest': (acc_rf, rf), 'GradientBoosting': (acc_gb, gb)}\nbest_name = max(results, key=lambda k: results[k][0])\nbest_model = results[best_name][1]\ny_pred_best = best_model.predict(X_test)\nprint('최고 모델:', best_name, f'(Accuracy: {results[best_name][0]:.4f})')\nfrom sklearn.metrics import classification_report\nprint(classification_report(y_test, y_pred_best))",
+      "points": 12,
+      "checks": [
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            36,
+            13
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 8,
+      "session": "3교시: 머신러닝 모델링",
+      "prompt_markdown": "RandomForest 모델의 특성 중요도 상위 5개를 `top5_features` (Series, 내림차순 정렬)에 저장하고 출력하세요.",
+      "answer_code": "X_cols = df.drop(columns=['target']).columns\ntop5_features = pd.Series(rf.feature_importances_, index=X_cols).sort_values(ascending=False).head(5)\nprint('상위 5개 특성 중요도:')\nprint(top5_features.round(4))",
+      "points": 10,
+      "checks": [
+        {
+          "var": "top5_features",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            5
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 9,
+      "session": "3교시: 머신러닝 모델링",
+      "prompt_markdown": "RandomForest 모델의 `cross_val_score`(cv=5, scoring='accuracy')를 구해 `cv_scores`에 저장하고, 평균과 표준편차를 출력하세요.",
+      "answer_code": "from sklearn.model_selection import cross_val_score\nimport numpy as np\n\ncv_scores = cross_val_score(rf, X_train, y_train, cv=5, scoring='accuracy')\nprint('CV Scores:', cv_scores.round(4))\nprint(f'평균: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}')",
+      "points": 10,
+      "checks": [
+        {
+          "var": "cv_scores",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            5
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 10,
+      "session": "3교시: 머신러닝 모델링",
+      "prompt_markdown": "RandomForest 모델로 `X_test` 전체를 예측하고, 예측이 틀린 샘플의 인덱스를 `wrong_idx`에 저장하세요. 틀린 샘플 수를 출력하고, 해당 샘플의 실제값과 예측값을 데이터프레임으로 출력하세요.",
+      "answer_code": "import numpy as np\ny_pred_rf = rf.predict(X_test)\nwrong_idx = np.where(y_pred_rf != y_test.values)[0]\nprint(f'틀린 샘플 수: {len(wrong_idx)}개')\nwrong_df = pd.DataFrame({'actual': y_test.values[wrong_idx], 'predicted': y_pred_rf[wrong_idx]})\nprint(wrong_df)",
+      "points": 14,
+      "checks": [
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            36,
+            13
+          ]
+        }
+      ],
+      "manual_review": false
+    }
+  ]
+}

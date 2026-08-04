@@ -75,6 +75,11 @@ export interface ExamSummary {
   problem_count: number;
 }
 
+export interface KichulExamSummary extends ExamSummary {
+  exam_type: string;
+  difficulty: string;  // '중', '중상' 등
+}
+
 export interface ExamProblem {
   no: number;
   session: string;
@@ -169,4 +174,17 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+
+  // 기출동형 API — 모의고사와 동일한 구조이지만 /kichul-exams 엔드포인트를 사용한다.
+  listKichulExams: () => request<KichulExamSummary[]>("/api/kichul-exams"),
+  getKichulExam: (examId: string) => request<ExamDetail>(`/api/kichul-exams/${encodeURIComponent(examId)}`),
+  runKichulProblem: (
+    examId: string,
+    body: { problem_no: number; current_code: string; code_by_problem: Record<string, string> }
+  ) =>
+    request<RunResult>(`/api/kichul-exams/${encodeURIComponent(examId)}/run`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 };
+

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { api, ExamDetail, RunResult } from "@/lib/api";
 import { ExamSession, examStorage } from "@/lib/storage";
 import { ExamProblemCard } from "@/components/ExamProblemCard";
@@ -28,6 +28,9 @@ export default function ExamPage() {
   // 방어적으로 한 번 더 디코딩한다(순수 텍스트는 decodeURIComponent를 걸어도 그대로 반환된다).
   const examId = decodeURIComponent(rawExamId);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // type=kichul 쿼리 파라미터가 있으면 기출동형 API를 사용한다.
+  const isKichul = searchParams.get("type") === "kichul";
 
   // --- 이 화면이 들고 있는 상태들 ---
   const [exam, setExam] = useState<ExamDetail | null>(null);            // 서버에서 받아온 시험 문제 데이터
@@ -75,8 +78,10 @@ export default function ExamPage() {
   // 1) 페이지 진입 시 서버에서 이 시험의 문제 데이터를 가져온다.
   useEffect(() => {
     api.ping(); // Render cold start 방지
-    api.getExam(examId).then(setExam).catch(() => setLoadError(true));
-  }, [examId]);
+    // 기출동형과 모의고사를 다른 엔드포인트로 구분해서 호출한다.
+    const loadFn = isKichul ? api.getKichulExam(examId) : api.getExam(examId);
+    loadFn.then(setExam).catch(() => setLoadError(true));
+  }, [examId, isKichul]);
 
   // 2) 문제 데이터를 받아온 뒤(exam이 채워진 뒤), "이어서 풀 세션이 있는지" 확인하고
   //    없으면 새 세션을 만든다.
@@ -198,11 +203,19 @@ export default function ExamPage() {
     if (!s || !exam || runningNo !== null) return;
     setRunningNo(no);
     try {
-      const res = await api.runProblem(exam.exam_id, {
-        problem_no: no,
-        current_code: getCode(no),
-        code_by_problem: s.code_by_problem,
-      });
+      // 기출동형이면 kichul 엔드포인트, 모의고사면 일반 엔드포인트를 사용한다.
+      const runFn = isKichul
+        ? api.runKichulProblem(exam.exam_id, {
+            problem_no: no,
+            current_code: getCode(no),
+            code_by_problem: s.code_by_problem,
+          })
+        : api.runProblem(exam.exam_id, {
+            problem_no: no,
+            current_code: getCode(no),
+            code_by_problem: s.code_by_problem,
+          });
+      const res = await runFn;
       setLastRuns((prev) => ({ ...prev, [no]: res }));
 
       // ⚠️ 경쟁 상태(race condition) 방지: 위 await가 끝나길 기다리는 동안, 사용자가 다른
