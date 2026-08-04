@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import Link from "next/link";
+import { ServerPinger } from "@/components/ServerPinger";
 import "./globals.css";
 // 이 파일은 Next.js App Router의 "루트 레이아웃" — app/ 폴더 아래 모든 페이지가 공통으로
 // 이 안에 감싸져서 렌더링된다. 여기 적어둔 <header>(상단 네비게이션 바)는 페이지를 이동해도
@@ -54,6 +55,7 @@ export default function RootLayout({
               enableSystem={false}: OS가 다크 모드여도 "시스템 설정을 따라가지 않고" 무조건
               라이트로 시작하게 강제 — 사용자가 화이트 테마를 기본으로 원했기 때문. 다만 이후
               ThemeToggle 버튼으로 사용자가 직접 다크로 바꾸는 것 자체는 막지 않는다. */}
+          <ServerPinger />
           <header className="sticky top-0 z-50 flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)]/95 px-4 py-2.5 backdrop-blur">
             {/* sticky top-0: 페이지를 아래로 스크롤해도 이 헤더는 화면 맨 위에 계속 붙어있는다.
                 bg-.../95 + backdrop-blur: 배경을 95% 불투명 + 블러 처리해서, 헤더 뒤로 콘텐츠가

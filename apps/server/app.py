@@ -16,6 +16,7 @@ import os
 import sys
 import json
 import glob
+import base64
 from concurrent.futures import ProcessPoolExecutor, TimeoutError as FuturesTimeout
 
 from fastapi import FastAPI, HTTPException, Header, Depends
@@ -227,12 +228,11 @@ def _get_problem(exam: dict, no: int) -> dict:
 
 
 def _public_exam(exam: dict) -> dict:
-    """exam 데이터에서 "정답이 드러나는 필드(answer_code, checks)"를 뺀, 프론트에 내려줘도 안전한 버전.
+    """exam 데이터에서 checks(채점 조건)는 숨기고, answer_code는 base64로 인코딩해서 내려준다.
 
-    왜 굳이 이렇게 따로 만들까? EXAMS 딕셔너리에는 answer_code(정답 코드)와 checks(채점 조건)가
-    그대로 들어있는데, 이걸 그대로 프론트에 보내버리면 사용자가 브라우저 개발자도구 네트워크 탭에서
-    정답을 그냥 볼 수 있게 된다. 그래서 "문제를 푸는 화면"에 필요한 필드만 골라서 새 딕셔너리를
-    만들어 돌려준다 — 서버 메모리 안의 원본(EXAMS)에는 정답이 그대로 남아있고, 응답에만 없는 것.
+    예전에는 정답 코드(answer_code)를 통째로 빼서 API 호출로만 볼 수 있게 했으나,
+    서버 절전 모드(Cold Start) 시 50초 딜레이가 발생하는 문제를 해결하기 위해,
+    프론트에 미리 내려주되 네트워크 탭에서 무심코 읽히는 것을 방지하고자 base64로 감싸서 보낸다.
     """
     return {
         "exam_id": exam["exam_id"],
@@ -241,7 +241,13 @@ def _public_exam(exam: dict) -> dict:
         "total_points_v1": exam["total_points_v1"],
         "setup_code": exam.get("setup_code", ""),
         "problems": [
-            {"no": p["no"], "session": p["session"], "prompt_markdown": p["prompt_markdown"], "points": p["points"]}
+            {
+                "no": p["no"],
+                "session": p["session"],
+                "prompt_markdown": p["prompt_markdown"],
+                "points": p["points"],
+                "answer_code_b64": base64.b64encode(p["answer_code"].encode("utf-8")).decode("ascii") if "answer_code" in p else ""
+            }
             for p in exam["problems"]
         ],
     }
@@ -309,17 +315,13 @@ def run_problem(exam_id: str, body: RunRequest, request: Request, _: None = Depe
     # FastAPI는 함수가 딕셔너리를 return하면 자동으로 JSON 응답으로 변환해준다.
 
 
-@app.get("/api/exams/{exam_id}/problems/{no}/answer")
-def get_answer(exam_id: str, no: int, _: None = Depends(require_api_key)):
-    """"정답 보기" 버튼을 눌렀을 때만 호출되는 엔드포인트 — 이때만 answer_code를 내려준다.
-
-    평소 문제 목록/상세 조회(get_exam)에서는 answer_code를 절대 안 보내다가, 사용자가
-    명시적으로 정답 보기를 요청했을 때만 이 별도 엔드포인트로 노출하는 구조.
+@app.get("/api/ping")
+def ping():
+    """서버 깨우기(Pre-warming)용 엔드포인트.
+    프론트엔드에서 앱 진입 시 백그라운드로 이 엔드포인트를 호출하여
+    서버가 절전 모드(Cold Start)에서 미리 깨어나도록 유도한다.
     """
-    exam = _get_exam(exam_id)
-    problem = _get_problem(exam, no)
-    return {"answer_code": problem["answer_code"]}
-
+    return {"status": "awake"}
 
 # ---- 학습 모드 (이론 공부 / 실무 연습) ----
 # 데스크톱(ui/study_window.py)과 동일한 "unit index" 방식을 그대로 쓴다:
@@ -349,7 +351,12 @@ def _public_chapter(chapter: dict) -> dict:
                 "concept_table_markdown": s.get("concept_table_markdown", ""),
                 "example_code": s.get("example_code", ""),
                 "practices": [
-                    {"no": p["no"], "prompt_markdown": p["prompt_markdown"], "starter_code": p.get("starter_code", "")}
+                    {
+                        "no": p["no"],
+                        "prompt_markdown": p["prompt_markdown"],
+                        "starter_code": p.get("starter_code", ""),
+                        "answer_code_b64": base64.b64encode(p["answer_code"].encode("utf-8")).decode("ascii") if "answer_code" in p else ""
+                    }
                     for p in s["practices"]
                 ],
             }
@@ -426,12 +433,3 @@ def run_study_unit(chapter_id: str, body: StudyRunRequest, request: Request, _: 
         result["is_correct"] = None
         result["detail"] = None
     return result
-
-
-@app.get("/api/study/{chapter_id}/practice/{unit}/answer")
-def get_practice_answer(chapter_id: str, unit: int, _: None = Depends(require_api_key)):
-    chapter = _get_chapter(chapter_id)
-    section, practice = _find_section_practice(chapter, unit)
-    if not practice:
-        raise HTTPException(status_code=400, detail="example code has no answer")
-    return {"answer_code": practice["answer_code"]}

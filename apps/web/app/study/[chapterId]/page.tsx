@@ -183,8 +183,18 @@ export default function StudyChapterPage() {
   const revealAnswer = async (unit: number) => {
     const s = sessionRef.current;
     if (!s || !chapter) return;
-    const res = await api.getPracticeAnswer(chapter.chapter_id, unit);
-    setAnswers((prev) => ({ ...prev, [unit]: res.answer_code }));
+
+    // API 통신 없이 프론트엔드에 전달된 base64 인코딩 정답을 즉시 디코딩
+    const sectionNo = Math.floor(unit / 100);
+    const practiceNo = unit % 100;
+    const currentSection = chapter.sections.find((sec) => sec.no === sectionNo);
+    const practice = currentSection?.practices.find((p) => p.no === practiceNo);
+    
+    if (practice && practice.answer_code_b64) {
+      // 한글 주석 등이 포함된 utf-8 문자열의 경우 atob 단독 사용 시 깨지므로 escape와 decodeURIComponent를 조합
+      const decodedAnswer = decodeURIComponent(escape(atob(practice.answer_code_b64)));
+      setAnswers((prev) => ({ ...prev, [unit]: decodedAnswer }));
+    }
 
     // runPractice와 동일한 이유로 await 이후에는 최신 세션을 다시 읽어서 병합한다.
     // (runExample/runPractice와 달리 이 함수는 runningUnit을 건드리지 않아서 버튼이 안

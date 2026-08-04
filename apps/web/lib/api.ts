@@ -80,6 +80,7 @@ export interface ExamProblem {
   session: string;
   prompt_markdown: string;
   points: number;
+  answer_code_b64: string;
 }
 
 export interface ExamDetail {
@@ -112,6 +113,7 @@ export interface StudyPractice {
   no: number;
   prompt_markdown: string;
   starter_code: string;
+  answer_code_b64: string;
 }
 
 export interface StudySection {
@@ -142,21 +144,15 @@ export interface StudyRunResult {
 // 예: import { api } from "@/lib/api"; ... await api.getExam(examId)
 export const api = {
   /** 서버를 미리 깨워두는 ping (Render free-tier cold start 방지용) */
-  // Render 무료 티어는 15분간 요청이 없으면 서버가 잠들었다가(sleep), 다음 요청이 올 때 다시
-  // 깨어나는 데 수십 초가 걸린다. 그래서 사용자가 홈 화면에 들어오자마자(문제를 풀기 전에)
-  // 이 ping을 미리 한 번 날려서, 실제로 채점 버튼을 누를 때는 서버가 이미 깨어있게 만드는 것.
   ping: () =>
-    fetch(`${API_BASE}/api/exams`, {
+    fetch(`${API_BASE}/api/ping`, {
       method: "GET",
       headers: API_KEY ? { "X-API-Key": API_KEY } : {},
       signal: AbortSignal.timeout(5000),
-    }).catch(() => {}), // 실패해도 무시 — 이건 어디까지나 "미리 깨워두기"일 뿐, 실패해도 사용자 경험에 영향 없어야 한다
+    }).catch(() => {}),
 
   listExams: () => request<ExamSummary[]>("/api/exams"),
   getExam: (examId: string) => request<ExamDetail>(`/api/exams/${encodeURIComponent(examId)}`),
-  // encodeURIComponent: "모의고사01_Titanic_생존자예측" 같은 한글/특수문자가 섞인 문자열을
-  // URL 안에 안전하게 넣을 수 있도록 퍼센트 인코딩(%EB%AA%A8...)으로 바꿔준다. 이게 없으면
-  // 한글이 그대로 URL에 들어가면서 서버가 요청을 잘못 해석할 수 있다.
   runProblem: (
     examId: string,
     body: { problem_no: number; current_code: string; code_by_problem: Record<string, string> }
@@ -164,11 +160,7 @@ export const api = {
     request<RunResult>(`/api/exams/${encodeURIComponent(examId)}/run`, {
       method: "POST",
       body: JSON.stringify(body),
-      // JSON.stringify로 JS 객체를 문자열로 바꿔야 fetch의 body로 보낼 수 있다.
-      // 서버(FastAPI)는 이 문자열을 다시 파싱해서 RunRequest 모델로 되살린다.
     }),
-  getAnswer: (examId: string, no: number) =>
-    request<{ answer_code: string }>(`/api/exams/${encodeURIComponent(examId)}/problems/${no}/answer`),
 
   listChapters: () => request<ChapterSummary[]>("/api/study"),
   getChapter: (chapterId: string) => request<ChapterDetail>(`/api/study/${encodeURIComponent(chapterId)}`),
@@ -177,6 +169,4 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
-  getPracticeAnswer: (chapterId: string, unit: number) =>
-    request<{ answer_code: string }>(`/api/study/${encodeURIComponent(chapterId)}/practice/${unit}/answer`),
 };

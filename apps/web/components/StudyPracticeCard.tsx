@@ -85,8 +85,6 @@ export function StudyPracticeCard({
       : "border-l-4 border-l-[var(--warn)]"
     : "border-l-4 border-l-transparent";
 
-  const [isRevealing, setIsRevealing] = useState(false);
-
   return (
     <div ref={cardRef} className={`card ${statusColor} p-5`}>
       <div className="mb-2 flex items-center justify-between">
@@ -107,27 +105,20 @@ export function StudyPracticeCard({
       <div className="mt-3 flex items-center gap-2">
         <button
           onClick={onRun}
-          disabled={disabled || isRevealing}
+          disabled={disabled}
           className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-bold text-white transition hover:bg-[var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {running ? getRunningMsg(elapsed) : "✅ 채점하기"}
         </button>
         <button
-          onClick={async () => {
+          onClick={() => {
             setTab("answer");
-            setIsRevealing(true);
-            try {
-              await onReveal();
-            } catch (err: any) {
-              alert(err.message || "정답을 불러오는 데 실패했습니다.");
-            } finally {
-              setIsRevealing(false);
-            }
+            onReveal();
           }}
-          disabled={disabled || isRevealing}
+          disabled={disabled}
           className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--muted)] transition hover:text-[var(--foreground)] disabled:opacity-50"
         >
-          {isRevealing ? "불러오는 중..." : "💡 힌트 / 정답 보기"}
+          💡 힌트 / 정답 보기
         </button>
       </div>
 

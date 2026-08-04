@@ -237,8 +237,13 @@ export default function ExamPage() {
   const revealAnswer = async (no: number) => {
     const s = sessionRef.current;
     if (!s || !exam) return;
-    const res = await api.getAnswer(exam.exam_id, no);
-    setAnswers((prev) => ({ ...prev, [no]: res.answer_code }));
+
+    // API 통신 없이 프론트엔드에 전달된 base64 인코딩 정답을 즉시 디코딩
+    const problem = exam.problems.find((p) => p.no === no);
+    if (problem && problem.answer_code_b64) {
+      const decodedAnswer = decodeURIComponent(escape(atob(problem.answer_code_b64)));
+      setAnswers((prev) => ({ ...prev, [no]: decodedAnswer }));
+    }
 
     // runProblem과 동일한 이유로, await 이후에는 s(낡은 스냅샷)가 아니라 sessionRef.current를
     // 다시 읽어서 최신 상태 위에 병합한다. revealAnswer는 runningNo를 건드리지 않아서(버튼이

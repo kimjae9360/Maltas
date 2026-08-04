@@ -53,7 +53,6 @@ export function ExamProblemCard({
   // 이건 다른 문제로 넘어가면 다시 초기화돼도 되는 순전히 이 카드만의 화면 상태라서,
   // 부모가 아니라 이 컴포넌트 안에서 useState로 직접 관리한다(제어 컴포넌트 패턴의 예외).
   const [tab, setTab] = useState<"console" | "plot" | "answer">("console");
-  const [isRevealing, setIsRevealing] = useState(false);
 
   // 채점 결과에 따라 카드 왼쪽 테두리 색을 다르게 — 정답(초록)/오답(빨강)/미채점(투명)을
   // 한눈에 구분할 수 있게 해서, 여러 문제를 쭉 내려보며 스크롤할 때 상태 파악이 쉽도록 한다.
@@ -94,27 +93,20 @@ export function ExamProblemCard({
       <div className="mt-3 flex items-center gap-2">
         <button
           onClick={onRun}
-          disabled={disabled || isRevealing}
+          disabled={disabled}
           className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-bold text-white transition hover:bg-[var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {running ? "실행 중..." : "▶ 실행"}
         </button>
         <button
-          onClick={async () => {
+          onClick={() => {
             setTab("answer");
-            setIsRevealing(true);
-            try {
-              await onReveal();
-            } catch (err: any) {
-              alert(err.message || "정답을 불러오는 데 실패했습니다.");
-            } finally {
-              setIsRevealing(false);
-            }
+            onReveal();
           }}
-          disabled={disabled || revealed || isRevealing}
+          disabled={disabled || revealed}
           className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--muted)] transition hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isRevealing ? "불러오는 중..." : "정답 보기"}
+          정답 보기
         </button>
         {result && (
           <span className={`text-sm font-bold ${result.is_correct ? "text-[var(--ok)]" : "text-[var(--bad)]"}`}>
