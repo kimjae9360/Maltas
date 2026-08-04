@@ -360,22 +360,28 @@ export default function StudyChapterPage() {
           <div className="flex flex-col gap-5">
             <h2 className="text-xl font-extrabold">📝 복습 모드 — 못 풀었거나 정답을 본 문제</h2>
             {wrongItems.length === 0 && <p className="text-[var(--muted)]">복습할 문제가 없어요. 🎉</p>}
-            {wrongItems.map(({ practice, unit }) => (
-              <StudyPracticeCard
-                key={unit}
-                practice={practice}
-                code={getPracticeCode(unit, practice.starter_code)}
-                onCodeChange={(c) => setPracticeCode(unit, c)}
-                onRun={() => runPractice(unit, getPracticeCode(unit, practice.starter_code))}
-                running={runningUnit === unit}
-                disabled={runningUnit !== null}
-                result={session.practice_results_by_unit[String(unit)]}
-                lastRun={lastRuns[unit]}
-                revealed={session.practice_results_by_unit[String(unit)]?.revealed_answer ?? false}
-                onReveal={() => revealAnswer(unit)}
-                answerCode={answers[unit]}
-              />
-            ))}
+            {wrongItems.map(({ practice, unit }) => {
+              // 복습 모드에서는 "과거에 정답을 봤던 기록(session의 revealed_answer)" 때문에
+              // 시작하자마자 "정답 확인함"이 뜨는 것을 막기 위해,
+              // 이번 복습 세션에서 새로 정답을 요청해 answers 객체에 들어있는 경우에만 revealed 처리한다.
+              const isRevealedNow = !!answers[unit];
+              return (
+                <StudyPracticeCard
+                  key={unit}
+                  practice={practice}
+                  code={getPracticeCode(unit, practice.starter_code)}
+                  onCodeChange={(c) => setPracticeCode(unit, c)}
+                  onRun={() => runPractice(unit, getPracticeCode(unit, practice.starter_code))}
+                  running={runningUnit === unit}
+                  disabled={runningUnit !== null}
+                  result={session.practice_results_by_unit[String(unit)]}
+                  lastRun={lastRuns[unit]}
+                  revealed={isRevealedNow}
+                  onReveal={() => revealAnswer(unit)}
+                  answerCode={answers[unit]}
+                />
+              );
+            })}
           </div>
         ) : (
           // --- 평소 모드: 지금 섹션의 이론 -> 개념표 -> 예제 -> TODO들을 순서대로 보여준다 ---
