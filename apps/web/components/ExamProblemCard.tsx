@@ -26,7 +26,7 @@ interface Props {
   flagged: boolean;                      // "검토 표시"(나중에 다시 볼 문제) 깃발이 켜져 있는지
   onToggleFlag: () => void;
   revealed: boolean;                     // 정답 보기를 이미 눌렀는지 (누르면 이 문제는 0점 처리됨)
-  onReveal: () => void;
+  onReveal: () => Promise<void>;
   answerCode?: string;                   // 정답 보기를 눌렀을 때만 채워지는 실제 정답 코드
   cardRef: (el: HTMLDivElement | null) => void;
   // 문제 번호를 클릭해서 "그 문제로 스크롤 이동"하는 네비게이션 기능을 위해, 부모가 이 DOM
@@ -53,6 +53,7 @@ export function ExamProblemCard({
   // 이건 다른 문제로 넘어가면 다시 초기화돼도 되는 순전히 이 카드만의 화면 상태라서,
   // 부모가 아니라 이 컴포넌트 안에서 useState로 직접 관리한다(제어 컴포넌트 패턴의 예외).
   const [tab, setTab] = useState<"console" | "plot" | "answer">("console");
+  const [isRevealing, setIsRevealing] = useState(false);
 
   // 채점 결과에 따라 카드 왼쪽 테두리 색을 다르게 — 정답(초록)/오답(빨강)/미채점(투명)을
   // 한눈에 구분할 수 있게 해서, 여러 문제를 쭉 내려보며 스크롤할 때 상태 파악이 쉽도록 한다.
@@ -93,23 +94,27 @@ export function ExamProblemCard({
       <div className="mt-3 flex items-center gap-2">
         <button
           onClick={onRun}
-          disabled={disabled}
+          disabled={disabled || isRevealing}
           className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-bold text-white transition hover:bg-[var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {running ? "실행 중..." : "▶ 실행"}
         </button>
         <button
-          onClick={() => {
-            onReveal();       // 부모에게 "정답 봤음" 상태를 기록시키고(이 문제는 이후 0점 처리)
-            setTab("answer"); // 동시에 이 카드의 탭도 "정답" 탭으로 바로 전환해서, 버튼을 누르면
-            // 실제로 뭔가 바뀌는 게 눈에 바로 보이도록 한다. (예전엔 이 setTab이 없어서
-            // "버튼 눌러도 아무 반응이 없다"는 사용자 혼란이 있었던 버그였다 — 콘솔 출력 탭에
-            // 그대로 머물러 있으니 정답을 봤다는 게 화면에 안 보였던 것)
+          onClick={async () => {
+            setTab("answer");
+            setIsRevealing(true);
+            try {
+              await onReveal();
+            } catch (err: any) {
+              alert(err.message || "정답을 불러오는 데 실패했습니다.");
+            } finally {
+              setIsRevealing(false);
+            }
           }}
-          disabled={disabled || revealed}
+          disabled={disabled || revealed || isRevealing}
           className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--muted)] transition hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          정답 보기
+          {isRevealing ? "불러오는 중..." : "정답 보기"}
         </button>
         {result && (
           <span className={`text-sm font-bold ${result.is_correct ? "text-[var(--ok)]" : "text-[var(--bad)]"}`}>
@@ -121,10 +126,6 @@ export function ExamProblemCard({
       <div className="mt-3 rounded-lg border border-[var(--border)]">
         <div className="flex border-b border-[var(--border)] text-xs font-semibold">
           {(["console", "plot", "answer"] as const).map((t) => (
-            // ["console", "plot", "answer"] as const : 이렇게 "as const"를 붙이면 TypeScript가
-            // 이 배열의 타입을 그냥 string[]이 아니라 "console" | "plot" | "answer" 리터럴
-            // 유니언으로 좁혀서 이해한다. 그래야 setTab(t)를 호출할 때 t의 타입이 useState로
-            // 선언한 tab의 타입과 정확히 맞아떨어진다.
             <button
               key={t}
               onClick={() => setTab(t)}

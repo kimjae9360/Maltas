@@ -111,8 +111,11 @@ export default function StudyChapterPage() {
         code_by_unit: codeByUnit,
       });
       setLastRuns((prev) => ({ ...prev, [unit]: res }));
-      // 예제 실행은 서버가 is_correct/detail을 null로 돌려주기 때문에(app.py 참고),
-      // session.practice_results_by_unit에는 아무것도 기록하지 않는다 — 채점이 아니니까.
+    } catch (err: any) {
+      setLastRuns((prev) => ({
+        ...prev,
+        [unit]: { stdout: "", error: `❌ 서버 요청 중 오류가 발생했습니다.\n${err.message}`, plots: [] },
+      }));
     } finally {
       setRunningUnit(null);
     }
@@ -167,6 +170,11 @@ export default function StudyChapterPage() {
         },
         wrong_units: nextWrong,
       });
+    } catch (err: any) {
+      setLastRuns((prev) => ({
+        ...prev,
+        [unit]: { stdout: "", error: `❌ 서버 요청 중 오류가 발생했습니다.\n${err.message}`, plots: [] },
+      }));
     } finally {
       setRunningUnit(null);
     }

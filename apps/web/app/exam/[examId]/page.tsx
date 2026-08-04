@@ -222,6 +222,11 @@ export default function ExamPage() {
         : { is_correct: res.is_correct, points_earned: res.points_earned, detail: res.detail };
 
       persist({ ...latest, graded_results: { ...latest.graded_results, [String(no)]: entry } });
+    } catch (err: any) {
+      setLastRuns((prev) => ({
+        ...prev,
+        [no]: { stdout: "", error: `❌ 서버 요청 중 오류가 발생했습니다.\n${err.message}`, is_correct: false, points_earned: 0 },
+      }));
     } finally {
       // try 블록이 성공하든 에러가 나든(예: 네트워크 오류) 반드시 실행되어 "채점 중" 상태를
       // 풀어준다 — 이게 없으면 에러가 났을 때 버튼이 영원히 "실행 중..."에 멈춰있게 된다.
