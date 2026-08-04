@@ -30,26 +30,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #131220;
-    --surface: #1b1a2b;
-    --foreground: #f0efff;
-    --muted: #a29fc0;
-    --border: #2c2a42;
-
-    --brand: #8b7dfb;
-    --brand-dark: #6d5ef8;
-    --brand-tint: #241f45;
-
-    --ok: #35c98c;
-    --ok-tint: #12301f;
-    --bad: #f16a80;
-    --bad-tint: #3a1420;
-    --warn: #f0b84c;
-    --warn-tint: #3a2c0d;
-  }
-}
+/* 요청에 따라 라이트(화이트) 테마로 고정 — OS/브라우저 다크모드 설정과 무관하게 항상 밝은 배경을 씁니다. */
 
 body {
   background: var(--background);

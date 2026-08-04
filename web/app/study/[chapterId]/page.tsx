@@ -199,6 +199,10 @@ export default function StudyChapterPage() {
 
   const hasTheory = section.theory_markdown.trim().length > 0;
   const hasExample = section.example_code.trim().length > 0;
+  // 채점하기(정답 보기 포함)를 한 번도 안 한 TODO가 남아있으면 다음 섹션으로 못 넘어가게 막는다.
+  const sectionIncomplete = section.practices.some(
+    (p) => !session.practice_results_by_unit[String(unitIdx(section.no, p.no))]
+  );
 
   return (
     <div className="flex flex-1">
@@ -369,6 +373,11 @@ export default function StudyChapterPage() {
               );
             })}
 
+            {sectionIncomplete && section.practices.length > 0 && (
+              <p className="text-right text-xs text-[var(--warn)]">
+                ⚠️ 이 섹션의 TODO를 전부 채점하거나(또는 힌트/정답 보기) 확인해야 다음으로 넘어갈 수 있어요.
+              </p>
+            )}
             <div className="flex justify-between border-t border-[var(--border)] pt-4">
               <button
                 onClick={() => goToSection(currentSectionNo - 1)}
@@ -380,7 +389,8 @@ export default function StudyChapterPage() {
               {currentSectionNo < chapter.sections.length ? (
                 <button
                   onClick={() => goToSection(currentSectionNo + 1)}
-                  className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-bold text-white"
+                  disabled={sectionIncomplete}
+                  className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   다음 섹션 →
                 </button>
@@ -394,7 +404,8 @@ export default function StudyChapterPage() {
                       router.push("/study");
                     }
                   }}
-                  className="rounded-lg bg-[var(--ok)] px-4 py-2 text-sm font-bold text-white"
+                  disabled={sectionIncomplete}
+                  className="rounded-lg bg-[var(--ok)] px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   🎉 챕터 완료
                 </button>

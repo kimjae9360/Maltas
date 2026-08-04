@@ -85,7 +85,10 @@ export function ExamProblemCard({
           {running ? "실행 중..." : "▶ 실행"}
         </button>
         <button
-          onClick={onReveal}
+          onClick={() => {
+            onReveal();
+            setTab("answer");
+          }}
           disabled={disabled || revealed}
           className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--muted)] transition hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-50"
         >
