@@ -6,6 +6,7 @@ import { api, ExamDetail, RunResult } from "@/lib/api";
 import { ExamSession, examStorage } from "@/lib/storage";
 import { ExamProblemCard } from "@/components/ExamProblemCard";
 import { OpenBookPanel } from "@/components/OpenBookPanel";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 function formatTime(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -33,7 +34,15 @@ export default function ExamPage() {
 
   const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const sessionRef = useRef<ExamSession | null>(null);
-  sessionRef.current = session;
+  const remainingRef = useRef<number>(0);
+  
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  useEffect(() => {
+    remainingRef.current = remaining;
+  }, [remaining]);
   // React Strict Mode(개발 모드)에서 effect가 두 번 실행되면, find-or-create 로직이 겹쳐 실행되어
   // 방금 우리가 만든 세션을 "이전에 풀던 세션"으로 잘못 인식하는 경쟁 상태가 생길 수 있다.
   // exam_id별로 한 번만 find-or-create를 실행하도록 막는다.
@@ -107,11 +116,11 @@ export default function ExamPage() {
     const saveInterval = setInterval(() => {
       const s = sessionRef.current;
       if (!s) return;
-      const elapsed = s.time_limit_minutes * 60 - remaining;
+      const elapsed = s.time_limit_minutes * 60 - remainingRef.current;
       examStorage.save({ ...s, elapsed_seconds: elapsed });
     }, 5000);
     return () => clearInterval(saveInterval);
-  }, [session?.sessionId, session?.is_submitted, remaining]);
+  }, [session?.sessionId, session?.is_submitted]);
 
   const resume = () => {
     if (!resumeCandidate) return;
@@ -316,6 +325,7 @@ export default function ExamPage() {
         <div className="sticky top-0 z-10 mb-6 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)]/90 px-4 py-3 backdrop-blur">
           <div className="font-bold">{exam.title}</div>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <OpenBookPanel />
             <span className="text-sm text-[var(--muted)]">{answeredCount}/{exam.problems.length} 작성</span>
             <span className={`font-mono text-lg font-bold ${remaining < 300 ? "text-[var(--bad)]" : ""}`}>

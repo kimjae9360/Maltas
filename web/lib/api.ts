@@ -22,9 +22,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       throw new Error(`API 요청 실패 (${res.status}): ${path}`);
     }
     return res.json() as Promise<T>;
-  } catch (error: any) {
+  } catch (error: unknown) {
     clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
+    if (error instanceof Error && error.name === 'AbortError') {
       throw new Error(`요청 시간 초과 (30초): ${path}`);
     }
     throw error;

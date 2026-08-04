@@ -9,6 +9,7 @@ import { MarkdownView } from "@/components/MarkdownView";
 import { PlotViewer } from "@/components/PlotViewer";
 import { StudyPracticeCard } from "@/components/StudyPracticeCard";
 import { OpenBookPanel } from "@/components/OpenBookPanel";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 function unitIdx(sectionNo: number, practiceNo = 0) {
   return sectionNo * 100 + practiceNo;
@@ -30,7 +31,9 @@ export default function StudyChapterPage() {
   const [exampleTab, setExampleTab] = useState<"console" | "plot">("console");
 
   const sessionRef = useRef<StudySession | null>(null);
-  sessionRef.current = session;
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
   const initedChapterId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -300,7 +303,10 @@ export default function StudyChapterPage() {
               <h1 className="text-2xl font-extrabold">
                 {section.no}. {section.title}
               </h1>
-              <OpenBookPanel />
+              <div className="flex items-center gap-3">
+                <ThemeToggle />
+                <OpenBookPanel />
+              </div>
             </div>
 
             {hasTheory && (
