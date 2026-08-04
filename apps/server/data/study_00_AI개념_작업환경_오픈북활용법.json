@@ -32,20 +32,14 @@
       "title": "오픈북 활용법 - 공식문서 빠르게 찾기",
       "theory_markdown": "### 📖 이론 설명\nAICE는 **모든 함수의 파라미터를 외우고 있는지**가 아니라 **필요할 때 정확한 정보를 빠르게 찾아 쓸 수 있는지**를 훈련시키는 시험입니다. 시험 중 `pandas`, `numpy`, `scikit-learn`, `matplotlib`, `seaborn`, `tensorflow`, `xgboost`의 공식 API 문서를 열람할 수 있는 제한적 오픈북이 허용됩니다. 그래서 실전에서 막혔을 때는 아래 순서로 찾는 게 가장 빠릅니다.\n\n1. **즐겨찾기 활용**: 자주 쓰는 라이브러리의 `API reference` 페이지를 미리 즐겨찾기 해두면, 검색 없이 바로 진입할 수 있습니다.\n2. **브라우저 내 검색(Ctrl+F)**: API reference 페이지에서 함수 이름으로 바로 찾습니다. 예를 들어 결측치 처리 함수가 헷갈리면 `pandas` 문서에서 `Ctrl+F` → `fillna`로 바로 이동합니다.\n3. **함수 시그니처 읽는 법**: 문서에는 `DataFrame.fillna(value, *, axis=None, inplace=False, limit=None)`처럼 함수의 파라미터 목록이 나옵니다. `=값`이 붙은 파라미터는 기본값이 있어 생략 가능하다는 뜻이므로, 문제에서 요구하는 파라미터만 골라 채우면 됩니다. 문서 맨 아래 `Examples`(예시) 섹션을 그대로 복사해서 내 데이터에 맞게 고치는 것도 빠른 방법입니다.\n\n시험은 시간이 정해져 있으므로(90분), 모르는 함수가 나왔을 때 **기억을 쥐어짜는 대신 곧바로 문서를 찾는 습관**이 점수를 지킵니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 라이브러리 | API Reference 경로 |\n|---|---|\n| pandas | pandas.pydata.org/docs/reference |\n| NumPy | numpy.org/doc/stable/reference |\n| scikit-learn | scikit-learn.org/stable/api |\n| Matplotlib | matplotlib.org/stable/api |\n| seaborn | seaborn.pydata.org/api.html |\n| TensorFlow | tensorflow.org/api_docs |\n| XGBoost | xgboost.readthedocs.io |",
-      "example_code": "",
+      "example_code": "import pandas as pd\nimport numpy as np\n\ndf = pd.DataFrame({'A': [1, np.nan, 3], 'B': [np.nan, 5, 6]})\nprint(\"결측치 채우기 전:\\n\", df)",
       "practices": [
         {
           "no": 1,
-          "prompt_markdown": "pandas 공식문서에서 `DataFrame.fillna`를 찾아보세요. 첫 번째 파라미터의 이름은 결측치를 무엇으로 채울지 지정하는 값입니다. 그 파라미터 이름을 문자열로 `first_param`에 저장하세요. (힌트: 위 오픈북 활용법대로 `pandas` API reference에서 `Ctrl+F`로 `fillna`를 찾아 시그니처를 확인하세요.)",
-          "answer_code": "first_param = \"value\"  # DataFrame.fillna(value, *, axis=None, inplace=False, limit=None) 의 첫 파라미터",
-          "checks": [
-            {
-              "var": "first_param",
-              "op": "eq",
-              "expected": "value"
-            }
-          ],
-          "manual_review": false
+          "prompt_markdown": "`pandas` 라이브러리를 사용해 데이터프레임의 결측치를 채우는 연습을 해봅시다. 이미 생성된 `df`의 빈칸(결측치)을 숫자 `0`으로 모두 채우는 코드를 작성하세요.\n(힌트: 공식문서에서 `DataFrame.fillna`를 찾거나 직접 생각해서 풀어보세요.)",
+          "answer_code": "df = df.fillna(0)",
+          "checks": [],
+          "manual_review": true
         }
       ]
     }
