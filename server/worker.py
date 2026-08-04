@@ -125,6 +125,18 @@ def run(request):
             _plt.close("all")
         except Exception:
             pass
+        
+        # 딥러닝(Keras) 메모리 누수 방지: tf가 로드되어 있다면 세션을 초기화해 OOM 방지
+        import sys as _sys
+        if "tensorflow.keras.backend" in _sys.modules:
+            try:
+                _sys.modules["tensorflow.keras.backend"].clear_session()
+            except Exception:
+                pass
+            
+        # 강제 가비지 컬렉션 (Render 512MB 한계 대응)
+        import gc
+        gc.collect()
 
     stdout_text = stdout_capture.getvalue()
 
