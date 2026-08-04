@@ -1,0 +1,410 @@
+{
+  "chapter_id": "07_머신러닝_심화_교차검증_튜닝_실무전용",
+  "title": "07. 머신러닝 심화 - 실무전용 문제 모음",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\ndf = pd.read_csv('data/breast_cancer.csv')\nX = df.drop(columns=['target'])\ny = df['target']\nX.shape",
+  "sections": [
+    {
+      "no": 1,
+      "title": "교차검증 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`StratifiedKFold(n_splits=5)`로 `LogisticRegression(max_iter=5000)`을 교차검증해 평균 accuracy를 구하세요.",
+          "answer_code": "from sklearn.model_selection import StratifiedKFold, cross_val_score\nfrom sklearn.linear_model import LogisticRegression\nskf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)  # StratifiedKFold는 각 fold의 클래스 비율을 원본과 비슷하게 유지(분류 문제에서 권장)\nscores = cross_val_score(LogisticRegression(max_iter=5000), X, y, cv=skf)  # cv에 KFold 객체를 넘기면 그 분할 방식대로 5번 학습·평가를 반복\nprint(scores.mean())  # 5개 점수의 평균이 train_test_split 한 번보다 더 신뢰할 수 있는 성능 추정치",
+          "checks": [
+            {
+              "var": "X",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                569,
+                30
+              ]
+            },
+            {
+              "var": "scores",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5
+              ]
+            },
+            {
+              "var": "y",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                569
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`cross_validate`로 `accuracy`와 `recall` 두 지표를 동시에 5-fold 교차검증하세요.",
+          "answer_code": "from sklearn.model_selection import cross_validate\nresult = cross_validate(LogisticRegression(max_iter=5000), X, y, cv=skf, scoring=['accuracy', 'recall'])  # cross_val_score와 달리 여러 지표를 리스트로 동시에 지정 가능\nprint(result['test_accuracy'].mean(), result['test_recall'].mean())",
+          "checks": [
+            {
+              "var": "X",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                569,
+                30
+              ]
+            },
+            {
+              "var": "y",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                569
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "하이퍼파라미터 튜닝 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 3,
+          "prompt_markdown": "`RandomForestClassifier`에 대해 `n_estimators=[50,100,200]`, `max_depth=[3,5,None]`으로 `GridSearchCV(cv=5)`를 수행하세요.",
+          "answer_code": "from sklearn.model_selection import GridSearchCV\nfrom sklearn.ensemble import RandomForestClassifier\ngrid = GridSearchCV(RandomForestClassifier(random_state=42), {'n_estimators': [50, 100, 200], 'max_depth': [3, 5, None]}, cv=5)  # 3x3=9가지 조합을 5-fold로 전수 탐색(총 45번 학습)\ngrid.fit(X, y)\nprint(grid.best_params_, grid.best_score_)  # best_params_: 가장 성능이 좋았던 조합, best_score_: 그때의 교차검증 평균 점수",
+          "checks": [
+            {
+              "var": "X",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                569,
+                30
+              ]
+            },
+            {
+              "var": "y",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                569
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 4,
+          "prompt_markdown": "`RandomizedSearchCV`로 같은 모델을 `n_iter=5`만큼 무작위 탐색하세요.",
+          "answer_code": "from sklearn.model_selection import RandomizedSearchCV\nrand = RandomizedSearchCV(RandomForestClassifier(random_state=42), {'n_estimators': list(range(50, 301, 25)), 'max_depth': [3, 5, 7, None]}, n_iter=5, cv=5, random_state=42)  # n_iter=5: 전체 조합 중 5개만 무작위로 뽑아 시도(GridSearchCV보다 빠름)\nrand.fit(X, y)\nprint(rand.best_params_)",
+          "checks": [
+            {
+              "var": "X",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                569,
+                30
+              ]
+            },
+            {
+              "var": "y",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                569
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "Pipeline & ColumnTransformer 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 5,
+          "prompt_markdown": "`StandardScaler`와 `LogisticRegression(max_iter=5000)`을 묶은 Pipeline을 만들어 train/test로 나눠 학습·평가하세요.",
+          "answer_code": "from sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\npipe = Pipeline([('scaler', StandardScaler()), ('model', LogisticRegression(max_iter=5000))])  # 스케일링과 모델을 하나로 묶어 fit/predict를 한 번에 처리\npipe.fit(X_train, y_train)  # train에만 fit되고, test에는 자동으로 transform만 적용되어 데이터 누수를 방지\nprint(pipe.score(X_test, y_test))",
+          "checks": [
+            {
+              "var": "X",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                569,
+                30
+              ]
+            },
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114,
+                30
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                455,
+                30
+              ]
+            },
+            {
+              "var": "y",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                569
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                455
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 6,
+          "prompt_markdown": "`make_pipeline(StandardScaler(), RandomForestClassifier(random_state=42))`로 파이프라인을 만들어 accuracy를 구하세요.",
+          "answer_code": "from sklearn.pipeline import make_pipeline\npipe2 = make_pipeline(StandardScaler(), RandomForestClassifier(random_state=42))  # RandomForest는 스케일링에 크게 영향받지 않지만, 파이프라인 구조를 통일해두면 모델 교체가 쉬움\npipe2.fit(X_train, y_train)\nprint(pipe2.score(X_test, y_test))",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114,
+                30
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                455,
+                30
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                455
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "KNNImputer 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 7,
+          "prompt_markdown": "`X`의 `mean radius` 컬럼에 결측치 10개를 임의로 만든 뒤, `KNNImputer(n_neighbors=5)`로 채우세요.",
+          "answer_code": "from sklearn.impute import KNNImputer\nX_missing = X.copy()  # 원본 X를 보존하기 위해 복사본에서 결측치를 만듦\nX_missing.loc[X_missing.sample(10, random_state=1).index, 'mean radius'] = np.nan  # 실습을 위해 일부러 결측치 10개를 임의로 생성\nimputer = KNNImputer(n_neighbors=5)  # 결측치가 없는 다른 컬럼들을 기준으로 비슷한 행(이웃) 5개를 찾아 그 평균으로 채움\nfilled = imputer.fit_transform(X_missing)\nprint(pd.DataFrame(filled, columns=X.columns)['mean radius'].isnull().sum())  # 0이 나오면 결측치가 모두 채워졌다는 뜻",
+          "checks": [
+            {
+              "var": "X",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                569,
+                30
+              ]
+            },
+            {
+              "var": "X_missing",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                569,
+                30
+              ]
+            },
+            {
+              "var": "filled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                569,
+                30
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 5,
+      "title": "PR Curve & 임계값 튜닝 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 8,
+          "prompt_markdown": "`RandomForestClassifier`를 학습시켜 PR curve를 그리고 average_precision_score를 확인하세요.",
+          "answer_code": "from sklearn.metrics import precision_recall_curve, average_precision_score\nrf = RandomForestClassifier(random_state=42).fit(X_train, y_train)\nproba = rf.predict_proba(X_test)[:, 1]\nprecision, recall, _ = precision_recall_curve(y_test, proba)  # 임계값을 바꿔가며 계산한 precision/recall 쌍들을 반환(thresholds는 여기선 쓰지 않아 _로 무시)\nplt.plot(recall, precision)\nplt.title(f'AP={average_precision_score(y_test, proba):.3f}')  # AP(Average Precision)는 PR curve 아래 면적을 하나의 숫자로 요약한 값\nplt.show()",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114,
+                30
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                455,
+                30
+              ]
+            },
+            {
+              "var": "_",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                34
+              ]
+            },
+            {
+              "var": "precision",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                35
+              ]
+            },
+            {
+              "var": "proba",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            },
+            {
+              "var": "recall",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                35
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                455
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 9,
+          "prompt_markdown": "임계값을 0.3으로 낮췄을 때와 0.5일 때의 recall을 비교하세요.",
+          "answer_code": "from sklearn.metrics import recall_score\npred_05 = (proba > 0.5).astype(int)\npred_03 = (proba > 0.3).astype(int)  # 임계값을 0.3으로 낮추면 더 쉽게 양성으로 판단하게 되어 recall이 올라가는 경향이 있음\nprint(recall_score(y_test, pred_05), recall_score(y_test, pred_03))",
+          "checks": [
+            {
+              "var": "pred_03",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            },
+            {
+              "var": "pred_05",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            },
+            {
+              "var": "proba",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

@@ -22,3 +22,19 @@ sessions/
 sessions_dl/
 temp_sessions_manual/
 temp_sessions_test/
+temp_study_sessions_test/
+temp_headless_sessions/
+temp_headless_all_sessions/
+
+# 학습 모드 문제 정답 코드를 실행하면(파서의 checks 자동생성, 또는 앱에서 직접 실행) 그 자리에서
+# 생성되는 모델/파일 산출물 (예: model.save(), pickle.dump(), to_csv()) - 소스가 아니라 실행 부산물
+*.h5
+*.keras
+*.pkl
+*.joblib
+data/fruits_saved.csv
+/iris_backup.csv
+
+# 로컬 개발 서버 로그
+uvicorn_dev.log
+*.log

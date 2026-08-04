@@ -1,0 +1,271 @@
+{
+  "chapter_id": "08_딥러닝_분류_이진",
+  "title": "08. 딥러닝 - 이진분류 (Keras)",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nimport tensorflow as tf\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\ntf.random.set_seed(100)\n\ndf = pd.read_csv('data/train.csv')\ndf['Age'] = df['Age'].fillna(df['Age'].median())\ndf['Embarked'] = df['Embarked'].fillna(df['Embarked'].mode()[0])\ndf['Sex'] = df['Sex'].map({'male': 1, 'female': 0})\ndf = pd.get_dummies(df, columns=['Embarked'], drop_first=True)\n\nfeature_cols = ['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare'] + [c for c in df.columns if c.startswith('Embarked_')]\nX = df[feature_cols]\ny = df['Survived']\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X_train)\nX_test = scaler.transform(X_test)\nX_train.shape",
+  "sections": [
+    {
+      "no": 1,
+      "title": "이진분류 DL이란? 다중분류 DL과 무엇이 다른가",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": []
+    },
+    {
+      "no": 2,
+      "title": "이진분류용 Sequential 모델 설계",
+      "theory_markdown": "### 📖 이론 설명\n출력층은 노드 1개, activation은 'sigmoid'로 고정합니다. `Dropout(rate)`는 학습 시 매 스텝마다 지정한 비율만큼의 노드 연결을 임의로 '끊어서' 특정 노드에 과도하게 의존하는 것을 막아 과적합을 줄여주는 정규화 기법입니다 - 추론(predict) 시에는 적용되지 않고 전체 노드를 다 사용합니다.\n\n**BatchNormalization**은 Dropout과는 목적이 다릅니다 - 층을 지날 때마다 값의 분포가 들쭉날쭉해지는 '내부 공변량 변화(Internal Covariate Shift)' 문제를 줄이기 위해, 각 배치마다 값을 평균 0·분산 1 근처로 재정규화합니다. 그 결과 학습이 더 안정적이고 빨라지는 효과가 있어, 보통 `Dense` 층과 활성화 함수 사이에 넣습니다.\n\n예제 코드의 `model.summary()`는 방금 설계한 신경망 구조와 층별 파라미터(가중치+편향) 개수를 표로 보여줍니다. 각 `Dense` 층의 파라미터 개수는 `(입력 노드 수 × 이 층의 노드 수) + 이 층의 노드 수(편향)`로 계산됩니다 — 예를 들어 입력 11개를 받는 노드 16개짜리 층이라면 `11×16 + 16 = 192`개입니다. 이 개수가 너무 크면(파라미터가 데이터 양에 비해 많으면) 과적합 위험이 커진다는 신호로 읽을 수 있습니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 레이어 | 노드 수 | activation |\n|---|---|---|\n| 은닉층 | 자유 | 'relu' |\n| BatchNormalization | - | 층 출력값을 재정규화(과적합 방지+학습 안정화) |\n| Dropout | - | rate(0~1) 비율만큼 학습시 무작위 비활성화 |\n| 출력층(이진분류) | 1 | 'sigmoid' |",
+      "example_code": "from tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense, Dropout, BatchNormalization\n\nmodel = Sequential()\nmodel.add(Dense(16, activation='relu', input_shape=(X_train.shape[1],)))\nmodel.add(Dropout(0.3))\nmodel.add(Dense(8, activation='relu'))\nmodel.add(Dropout(0.3))\nmodel.add(Dense(1, activation='sigmoid'))\nmodel.summary()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "Dropout 없이, 은닉층 32→16(둘 다 relu), 출력층 1(sigmoid)인 `model_nodrop`을 만들어 `summary()`를 확인하세요.",
+          "answer_code": "model_nodrop = Sequential()\nmodel_nodrop.add(Dense(32, activation='relu', input_shape=(X_train.shape[1],)))\nmodel_nodrop.add(Dense(16, activation='relu'))\nmodel_nodrop.add(Dense(1, activation='sigmoid'))  # 이진분류 출력층: 노드 1개 + sigmoid로 0~1 확률값을 냄\nmodel_nodrop.summary()",
+          "checks": [
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712,
+                8
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "은닉층 `Dense(32, relu)` 다음에 `BatchNormalization()`을 추가한 `model_bn`을 만들어 `summary()`를 확인하세요.",
+          "answer_code": "model_bn = Sequential()\nmodel_bn.add(Dense(32, activation='relu', input_shape=(X_train.shape[1],)))\nmodel_bn.add(BatchNormalization())  # Dense와 활성화 함수 사이에 넣어 층 출력값을 재정규화(학습 안정화)\nmodel_bn.add(Dense(16, activation='relu'))\nmodel_bn.add(Dense(1, activation='sigmoid'))\nmodel_bn.summary()",
+          "checks": [
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712,
+                8
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "모델 컴파일",
+      "theory_markdown": "### 📖 이론 설명\n이진분류의 손실함수는 `binary_crossentropy`이고, 평가지표는 보통 `accuracy`를 함께 봅니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 옵션 | 이진분류에서의 값 |\n|---|---|\n| loss | 'binary_crossentropy' |\n| metrics | ['accuracy'] |",
+      "example_code": "model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`model_nodrop`을 동일한 옵션으로 컴파일하세요.",
+          "answer_code": "model_nodrop.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])  # 이진분류의 표준 loss는 binary_crossentropy",
+          "checks": [],
+          "manual_review": true
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "콜백 함수",
+      "theory_markdown": "### 📖 이론 설명\n`EarlyStopping`은 성능 개선이 멈추면 학습을 조기 종료하고, `ModelCheckpoint`는 **val_loss가 가장 낮았던 순간의 모델을 파일로 저장**해둡니다. 두 콜백을 리스트로 함께 넘기면, '가장 좋았던 모델을 놓치지 않고 저장하면서 동시에 불필요한 학습 시간도 줄이는' 조합이 됩니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 콜백 | 역할 |\n|---|---|\n| EarlyStopping(monitor, patience) | 개선 없으면 학습 조기 종료 |\n| ModelCheckpoint(path, monitor, save_best_only) | 가장 좋은 모델을 파일로 저장 |",
+      "example_code": "from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint\n\nearly_stop = EarlyStopping(monitor='val_loss', mode='min', patience=10, restore_best_weights=True)\ncheck_point = ModelCheckpoint('best_binary_model.h5', monitor='val_loss', mode='min', save_best_only=True)\ncallbacks = [early_stop, check_point]",
+      "practices": []
+    },
+    {
+      "no": 5,
+      "title": "모델 학습",
+      "theory_markdown": "### 📖 이론 설명\n콜백 리스트를 `fit`의 `callbacks` 인자로 전달합니다.",
+      "concept_table_markdown": "",
+      "example_code": "history = model.fit(X_train, y_train, epochs=100, batch_size=32,\n                     validation_data=(X_test, y_test), callbacks=callbacks, verbose=0)\nprint('학습된 epoch 수:', len(history.history['loss']))",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`model_nodrop`을 `EarlyStopping(patience=10)`만 사용해 `epochs=100`으로 학습시키세요.",
+          "answer_code": "es2 = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)\nhistory2 = model_nodrop.fit(X_train, y_train, epochs=100, batch_size=32, validation_data=(X_test, y_test), callbacks=[es2], verbose=0)  # epochs=100을 최댓값으로 주고, 실제로는 EarlyStopping이 알아서 적절한 시점에 멈춰줌\nprint(len(history2.history['loss']))",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                179,
+                8
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712,
+                8
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                179
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 6,
+      "title": "성능 시각화",
+      "theory_markdown": "### 📖 이론 설명\n이진분류 모델은 `predict()`로 0~1 사이 확률을 출력하므로, **0.5를 임계값으로 0/1 클래스로 변환**해서 confusion matrix나 classification_report에 넣어야 합니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 코드 | 설명 |\n|---|---|\n| (pred > 0.5).astype(int) | 확률 → 0/1 클래스 변환 |\n| roc_curve(y_true, pred) | 임계값을 바꿔가며 성능 확인 |",
+      "example_code": "from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, classification_report\n\nplt.plot(history.history['loss'], label='train loss')\nplt.plot(history.history['val_loss'], label='val loss')\nplt.xlabel('Epoch'); plt.ylabel('Loss'); plt.title('Loss Curve'); plt.legend(); plt.show()\n\npred_proba = model.predict(X_test).flatten()\npred_label = (pred_proba > 0.5).astype(int)\n\ncm = confusion_matrix(y_test, pred_label)\nsns.heatmap(cm, annot=True, fmt='d', cmap='Reds')\nplt.xlabel('Predicted'); plt.ylabel('Actual'); plt.title('DL Binary Classification Confusion Matrix')\nplt.show()\n\nfpr, tpr, _ = roc_curve(y_test, pred_proba)\nplt.plot(fpr, tpr, label=f'AUC={roc_auc_score(y_test, pred_proba):.3f}')\nplt.plot([0, 1], [0, 1], 'k--')\nplt.xlabel('FPR'); plt.ylabel('TPR'); plt.title('ROC Curve'); plt.legend(); plt.show()\n\nprint(classification_report(y_test, pred_label))",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`model_nodrop`의 예측 확률을 0.5 기준으로 0/1로 변환한 뒤 accuracy를 구하세요.",
+          "answer_code": "from sklearn.metrics import accuracy_score\npred2 = model_nodrop.predict(X_test).flatten()  # predict()는 0~1 사이 확률을 반환(아직 클래스가 아님)\npred2_label = (pred2 > 0.5).astype(int)  # 0.5를 기준으로 확률을 0/1 클래스로 변환\nprint(accuracy_score(y_test, pred2_label))",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                179,
+                8
+              ]
+            },
+            {
+              "var": "pred2",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                179
+              ]
+            },
+            {
+              "var": "pred2_label",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                179
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                179
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 7,
+      "title": "불균형 데이터 & 재현율 개선 (DL)",
+      "theory_markdown": "### 📖 이론 설명\n머신러닝(06번)에서 다룬 것과 같은 문제가 딥러닝에서도 나타납니다 - 소수 클래스 데이터가 적으면 모델이 그 클래스를 잘 예측하지 못해 재현율이 낮게 나옵니다. `imblearn`의 `SMOTE`로 학습 데이터를 오버샘플링한 뒤 다시 학습시키면 재현율이 개선되는지 확인해봅니다(단, 정밀도가 함께 떨어질 수 있다는 트레이드오프는 동일하게 적용됩니다).",
+      "concept_table_markdown": "",
+      "example_code": "from imblearn.over_sampling import SMOTE\nfrom sklearn.metrics import recall_score, precision_score\n\nprint('SMOTE 적용 전:', pd.Series(y_train).value_counts().to_dict())\nsmote = SMOTE(random_state=42)\nX_train_over, y_train_over = smote.fit_resample(X_train, y_train)\nprint('SMOTE 적용 후:', pd.Series(y_train_over).value_counts().to_dict())\n\nmodel_smote = Sequential([\n    Dense(16, activation='relu', input_shape=(X_train.shape[1],)),\n    Dropout(0.3),\n    Dense(8, activation='relu'),\n    Dense(1, activation='sigmoid'),\n])\nmodel_smote.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])\nmodel_smote.fit(X_train_over, y_train_over, epochs=50, batch_size=32, verbose=0)\n\npred_smote = (model_smote.predict(X_test).flatten() > 0.5).astype(int)\nprint('SMOTE 적용 후 recall:', recall_score(y_test, pred_smote))\nprint('SMOTE 적용 후 precision:', precision_score(y_test, pred_smote))",
+      "practices": []
+    },
+    {
+      "no": 8,
+      "title": "종합 실전 문제",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "입력층 64(relu)+Dropout(0.3)→32(relu)+Dropout(0.3)→출력 1(sigmoid) 구조의 `model_final`을 만들고 `binary_crossentropy`로 컴파일하세요.",
+          "answer_code": "model_final = Sequential()\nmodel_final.add(Dense(64, activation='relu', input_shape=(X_train.shape[1],)))\nmodel_final.add(Dropout(0.3))  # 학습 시 30% 노드 연결을 무작위로 꺼서 특정 노드에 과도하게 의존하는 것을 막음(과적합 방지)\nmodel_final.add(Dense(32, activation='relu'))\nmodel_final.add(Dropout(0.3))\nmodel_final.add(Dense(1, activation='sigmoid'))\nmodel_final.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])\nmodel_final.summary()",
+          "checks": [
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712,
+                8
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`model_final`을 `EarlyStopping(patience=10)`으로 학습시키고, 테스트 데이터의 accuracy를 `evaluate()`로 구하세요.",
+          "answer_code": "es_final = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)\nmodel_final.fit(X_train, y_train, epochs=100, batch_size=32, validation_data=(X_test, y_test), callbacks=[es_final], verbose=0)\nloss, acc = model_final.evaluate(X_test, y_test, verbose=0)  # evaluate()는 compile 시 지정한 순서대로 (loss, metrics...)를 반환\nprint(acc)",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                179,
+                8
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712,
+                8
+              ]
+            },
+            {
+              "var": "acc",
+              "op": "gte",
+              "expected": 0.7356,
+              "tolerance": 0.0
+            },
+            {
+              "var": "loss",
+              "op": "lte",
+              "expected": 0.5151,
+              "tolerance": 0.0
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                179
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

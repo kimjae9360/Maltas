@@ -14,6 +14,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
 import xgboost
+import lightgbm
 import imblearn
 import tensorflow as tf
 
@@ -21,14 +22,68 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from ui.main_window import MainWindow
 from ui.exam_select_dialog import ExamSelectDialog
+from ui.study_select_dialog import StudySelectDialog
+from ui.study_window import StudyWindow
 from engine.session_manager import SessionManager
+from engine.study_progress_manager import StudyProgressManager
 from resource_path import get_base_dir, get_writable_dir
+
+
+def run_study_mode(app, data_dir, writable_dir):
+    dialog = StudySelectDialog(data_dir)
+    if dialog.exec() != StudySelectDialog.Accepted or not dialog.selected_chapter_id:
+        return
+    chapter_id = dialog.selected_chapter_id
+
+    chapter_json = data_dir / f"study_{chapter_id}.json"
+    if not chapter_json.exists():
+        QMessageBox.critical(None, "오류", f"학습 데이터 파일이 없습니다: {chapter_json}")
+        return
+
+    with open(chapter_json, 'r', encoding='utf-8') as f:
+        chapter_data = json.load(f)
+
+    pm = StudyProgressManager(sessions_dir=str(writable_dir / "sessions"))
+    unfinished = pm.find_unfinished_sessions(chapter_id)
+
+    session_file = None
+    if unfinished:
+        reply = QMessageBox.question(None, "이어서 학습하기",
+                                     f"'{chapter_data['title']}'의 진행 중이던 학습 기록이 있습니다. 이어서 진행하시겠습니까?",
+                                     QMessageBox.Yes | QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            session_file = unfinished[0]
+
+    if session_file:
+        pm.load_session(session_file)
+    else:
+        pm.create_new_session(chapter_id)
+
+    window = StudyWindow(chapter_data, pm)
+    window.showMaximized()
+    sys.exit(app.exec())
+
 
 def main():
     app = QApplication(sys.argv)
     base_dir = Path(get_base_dir())
     writable_dir = Path(get_writable_dir())
     data_dir = base_dir / "data"
+
+    # 0. 모드 선택 (모의고사 / 학습)
+    mode_box = QMessageBox()
+    mode_box.setWindowTitle("AICE Simulator")
+    mode_box.setText("무엇을 하시겠습니까?")
+    btn_exam = mode_box.addButton("📝 모의고사 풀기", QMessageBox.AcceptRole)
+    btn_study = mode_box.addButton("📖 학습 모드", QMessageBox.AcceptRole)
+    mode_box.addButton("취소", QMessageBox.RejectRole)
+    mode_box.exec()
+
+    if mode_box.clickedButton() == btn_study:
+        run_study_mode(app, data_dir, writable_dir)
+        return
+    elif mode_box.clickedButton() != btn_exam:
+        return
 
     # 1. 시험 선택
     dialog = ExamSelectDialog(data_dir)

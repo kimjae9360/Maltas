@@ -1,0 +1,496 @@
+{
+  "exam_id": "모의고사12_신용카드연체예측",
+  "title": "12 신용카드연체예측",
+  "time_limit_minutes": 90,
+  "setup_code": "",
+  "total_points_v1": 100,
+  "problems": [
+    {
+      "no": 1,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`pandas`, `numpy`, `matplotlib.pyplot`, `seaborn`을 각각 `pd`, `np`, `plt`, `sns`로 불러오고, `../data/credit.csv`을 `credit`으로 불러와 shape을 확인하세요.",
+      "answer_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\ncredit = pd.read_csv('data/credit.csv')\nprint(credit.shape)",
+      "points": 5,
+      "checks": [
+        {
+          "var": "credit",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            900,
+            12
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 2,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`credit`의 컬럼별 결측치 개수를 확인하세요.",
+      "answer_code": "print(credit.isnull().sum())  # income_man, education_level에 결측치가 있음을 확인",
+      "points": 5,
+      "checks": [
+        {
+          "var": "credit",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            900,
+            12
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 3,
+      "session": "1교시: 데이터 로딩 & EDA",
+      "prompt_markdown": "`default`(연체 여부)의 분포를 확인하세요.",
+      "answer_code": "print(credit['default'].value_counts())  # 연체(1)가 소수 클래스인 불균형 데이터인지 확인",
+      "points": 5,
+      "checks": [
+        {
+          "var": "credit",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            900,
+            12
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 4,
+      "session": "2교시: 데이터 시각화",
+      "prompt_markdown": "`default`별 데이터 개수를 `countplot`으로 시각화하세요.",
+      "answer_code": "sns.countplot(data=credit, x='default')\nplt.show()",
+      "points": 5,
+      "checks": [
+        {
+          "var": "credit",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            900,
+            12
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 5,
+      "session": "2교시: 데이터 시각화",
+      "prompt_markdown": "`utilization_pct`(한도 이용률)과 `balance_man`(잔액)의 관계를 `default`로 색을 나눠 `scatterplot`으로 그리세요.",
+      "answer_code": "sns.scatterplot(data=credit, x='utilization_pct', y='balance_man', hue='default')\nplt.show()",
+      "points": 5,
+      "checks": [
+        {
+          "var": "credit",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            900,
+            12
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 6,
+      "session": "2교시: 데이터 시각화",
+      "prompt_markdown": "`default`별 `income_man`(소득) 분포를 `boxplot`으로 비교하세요.",
+      "answer_code": "sns.boxplot(data=credit, x='default', y='income_man')\nplt.show()",
+      "points": 5,
+      "checks": [
+        {
+          "var": "credit",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            900,
+            12
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 7,
+      "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`income_man`의 결측치를 중앙값으로 대체하세요.",
+      "answer_code": "credit['income_man'] = credit['income_man'].fillna(credit['income_man'].median())\nprint(credit['income_man'].isnull().sum())",
+      "points": 6,
+      "checks": [
+        {
+          "var": "credit",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            900,
+            12
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 8,
+      "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`education_level`의 결측치를 최빈값으로 대체하세요.",
+      "answer_code": "credit['education_level'] = credit['education_level'].fillna(credit['education_level'].mode()[0])\nprint(credit['education_level'].isnull().sum())",
+      "points": 6,
+      "checks": [
+        {
+          "var": "credit",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            900,
+            12
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 9,
+      "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`education_level`, `marital_status`를 원-핫 인코딩(`drop_first=True`)하여 `credit_enc`에 저장하세요.",
+      "answer_code": "credit_enc = pd.get_dummies(credit, columns=['education_level', 'marital_status'], drop_first=True)\nprint(credit_enc.shape)",
+      "points": 6,
+      "checks": [
+        {
+          "var": "credit",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            900,
+            12
+          ]
+        },
+        {
+          "var": "credit_enc",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            900,
+            14
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 10,
+      "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`credit_enc`에서 `default`를 `y`로, 나머지를 `X`로 하여 `train_test_split(test_size=0.2, stratify=y, random_state=42)`로 분할하세요.",
+      "answer_code": "from sklearn.model_selection import train_test_split\n\ny = credit_enc['default']\nX = credit_enc.drop(columns=['default'])\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\nprint(X_train.shape, X_test.shape)",
+      "points": 6,
+      "checks": [
+        {
+          "var": "X",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            900,
+            13
+          ]
+        },
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            180,
+            13
+          ]
+        },
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            720,
+            13
+          ]
+        },
+        {
+          "var": "credit_enc",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            900,
+            14
+          ]
+        },
+        {
+          "var": "y",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            900
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            180
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            720
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 11,
+      "session": "3교시: 데이터 전처리",
+      "prompt_markdown": "`StandardScaler`로 `X_train`/`X_test`를 스케일링해 `X_train_s`, `X_test_s`에 저장하세요.",
+      "answer_code": "from sklearn.preprocessing import StandardScaler\n\nscaler = StandardScaler()\nX_train_s = scaler.fit_transform(X_train)\nX_test_s = scaler.transform(X_test)\nprint(X_train_s.shape, X_test_s.shape)",
+      "points": 6,
+      "checks": [
+        {
+          "var": "X_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            180,
+            13
+          ]
+        },
+        {
+          "var": "X_test_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            180,
+            13
+          ]
+        },
+        {
+          "var": "X_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            720,
+            13
+          ]
+        },
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            720,
+            13
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 12,
+      "session": "4교시: 머신러닝 모델링",
+      "prompt_markdown": "`RandomForestClassifier(n_estimators=100, random_state=42)`를 학습시키고 정확도를 `rf_acc`에 저장하세요.",
+      "answer_code": "from sklearn.ensemble import RandomForestClassifier\nfrom sklearn.metrics import accuracy_score\n\nrf = RandomForestClassifier(n_estimators=100, random_state=42)\nrf.fit(X_train_s, y_train)\nrf_pred = rf.predict(X_test_s)\nrf_acc = accuracy_score(y_test, rf_pred)\nprint(rf_acc)",
+      "points": 10,
+      "checks": [
+        {
+          "var": "X_test_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            180,
+            13
+          ]
+        },
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            720,
+            13
+          ]
+        },
+        {
+          "var": "rf_acc",
+          "op": "gte",
+          "expected": 0.7867,
+          "tolerance": 0.0
+        },
+        {
+          "var": "rf_pred",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            180
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            180
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            720
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 13,
+      "session": "4교시: 머신러닝 모델링",
+      "prompt_markdown": "`XGBClassifier(n_estimators=100, random_state=42)`를 학습시키고 정확도를 `xgb_acc`에 저장하세요.",
+      "answer_code": "from xgboost import XGBClassifier\nfrom sklearn.metrics import accuracy_score\n\nxgb = XGBClassifier(n_estimators=100, random_state=42)\nxgb.fit(X_train_s, y_train)\nxgb_pred = xgb.predict(X_test_s)\nxgb_acc = accuracy_score(y_test, xgb_pred)\nprint(xgb_acc)",
+      "points": 10,
+      "checks": [
+        {
+          "var": "X_test_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            180,
+            13
+          ]
+        },
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            720,
+            13
+          ]
+        },
+        {
+          "var": "xgb_acc",
+          "op": "gte",
+          "expected": 0.7367,
+          "tolerance": 0.0
+        },
+        {
+          "var": "xgb_pred",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            180
+          ]
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            180
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            720
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 14,
+      "session": "5교시: 딥러닝 모델링",
+      "prompt_markdown": "출력층 노드=1(sigmoid)인 `Sequential` 모델을 만들고 `binary_crossentropy`로 compile하세요.",
+      "answer_code": "from tensorflow import keras\nfrom tensorflow.keras import layers\n\nmodel = keras.Sequential([\n    layers.Dense(16, activation='relu', input_shape=(X_train_s.shape[1],)),\n    layers.Dense(8, activation='relu'),\n    layers.Dense(1, activation='sigmoid'),\n])\nmodel.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])\nmodel.summary()",
+      "points": 10,
+      "checks": [
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            720,
+            13
+          ]
+        }
+      ],
+      "manual_review": false
+    },
+    {
+      "no": 15,
+      "session": "5교시: 딥러닝 모델링",
+      "prompt_markdown": "`EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)`을 사용해 학습시키고, 테스트셋 정확도를 `dl_acc`에 저장하세요.",
+      "answer_code": "from tensorflow.keras.callbacks import EarlyStopping\n\nes = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)\nhistory = model.fit(X_train_s, y_train, validation_data=(X_test_s, y_test),\n                     epochs=100, callbacks=[es], verbose=0)\n\ndl_loss, dl_acc = model.evaluate(X_test_s, y_test, verbose=0)\nprint(dl_acc)",
+      "points": 10,
+      "checks": [
+        {
+          "var": "X_test_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            180,
+            13
+          ]
+        },
+        {
+          "var": "X_train_s",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            720,
+            13
+          ]
+        },
+        {
+          "var": "dl_acc",
+          "op": "gte",
+          "expected": 0.7144,
+          "tolerance": 0.0
+        },
+        {
+          "var": "dl_loss",
+          "op": "lte",
+          "expected": 0.4848,
+          "tolerance": 0.0
+        },
+        {
+          "var": "y_test",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            180
+          ]
+        },
+        {
+          "var": "y_train",
+          "attr": "shape",
+          "op": "eq",
+          "expected": [
+            720
+          ]
+        }
+      ],
+      "manual_review": false
+    }
+  ]
+}

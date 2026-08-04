@@ -1,0 +1,149 @@
+{
+  "chapter_id": "EX02_다중분류_실전문제_아이리스품종",
+  "title": "EX02. [추가연습] 다중분류 실전 문제 - 아이리스 품종 분류",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\niris = pd.read_csv('data/iris.csv')\niris.head()",
+  "sections": [
+    {
+      "no": 1,
+      "title": "데이터 로딩 & EDA",
+      "theory_markdown": "### 📖 이론 설명\n클래스 불균형 여부를 가장 먼저 확인합니다. Iris는 각 품종이 정확히 50개씩으로, **균형 잡힌 데이터셋**입니다 - `06_머신러닝_분류`/`08_딥러닝`에서 다룬 불균형 문제와 대비해서 보면 좋습니다.",
+      "concept_table_markdown": "",
+      "example_code": "print(iris['target'].value_counts())\nsns.countplot(x='target', data=iris)\nplt.title('Class distribution (balanced)')\nplt.show()\n\nsns.pairplot(iris, hue='target', vars=['sepal length (cm)', 'petal length (cm)'])\nplt.show()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`petal length (cm)`과 `petal width (cm)`의 관계를 `target`으로 색을 나눠 scatterplot으로 그리세요.",
+          "answer_code": "sns.scatterplot(data=iris, x='petal length (cm)', y='petal width (cm)', hue='target')  # hue로 품종별 색을 나누면 두 변수만으로도 품종이 잘 구분되는지 한눈에 보임\nplt.show()",
+          "checks": [
+            {
+              "var": "iris",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                5
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "전처리",
+      "theory_markdown": "### 📖 이론 설명\n결측치가 없고 모든 변수가 비슷한 스케일(cm 단위)이라 전처리 부담이 적은 데이터입니다. 그래도 모델링 습관을 위해 스케일링과 분할은 동일하게 진행합니다.",
+      "concept_table_markdown": "",
+      "example_code": "from sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\nX = iris.drop(columns=['target'])\ny = iris['target']\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\nscaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)\nX_train.shape",
+      "practices": []
+    },
+    {
+      "no": 3,
+      "title": "머신러닝 다중분류 모델링",
+      "theory_markdown": "### 📖 이론 설명\n`06_머신러닝_분류_다중.ipynb`와 동일한 흐름입니다 - 평가지표에 `average` 옵션을 지정하는 것을 잊지 마세요.",
+      "concept_table_markdown": "",
+      "example_code": "from sklearn.linear_model import LogisticRegression\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.metrics import f1_score, classification_report\n\nlogi = LogisticRegression(max_iter=1000)\nlogi.fit(X_train_scaled, y_train)\nlogi_pred = logi.predict(X_test_scaled)\nprint('LogisticRegression f1(macro):', f1_score(y_test, logi_pred, average='macro'))\n\nrf = RandomForestClassifier(n_estimators=100, random_state=42)\nrf.fit(X_train_scaled, y_train)\nrf_pred = rf.predict(X_test_scaled)\nprint(classification_report(y_test, rf_pred))",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`SVC(kernel='linear', probability=True)`를 학습시켜 accuracy를 구하세요.",
+          "answer_code": "from sklearn.svm import SVC\nfrom sklearn.metrics import accuracy_score\nsvc = SVC(kernel='linear', probability=True, random_state=42)  # kernel='linear': 직선(초평면)으로 클래스를 나누는 가장 단순한 형태의 SVM\nsvc.fit(X_train_scaled, y_train)\nprint(accuracy_score(y_test, svc.predict(X_test_scaled)))",
+          "checks": [
+            {
+              "var": "X_test_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                30,
+                4
+              ]
+            },
+            {
+              "var": "X_train_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                120,
+                4
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                30
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                120
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "딥러닝 다중분류 모델링",
+      "theory_markdown": "### 📖 이론 설명\n`08_딥러닝_분류_다중.ipynb`와 동일하게, 출력층 노드=클래스 수(3), activation='softmax'로 설계합니다.",
+      "concept_table_markdown": "",
+      "example_code": "import tensorflow as tf\nfrom tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\nfrom tensorflow.keras.callbacks import EarlyStopping\n\ntf.random.set_seed(100)\nclass_num = y.nunique()\n\nmodel = Sequential()\nmodel.add(Dense(16, activation='relu', input_shape=(X_train_scaled.shape[1],)))\nmodel.add(Dense(8, activation='relu'))\nmodel.add(Dense(class_num, activation='softmax'))\nmodel.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])\n\nes = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)\nhistory = model.fit(X_train_scaled, y_train, epochs=100, batch_size=8,\n                     validation_data=(X_test_scaled, y_test), callbacks=[es], verbose=0)\n\npred_label = np.argmax(model.predict(X_test_scaled), axis=1)\nfrom sklearn.metrics import accuracy_score\nprint('DL accuracy:', accuracy_score(y_test, pred_label))",
+      "practices": []
+    },
+    {
+      "no": 5,
+      "title": "종합 실전 문제",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`RandomForestClassifier`의 confusion matrix를 heatmap으로 그리세요.",
+          "answer_code": "from sklearn.metrics import confusion_matrix\ncm = confusion_matrix(y_test, rf_pred)  # 클래스가 3개이므로 3x3 행렬이 반환됨\nsns.heatmap(cm, annot=True, fmt='d', cmap='Blues')\nplt.xlabel('Predicted'); plt.ylabel('Actual')\nplt.show()",
+          "checks": [
+            {
+              "var": "cm",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3,
+                3
+              ]
+            },
+            {
+              "var": "rf_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                30
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                30
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "딥러닝 모델의 loss curve를 그리세요.",
+          "answer_code": "plt.plot(history.history['loss'], label='train')\nplt.plot(history.history['val_loss'], label='val')  # 두 곡선이 함께 내려가면 정상적으로 학습되고 있다는 뜻\nplt.legend(); plt.title('Loss Curve'); plt.show()",
+          "checks": [],
+          "manual_review": true
+        }
+      ]
+    }
+  ]
+}

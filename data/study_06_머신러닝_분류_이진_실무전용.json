@@ -1,0 +1,506 @@
+{
+  "chapter_id": "06_머신러닝_분류_이진_실무전용",
+  "title": "06. 머신러닝 이진분류 - 실무전용 문제 모음",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\ndf = pd.read_csv('data/marketing_conversion.csv')\ndf['나이'] = df['나이'].fillna(df['나이'].mean())\ndf = pd.get_dummies(df, columns=['기기종류', '유입경로'], drop_first=True)\nX = df.drop(columns=['구매여부'])\ny = df['구매여부']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\nscaler = StandardScaler()\nX_train_s = scaler.fit_transform(X_train)\nX_test_s = scaler.transform(X_test)\nX_train.shape",
+  "sections": [
+    {
+      "no": 1,
+      "title": "모델 학습 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`LogisticRegression(max_iter=1000)`을 학습시켜 예측값 `logi_pred`를 만드세요.",
+          "answer_code": "from sklearn.linear_model import LogisticRegression\nlogi = LogisticRegression(max_iter=1000)  # max_iter를 늘려주지 않으면 데이터에 따라 수렴하지 못했다는 경고(ConvergenceWarning)가 뜰 수 있음\nlogi.fit(X_train_s, y_train)\nlogi_pred = logi.predict(X_test_s)",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200,
+                9
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                800,
+                9
+              ]
+            },
+            {
+              "var": "logi_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                800
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`RandomForestClassifier(n_estimators=150, random_state=42)`를 학습시켜 예측값 `rf_pred`를 만드세요.",
+          "answer_code": "from sklearn.ensemble import RandomForestClassifier\nrf = RandomForestClassifier(n_estimators=150, random_state=42)  # 여러 트리를 배깅 방식으로 묶어 단일 트리보다 안정적인 성능을 냄\nrf.fit(X_train_s, y_train)\nrf_pred = rf.predict(X_test_s)",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200,
+                9
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                800,
+                9
+              ]
+            },
+            {
+              "var": "rf_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                800
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 3,
+          "prompt_markdown": "`SVC(probability=True, random_state=42)`를 학습시켜 예측값 `svc_pred`를 만드세요.",
+          "answer_code": "from sklearn.svm import SVC\nsvc = SVC(probability=True, random_state=42)  # probability=True를 줘야 이후 predict_proba()로 확률을 뽑을 수 있음(기본값 False)\nsvc.fit(X_train_s, y_train)\nsvc_pred = svc.predict(X_test_s)",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200,
+                9
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                800,
+                9
+              ]
+            },
+            {
+              "var": "svc_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                800
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 4,
+          "prompt_markdown": "`ExtraTreesClassifier(n_estimators=150, random_state=42)`를 학습시켜 예측값 `et_pred`를 만드세요.",
+          "answer_code": "from sklearn.ensemble import ExtraTreesClassifier\net = ExtraTreesClassifier(n_estimators=150, random_state=42)  # RandomForest와 비슷하지만, 분할 기준값까지 무작위로 뽑아 트리 간 다양성을 더 키움(보통 더 빠름)\net.fit(X_train, y_train)\net_pred = et.predict(X_test)",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200,
+                9
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                800,
+                9
+              ]
+            },
+            {
+              "var": "et_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                800
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "평가지표 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 5,
+          "prompt_markdown": "네 모델(logi_pred, rf_pred, svc_pred, et_pred)의 accuracy를 비교하세요.",
+          "answer_code": "from sklearn.metrics import accuracy_score\nprint(accuracy_score(y_test, logi_pred), accuracy_score(y_test, rf_pred), accuracy_score(y_test, svc_pred), accuracy_score(y_test, et_pred))  # 여러 모델의 accuracy를 나란히 출력해 한눈에 비교",
+          "checks": [
+            {
+              "var": "et_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            },
+            {
+              "var": "logi_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            },
+            {
+              "var": "rf_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            },
+            {
+              "var": "svc_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 6,
+          "prompt_markdown": "`rf_pred`의 precision, recall, f1을 구하세요.",
+          "answer_code": "from sklearn.metrics import precision_score, recall_score, f1_score\nprint(precision_score(y_test, rf_pred), recall_score(y_test, rf_pred), f1_score(y_test, rf_pred))  # 이진분류에서는 average 옵션 없이 바로 계산됨(양성 클래스=1 기준)",
+          "checks": [
+            {
+              "var": "rf_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 7,
+          "prompt_markdown": "`rf`의 predict_proba로 roc_auc_score를 구하세요.",
+          "answer_code": "from sklearn.metrics import roc_auc_score\nproba = rf.predict_proba(X_test_s)[:, 1]  # roc_auc는 0/1이 아니라 '확률'을 입력으로 받음\nprint(roc_auc_score(y_test, proba))",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200,
+                9
+              ]
+            },
+            {
+              "var": "proba",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "confusion matrix & ROC curve 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 8,
+          "prompt_markdown": "`rf_pred`의 confusion matrix를 heatmap으로 그리세요.",
+          "answer_code": "from sklearn.metrics import confusion_matrix\ncm = confusion_matrix(y_test, rf_pred)\nsns.heatmap(cm, annot=True, fmt='d', cmap='Blues')  # annot=True로 숫자를, fmt='d'로 정수 형식을 지정\nplt.show()",
+          "checks": [
+            {
+              "var": "cm",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                2,
+                2
+              ]
+            },
+            {
+              "var": "rf_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 9,
+          "prompt_markdown": "`rf`의 ROC curve를 그리세요.",
+          "answer_code": "from sklearn.metrics import roc_curve\nfpr, tpr, _ = roc_curve(y_test, proba)  # thresholds는 여기서 쓰지 않으므로 _로 무시\nplt.plot(fpr, tpr)\nplt.plot([0,1],[0,1],'k--')  # 대각선(랜덤 추측 수준)과 비교해 곡선이 왼쪽 위로 많이 벗어날수록 좋은 모델\nplt.show()",
+          "checks": [
+            {
+              "var": "_",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                76
+              ]
+            },
+            {
+              "var": "fpr",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                76
+              ]
+            },
+            {
+              "var": "proba",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            },
+            {
+              "var": "tpr",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                76
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "불균형 데이터 대응 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 10,
+          "prompt_markdown": "`RandomForestClassifier(class_weight='balanced', random_state=42)`를 학습시켜 recall을 비교하세요.",
+          "answer_code": "from sklearn.metrics import recall_score\nrf_bal = RandomForestClassifier(class_weight='balanced', random_state=42)  # class_weight='balanced': 소수 클래스에 더 큰 가중치를 줘서 recall을 끌어올림\nrf_bal.fit(X_train_s, y_train)\nprint(recall_score(y_test, rf_bal.predict(X_test_s)), recall_score(y_test, rf_pred))  # balanced 모델과 기본 모델의 recall을 나란히 비교",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200,
+                9
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                800,
+                9
+              ]
+            },
+            {
+              "var": "rf_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                800
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 11,
+          "prompt_markdown": "`imblearn.SMOTE`로 오버샘플링한 뒤 `RandomForestClassifier`를 다시 학습시켜 recall을 확인하세요.",
+          "answer_code": "from imblearn.over_sampling import SMOTE\nsmote = SMOTE(random_state=42)\nX_over, y_over = smote.fit_resample(X_train_s, y_train)  # 학습 데이터에만 오버샘플링 적용(테스트 데이터는 그대로 둬야 실제 성능을 왜곡 없이 평가 가능)\nrf_smote = RandomForestClassifier(random_state=42)\nrf_smote.fit(X_over, y_over)\nprint(recall_score(y_test, rf_smote.predict(X_test_s)))",
+          "checks": [
+            {
+              "var": "X_over",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1148,
+                9
+              ]
+            },
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200,
+                9
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                800,
+                9
+              ]
+            },
+            {
+              "var": "y_over",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1148
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                800
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

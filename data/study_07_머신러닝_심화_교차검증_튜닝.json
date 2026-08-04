@@ -1,0 +1,293 @@
+{
+  "chapter_id": "07_머신러닝_심화_교차검증_튜닝",
+  "title": "12. 머신러닝 심화 - 교차검증 · 하이퍼파라미터 튜닝 · 파이프라인",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\ndf = pd.read_csv('data/train.csv')\ndf['Age'] = df['Age'].fillna(df['Age'].median())\ndf['Embarked'] = df['Embarked'].fillna(df['Embarked'].mode()[0])\ndf['Sex_male'] = (df['Sex'] == 'male').astype(int)\ndf = pd.get_dummies(df, columns=['Embarked'], drop_first=True)\n\nfeature_cols = ['Pclass', 'Sex_male', 'Age', 'SibSp', 'Parch', 'Fare'] + [c for c in df.columns if c.startswith('Embarked_')]\nX = df[feature_cols]\ny = df['Survived']\nX.shape",
+  "sections": [
+    {
+      "no": 1,
+      "title": "교차검증 (K-Fold Cross Validation)",
+      "theory_markdown": "### 📖 이론 설명\n`train_test_split`을 딱 한 번만 하면, **어쩌다 운 좋게(혹은 나쁘게) 나뉜 데이터**로 평가한 결과일 수 있습니다. K-Fold 교차검증은 데이터를 K개 조각으로 나눠 **K번 서로 다른 조합으로 학습·평가를 반복**하고 평균을 내기 때문에 훨씬 안정적인 성능 추정치를 줍니다. 분류 문제에서는 `StratifiedKFold`를 써서 각 fold의 클래스 비율을 원본과 비슷하게 유지하는 것이 일반적입니다. `cross_val_score`는 이 과정을 한 줄로 처리해주는 편의 함수입니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| KFold(n_splits=k) | 단순 K등분 |\n| StratifiedKFold(n_splits=k) | 클래스 비율을 유지하며 K등분 |\n| cross_val_score(model, X, y, cv=k) | K번 학습·평가한 점수 배열 반환 |\n| cross_validate(...) | 여러 지표·학습시간까지 함께 반환 |",
+      "example_code": "from sklearn.model_selection import StratifiedKFold, cross_val_score, cross_validate\nfrom sklearn.ensemble import RandomForestClassifier\n\nmodel = RandomForestClassifier(n_estimators=100, random_state=42)\nskf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\nscores = cross_val_score(model, X, y, cv=skf, scoring='accuracy')\nprint('fold별 accuracy:', scores.round(3))\nprint('평균:', scores.mean().round(3), '표준편차:', scores.std().round(3))",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`cross_validate`를 이용해 `scoring=['accuracy', 'f1']` 두 지표를 동시에 5-fold로 확인하세요.",
+          "answer_code": "result = cross_validate(model, X, y, cv=skf, scoring=['accuracy', 'f1'])  # scoring에 리스트를 주면 여러 지표를 한 번에 계산해 딕셔너리로 반환\nprint(result['test_accuracy'].mean())  # 결과 키는 'test_지표명' 형태이고, cv 횟수만큼 배열로 나오므로 mean()으로 평균을 냄\nprint(result['test_f1'].mean())",
+          "checks": [
+            {
+              "var": "X",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                8
+              ]
+            },
+            {
+              "var": "y",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "하이퍼파라미터 튜닝 (GridSearchCV/RandomizedSearchCV)",
+      "theory_markdown": "### 📖 이론 설명\n모델의 성능은 `n_estimators`, `max_depth` 같은 하이퍼파라미터에 따라 달라집니다. 이 값들을 하나씩 손으로 바꿔가며 확인하는 대신, `GridSearchCV`는 **지정한 값의 모든 조합**을 교차검증으로 자동 테스트해서 최적의 조합을 찾아줍니다. 조합 수가 너무 많아 시간이 오래 걸릴 때는 무작위로 일부 조합만 테스트하는 `RandomizedSearchCV`를 씁니다. 학습이 끝나면 `best_params_`, `best_score_`, `best_estimator_`로 결과를 확인합니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 특징 |\n|---|---|\n| GridSearchCV(estimator, param_grid, cv=) | 모든 조합을 전수 탐색 (느리지만 확실함) |\n| RandomizedSearchCV(estimator, param_distributions, n_iter=) | 일부만 무작위 탐색 (빠름) |\n| .best_params_ / .best_score_ / .best_estimator_ | 최적 조합 / 점수 / 모델 |",
+      "example_code": "from sklearn.model_selection import GridSearchCV\n\nparam_grid = {\n    'n_estimators': [50, 100, 200],\n    'max_depth': [3, 5, 7, None],\n}\ngrid = GridSearchCV(RandomForestClassifier(random_state=42), param_grid, cv=5, scoring='accuracy', n_jobs=-1)\ngrid.fit(X, y)\nprint('최적 파라미터:', grid.best_params_)\nprint('최적 점수:', grid.best_score_.round(4))",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`RandomizedSearchCV`로 `n_estimators`를 50~300 사이, `max_depth`를 3~10 사이에서 `n_iter=10`만큼 탐색하세요.",
+          "answer_code": "from sklearn.model_selection import RandomizedSearchCV\nparam_dist = {'n_estimators': list(range(50, 301, 10)), 'max_depth': list(range(3, 11))}  # 탐색 범위가 넓을 때는 GridSearchCV(전수 탐색) 대신 무작위로 일부만 시도\nrand_search = RandomizedSearchCV(RandomForestClassifier(random_state=42), param_dist, n_iter=10, cv=5, random_state=42, n_jobs=-1)  # n_iter=10: 전체 조합 중 10개만 무작위로 뽑아 시도, n_jobs=-1: 가용 CPU를 모두 사용해 병렬 처리\nrand_search.fit(X, y)\nprint(rand_search.best_params_)",
+          "checks": [
+            {
+              "var": "X",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                8
+              ]
+            },
+            {
+              "var": "y",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "Pipeline & ColumnTransformer",
+      "theory_markdown": "### 📖 이론 설명\n실무에서는 '스케일링 → 모델'처럼 여러 단계를 매번 순서대로 적용해야 합니다. `Pipeline`은 이 단계들을 **하나의 객체로 묶어서**, `fit`/`predict`를 한 번만 호출하면 되도록 해줍니다 - 학습 데이터에만 `fit`이 적용되고 테스트 데이터에는 자동으로 `transform`만 적용되므로 데이터 누수도 방지됩니다. `ColumnTransformer`는 '이 컬럼들은 스케일링, 저 컬럼들은 원-핫 인코딩'처럼 **컬럼마다 다른 전처리**를 한 번에 지정할 때 사용합니다. GridSearchCV의 `param_grid`에 파이프라인 단계 이름을 붙여(`단계이름__파라미터`) 파이프라인 전체를 튜닝할 수도 있습니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| Pipeline([('scaler', ...), ('model', ...)]) | 여러 단계를 순서대로 묶기 |\n| make_pipeline(단계1, 단계2, ...) | 이름을 자동으로 붙여 간편하게 생성 |\n| ColumnTransformer([(이름, 변환기, 컬럼목록), ...]) | 컬럼별로 다른 전처리 적용 |",
+      "example_code": "from sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\n\npipe = Pipeline([\n    ('scaler', StandardScaler()),\n    ('model', RandomForestClassifier(n_estimators=100, random_state=42)),\n])\npipe.fit(X_train, y_train)\nprint('Pipeline accuracy:', pipe.score(X_test, y_test))\n\n# GridSearchCV와 결합: 'model__' 접두사로 파이프라인 내부 모델의 파라미터 지정\npipe_grid = GridSearchCV(pipe, {'model__n_estimators': [50, 100], 'model__max_depth': [3, 5, None]}, cv=3)\npipe_grid.fit(X_train, y_train)\nprint(pipe_grid.best_params_)",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))`으로 파이프라인을 만들어 학습시키고 accuracy를 구하세요.",
+          "answer_code": "from sklearn.pipeline import make_pipeline\nfrom sklearn.linear_model import LogisticRegression\npipe2 = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))  # make_pipeline은 각 단계 이름을 자동으로 붙여주어 Pipeline보다 간단하게 작성 가능\npipe2.fit(X_train, y_train)  # fit 한 번으로 스케일링(train만 fit)과 모델 학습이 순서대로 실행됨\nprint(pipe2.score(X_test, y_test))  # predict 시에는 스케일러가 자동으로 transform만 적용(데이터 누수 방지)",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                179,
+                8
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712,
+                8
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                179
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "결측치 심화 - KNNImputer",
+      "theory_markdown": "### 📖 이론 설명\n04번 노트북의 평균/중앙값 대체는 '컬럼 하나만' 보고 채우지만, `KNNImputer`는 **결측치가 없는 다른 컬럼들이 비슷한 행(이웃)들을 찾아서**, 그 이웃들의 값을 평균 내어 채웁니다 - 변수 간 관계를 반영하는 더 정교한 방법입니다.",
+      "concept_table_markdown": "",
+      "example_code": "from sklearn.impute import KNNImputer\n\nage_fare = df[['Age', 'Fare', 'Pclass']].copy()\nage_fare.loc[age_fare.sample(20, random_state=1).index, 'Age'] = np.nan  # 결측치 임의 생성(실습용)\n\nimputer = KNNImputer(n_neighbors=5)\nfilled = imputer.fit_transform(age_fare)\nprint('결측치 남은 개수:', pd.DataFrame(filled, columns=age_fare.columns)['Age'].isnull().sum())",
+      "practices": []
+    },
+    {
+      "no": 5,
+      "title": "회귀 심화 - Ridge/Lasso/ElasticNet",
+      "theory_markdown": "### 📖 이론 설명\n`LinearRegression`은 훈련 데이터에 대한 오차를 최소화하는 데만 집중하다 보니, 변수가 많거나 다중공선성이 있으면 특정 가중치(weight)가 비정상적으로 커지며 과적합될 수 있습니다. **규제(Regularization)**는 손실함수에 '가중치가 너무 커지면 패널티를 준다'는 항을 추가해 이를 막습니다.\n\n- **Ridge (L2 규제)**: 가중치의 제곱합에 패널티 → 가중치를 0에 가깝게 줄이되 완전히 0으로는 만들지 않음\n- **Lasso (L1 규제)**: 가중치의 절댓값 합에 패널티 → 일부 가중치를 정확히 0으로 만들어 **자동으로 변수를 선택**하는 효과\n- **ElasticNet**: Ridge와 Lasso를 절충(L1+L2 동시 적용)\n\n`alpha`(규제 강도)가 클수록 규제가 강해져 모델이 단순해지고, 작을수록 `LinearRegression`에 가까워집니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 모델 | 규제 종류 | 특징 |\n|---|---|---|\n| Ridge(alpha=) | L2 | 가중치를 0 근처로 축소 |\n| Lasso(alpha=) | L1 | 일부 가중치를 완전히 0으로(변수 선택) |\n| ElasticNet(alpha=, l1_ratio=) | L1+L2 | 두 방식을 절충 |",
+      "example_code": "from sklearn.linear_model import Ridge, Lasso, ElasticNet, LinearRegression\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.metrics import r2_score\n\nXr = df[['Pclass', 'Age', 'SibSp', 'Parch']]\nyr = df['Fare']\nXr_train, Xr_test, yr_train, yr_test = train_test_split(Xr, yr, test_size=0.2, random_state=42)\n\nfor name, m in [('Linear', LinearRegression()), ('Ridge', Ridge(alpha=1.0)),\n                ('Lasso', Lasso(alpha=1.0)), ('ElasticNet', ElasticNet(alpha=1.0, l1_ratio=0.5))]:\n    m.fit(Xr_train, yr_train)\n    print(f'{name}: R2={r2_score(yr_test, m.predict(Xr_test)):.4f}, 가중치={m.coef_.round(2)}')",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`Lasso(alpha=5.0)`로 학습시켜 `alpha=1.0`일 때보다 가중치가 더 많이 0에 가까워지는지 비교하세요.",
+          "answer_code": "lasso5 = Lasso(alpha=5.0)  # alpha가 클수록 규제가 강해져 더 많은 가중치가 정확히 0이 됨\nlasso5.fit(Xr_train, yr_train)\nprint(lasso5.coef_.round(2))  # round(2)로 소수점을 정리해 어떤 계수가 0에 가까운지 눈으로 비교하기 쉽게 함",
+          "checks": [
+            {
+              "var": "Xr_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712,
+                4
+              ]
+            },
+            {
+              "var": "yr_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`Ridge`의 `alpha`를 `[0.1, 1.0, 5.0, 10.0]` 중에서 `GridSearchCV(scoring='neg_mean_absolute_error')`로 가장 좋은 값을 찾으세요.",
+          "answer_code": "from sklearn.model_selection import GridSearchCV\n\nridge_grid = GridSearchCV(\n    Ridge(), {'alpha': [0.1, 1.0, 5.0, 10.0]}, cv=5, scoring='neg_mean_absolute_error'\n)  # 회귀는 기본적으로 '클수록 좋은' accuracy 같은 지표가 없어서, MAE에 마이너스를 붙인\n  # neg_mean_absolute_error를 씀(GridSearchCV는 항상 점수가 '클수록 좋다'고 가정하기 때문)\nridge_grid.fit(Xr_train, yr_train)\nprint(ridge_grid.best_params_)\nprint(-ridge_grid.best_score_)  # 다시 마이너스를 붙여 원래 MAE 값(작을수록 좋음)으로 해석",
+          "checks": [
+            {
+              "var": "Xr_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712,
+                4
+              ]
+            },
+            {
+              "var": "yr_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 6,
+      "title": "분류 심화 - PR Curve와 임계값 튜닝",
+      "theory_markdown": "### 📖 이론 설명\n분류 모델의 `predict()`는 내부적으로 확률이 **0.5보다 크면 양성**으로 판단합니다. 하지만 이 0.5는 절대적인 기준이 아닙니다 - 재현율을 더 높이고 싶다면 임계값을 낮추고(더 많이 양성으로 판단), 정밀도를 높이고 싶다면 임계값을 높이면 됩니다. **PR Curve(Precision-Recall Curve)**는 임계값을 바꿔가며 precision과 recall이 어떻게 트레이드오프되는지 보여주고, `average_precision_score`(AP)는 이 곡선 아래 면적으로 성능을 요약합니다. 클래스가 불균형할 때는 ROC-AUC보다 PR-AUC가 더 현실적인 지표로 여겨집니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| precision_recall_curve(y_true, y_score) | (precision, recall, thresholds) 반환 |\n| average_precision_score(y_true, y_score) | PR curve 아래 면적(AP) |\n| predict_proba(X)[:,1] > threshold | 임계값을 직접 지정해 클래스 결정 |",
+      "example_code": "from sklearn.metrics import precision_recall_curve, average_precision_score\n\nmodel2 = RandomForestClassifier(n_estimators=100, random_state=42)\nmodel2.fit(X_train, y_train)\nproba = model2.predict_proba(X_test)[:, 1]\n\nprecision, recall, thresholds = precision_recall_curve(y_test, proba)\nplt.plot(recall, precision)\nplt.xlabel('Recall'); plt.ylabel('Precision'); plt.title(f'PR Curve (AP={average_precision_score(y_test, proba):.3f})')\nplt.show()\n\n# 임계값을 0.3으로 낮춰 recall을 올려보기\npred_low_thresh = (proba > 0.3).astype(int)\nfrom sklearn.metrics import recall_score, precision_score\nprint('임계값 0.5:', recall_score(y_test, model2.predict(X_test)), precision_score(y_test, model2.predict(X_test)))\nprint('임계값 0.3:', recall_score(y_test, pred_low_thresh), precision_score(y_test, pred_low_thresh))",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "임계값을 0.7로 높였을 때 recall과 precision이 어떻게 바뀌는지 확인하세요.",
+          "answer_code": "pred_high = (proba > 0.7).astype(int)  # 기본 임계값(0.5)보다 높여서 '더 확실할 때만' 양성으로 판단하게 만듦\nprint(recall_score(y_test, pred_high), precision_score(y_test, pred_high))  # 임계값을 높이면 보통 recall은 낮아지고 precision은 높아짐(트레이드오프)",
+          "checks": [
+            {
+              "var": "pred_high",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                179
+              ]
+            },
+            {
+              "var": "proba",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                179
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                179
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 7,
+      "title": "종합 실전 문제",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`Pipeline(StandardScaler + RandomForestClassifier)`을 만들고 `GridSearchCV`로 `n_estimators=[100,200]`, `max_depth=[5,None]`을 5-fold 교차검증으로 튜닝하세요.",
+          "answer_code": "pipe3 = Pipeline([('scaler', StandardScaler()), ('model', RandomForestClassifier(random_state=42))])  # Pipeline은 각 단계에 이름을 직접 지정(여기서는 'scaler', 'model')\ngrid3 = GridSearchCV(pipe3, {'model__n_estimators': [100, 200], 'model__max_depth': [5, None]}, cv=5)  # 'model__파라미터'처럼 단계이름__파라미터 형식으로 파이프라인 내부 모델의 하이퍼파라미터를 지정\ngrid3.fit(X_train, y_train)\nprint(grid3.best_params_, grid3.best_score_)",
+          "checks": [
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712,
+                8
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`Ridge`, `Lasso` 중 어느 모델이 더 단순한(0에 가까운 가중치가 많은) 모델을 만드는지 코드로 확인하세요.",
+          "answer_code": "ridge = Ridge(alpha=1.0).fit(Xr_train, yr_train)  # L2 규제: 가중치를 0 근처로 줄이되 완전히 0으로 만들지는 않음\nlasso = Lasso(alpha=1.0).fit(Xr_train, yr_train)  # L1 규제: 일부 가중치를 정확히 0으로 만들어 변수를 자동으로 선택하는 효과\nprint('Ridge:', ridge.coef_.round(3))\nprint('Lasso:', lasso.coef_.round(3))  # Lasso 쪽에 0에 가까운 값이 더 많이 보이면 Lasso가 더 단순한 모델을 만든다는 뜻",
+          "checks": [
+            {
+              "var": "Xr_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712,
+                4
+              ]
+            },
+            {
+              "var": "yr_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

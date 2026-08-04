@@ -1,0 +1,250 @@
+{
+  "chapter_id": "06_머신러닝_분류_다중_실무전용",
+  "title": "06. 머신러닝 다중분류 - 실무전용 문제 모음",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\ndigits = pd.read_csv('data/digits.csv')\nX = digits.drop(columns=['target'])\ny = digits['target']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\nscaler = StandardScaler()\nX_train_s = scaler.fit_transform(X_train)\nX_test_s = scaler.transform(X_test)\nX_train.shape",
+  "sections": [
+    {
+      "no": 1,
+      "title": "모델 학습 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`LogisticRegression(max_iter=2000)`을 학습시켜 예측값 `logi_pred`를 만드세요.",
+          "answer_code": "from sklearn.linear_model import LogisticRegression\nlogi = LogisticRegression(max_iter=2000)  # 클래스가 많고 데이터가 복잡할수록 수렴에 더 많은 반복이 필요해 max_iter를 넉넉히 줌\nlogi.fit(X_train_s, y_train)\nlogi_pred = logi.predict(X_test_s)",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                360,
+                64
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1437,
+                64
+              ]
+            },
+            {
+              "var": "logi_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                360
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1437
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`RandomForestClassifier(n_estimators=200, random_state=42)`를 학습시켜 예측값 `rf_pred`를 만드세요.",
+          "answer_code": "from sklearn.ensemble import RandomForestClassifier\nrf = RandomForestClassifier(n_estimators=200, random_state=42)  # 다중분류에서도 이진분류와 동일한 방식으로 학습(내부적으로 클래스 개수를 자동 인식)\nrf.fit(X_train_s, y_train)\nrf_pred = rf.predict(X_test_s)",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                360,
+                64
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1437,
+                64
+              ]
+            },
+            {
+              "var": "rf_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                360
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1437
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "평가지표 연습 (average 옵션)",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 3,
+          "prompt_markdown": "`rf_pred`의 f1-score를 `average='macro'`와 `'weighted'`로 각각 구하세요.",
+          "answer_code": "from sklearn.metrics import f1_score\nprint(f1_score(y_test, rf_pred, average='macro'))  # macro: 클래스 크기 무시하고 단순 평균\nprint(f1_score(y_test, rf_pred, average='weighted'))  # weighted: 클래스별 데이터 개수로 가중 평균(다수 클래스 영향이 큼)",
+          "checks": [
+            {
+              "var": "rf_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                360
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                360
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 4,
+          "prompt_markdown": "`classification_report`로 클래스별 성능을 한 번에 확인하세요.",
+          "answer_code": "from sklearn.metrics import classification_report\nprint(classification_report(y_test, rf_pred))  # average 옵션 없이도 클래스별 precision/recall/f1을 한 번에 확인할 수 있어 다중분류에서 가장 먼저 시도해볼 함수",
+          "checks": [
+            {
+              "var": "rf_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                360
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                360
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "confusion matrix 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 5,
+          "prompt_markdown": "10x10 confusion matrix를 heatmap으로 그려 어떤 숫자끼리 헷갈리는지 확인하세요.",
+          "answer_code": "from sklearn.metrics import confusion_matrix\ncm = confusion_matrix(y_test, rf_pred)  # 클래스 개수만큼 NxN 행렬이 반환됨\nsns.heatmap(cm, annot=True, fmt='d', cmap='Blues')  # 대각선에서 벗어난 칸이 클수록 그 두 클래스를 자주 헷갈린다는 뜻\nplt.show()",
+          "checks": [
+            {
+              "var": "cm",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                10,
+                10
+              ]
+            },
+            {
+              "var": "rf_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                360
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                360
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "종합 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 6,
+          "prompt_markdown": "`KNeighborsClassifier(n_neighbors=3)`을 학습시켜 accuracy를 구하세요.",
+          "answer_code": "from sklearn.neighbors import KNeighborsClassifier\nfrom sklearn.metrics import accuracy_score\nknn = KNeighborsClassifier(n_neighbors=3)  # n_neighbors가 작으면 지역적 패턴에 민감(과적합 위험), 크면 더 일반화되지만 경계가 뭉개질 수 있음\nknn.fit(X_train_s, y_train)\nprint(accuracy_score(y_test, knn.predict(X_test_s)))",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                360,
+                64
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1437,
+                64
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                360
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1437
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

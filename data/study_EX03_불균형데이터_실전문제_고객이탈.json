@@ -1,0 +1,235 @@
+{
+  "chapter_id": "EX03_불균형데이터_실전문제_고객이탈",
+  "title": "EX03. [추가연습] 불균형 데이터 실전 문제 - 고객 이탈 예측",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\ndf = pd.read_csv('data/telco_churn.csv')\ndf.head()",
+  "sections": [
+    {
+      "no": 1,
+      "title": "데이터 로딩 & EDA",
+      "theory_markdown": "### 📖 이론 설명\n이탈 비율을 가장 먼저 확인합니다 - 이탈(Yes)이 소수 클래스입니다. `TotalCharges`는 숫자여야 하는데 `info()`를 보면 `object`(문자열) 타입인 것도 미리 확인해둡니다(2절에서 원인을 찾아 고칩니다).",
+      "concept_table_markdown": "",
+      "example_code": "df.info()\n\nprint(df['Churn'].value_counts())\nprint(df['Churn'].value_counts(normalize=True))\n\nsns.countplot(x='Churn', data=df)\nplt.title('Churn distribution (imbalanced)')\nplt.show()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`Contract` 컬럼별 이탈률(Churn=='Yes' 비율)을 구하세요.",
+          "answer_code": "df.groupby('Contract')['Churn'].apply(lambda s: (s == 'Yes').mean())  # 그룹별로 'Yes' 비율을 직접 계산(Churn이 아직 0/1로 인코딩되기 전이라 mean() 대신 조건식을 사용)",
+          "checks": [
+            {
+              "var": "df",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                7043,
+                21
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "전처리",
+      "theory_markdown": "### 📖 이론 설명\n`TotalCharges`가 문자열인 이유는 값이 없는 자리에 **빈 문자열(' ')**이 들어있기 때문입니다(NaN이 아니라서 `isnull()`로는 안 보입니다!). `replace()`로 공백을 NaN으로 바꾼 뒤 `astype(float)`로 변환합니다. 또한 `customerID`는 예측에 의미가 없는 식별자이므로 제거하고, 나머지 범주형(Yes/No, 문자열) 컬럼은 원-핫 인코딩합니다.",
+      "concept_table_markdown": "",
+      "example_code": "# 1) TotalCharges 정리\nprint((df['TotalCharges'] == ' ').sum(), '개의 공백 값')\ndf['TotalCharges'] = df['TotalCharges'].replace(' ', np.nan).astype(float)\ndf['TotalCharges'] = df['TotalCharges'].fillna(df['TotalCharges'].median())\n\n# 2) 불필요 컬럼 제거\ndf = df.drop(columns=['customerID'])\n\n# 3) 타겟 레이블 숫자화\ndf['Churn'] = df['Churn'].map({'Yes': 1, 'No': 0})\n\n# 4) 나머지 범주형 컬럼 원-핫 인코딩\ncat_cols = df.select_dtypes(include='object').columns.tolist()\ndf = pd.get_dummies(df, columns=cat_cols, drop_first=True)\ndf.info()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "전처리 완료 후 `df`에 결측치가 남아있지 않은지 확인하세요.",
+          "answer_code": "print(df.isnull().sum().sum())  # sum()을 두 번 써서 컬럼별 결측치 합계를 다시 전체 합계로(0이면 결측치 없음)",
+          "checks": [
+            {
+              "var": "df",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                7043,
+                31
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "머신러닝 모델링 & 평가지표 심화",
+      "theory_markdown": "### 📖 이론 설명\n먼저 **아무 튜닝도 없이** 모델을 학습시켜 accuracy는 높지만 recall이 낮은 함정을 직접 확인합니다. 그다음 `class_weight='balanced'`를 적용해 recall이 어떻게 바뀌는지 비교합니다.",
+      "concept_table_markdown": "",
+      "example_code": "from sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, confusion_matrix\n\nX = df.drop(columns=['Churn'])\ny = df['Churn']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\nscaler = StandardScaler()\nX_train_s = scaler.fit_transform(X_train)\nX_test_s = scaler.transform(X_test)\n\n# 기본 모델: accuracy는 높아 보이지만 recall이 낮다\nrf = RandomForestClassifier(n_estimators=100, random_state=42)\nrf.fit(X_train_s, y_train)\npred = rf.predict(X_test_s)\nprint('기본 모델 - accuracy:', accuracy_score(y_test, pred), ' recall:', recall_score(y_test, pred))\n\n# class_weight='balanced' 적용\nrf_bal = RandomForestClassifier(n_estimators=100, class_weight='balanced', random_state=42)\nrf_bal.fit(X_train_s, y_train)\npred_bal = rf_bal.predict(X_test_s)\nprint('balanced 모델 - accuracy:', accuracy_score(y_test, pred_bal), ' recall:', recall_score(y_test, pred_bal))\n\ncm = confusion_matrix(y_test, pred_bal)\nsns.heatmap(cm, annot=True, fmt='d', cmap='Reds')\nplt.xlabel('Predicted'); plt.ylabel('Actual'); plt.title('class_weight=balanced Confusion Matrix')\nplt.show()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`imblearn.SMOTE`로 `X_train_s`, `y_train`을 오버샘플링한 뒤 `RandomForestClassifier`를 다시 학습시켜 recall을 확인하세요.",
+          "answer_code": "from imblearn.over_sampling import SMOTE\nsmote = SMOTE(random_state=42)\nX_over, y_over = smote.fit_resample(X_train_s, y_train)  # 학습 데이터에만 오버샘플링 적용(테스트 데이터는 그대로 둬야 실제 성능을 왜곡 없이 평가 가능)\nrf_smote = RandomForestClassifier(n_estimators=100, random_state=42)\nrf_smote.fit(X_over, y_over)\npred_smote = rf_smote.predict(X_test_s)\nprint(recall_score(y_test, pred_smote))\nprint(precision_score(y_test, pred_smote))  # recall이 오르는 대신 precision이 떨어지는 트레이드오프가 있는지 함께 확인",
+          "checks": [
+            {
+              "var": "X_over",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                8278,
+                30
+              ]
+            },
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409,
+                30
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5634,
+                30
+              ]
+            },
+            {
+              "var": "pred_smote",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409
+              ]
+            },
+            {
+              "var": "y_over",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                8278
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5634
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "딥러닝 모델링",
+      "theory_markdown": "### 📖 이론 설명\n딥러닝에서도 동일하게 SMOTE로 학습 데이터를 오버샘플링한 뒤 학습시켜 recall 변화를 관찰합니다.",
+      "concept_table_markdown": "",
+      "example_code": "import tensorflow as tf\nfrom tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense, Dropout\nfrom tensorflow.keras.callbacks import EarlyStopping\nfrom imblearn.over_sampling import SMOTE\n\ntf.random.set_seed(100)\nsmote = SMOTE(random_state=42)\nX_over, y_over = smote.fit_resample(X_train_s, y_train)\n\nmodel = Sequential()\nmodel.add(Dense(32, activation='relu', input_shape=(X_train_s.shape[1],)))\nmodel.add(Dropout(0.3))\nmodel.add(Dense(16, activation='relu'))\nmodel.add(Dense(1, activation='sigmoid'))\nmodel.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])\n\nes = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)\nhistory = model.fit(X_over, y_over, epochs=50, batch_size=32,\n                     validation_data=(X_test_s, y_test), callbacks=[es], verbose=0)\n\ndl_pred = (model.predict(X_test_s).flatten() > 0.5).astype(int)\nprint('DL(SMOTE) recall:', recall_score(y_test, dl_pred))\nprint('DL(SMOTE) precision:', precision_score(y_test, dl_pred))",
+      "practices": []
+    },
+    {
+      "no": 5,
+      "title": "종합 실전 문제",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`LogisticRegression(class_weight='balanced', max_iter=1000)`을 학습시켜 f1-score를 구하세요.",
+          "answer_code": "from sklearn.linear_model import LogisticRegression\nlogi = LogisticRegression(class_weight='balanced', max_iter=1000)  # class_weight='balanced': 소수 클래스(이탈)의 오분류에 더 큰 패널티를 줌\nlogi.fit(X_train_s, y_train)\nprint(f1_score(y_test, logi.predict(X_test_s)))",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409,
+                30
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5634,
+                30
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5634
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`class_weight` 없는 기본 모델과 `balanced` 모델의 recall을 나란히 비교하는 표를 만드세요.",
+          "answer_code": "compare = pd.DataFrame({\n    'no_weight': [recall_score(y_test, pred), precision_score(y_test, pred)],\n    'balanced': [recall_score(y_test, pred_bal), precision_score(y_test, pred_bal)],\n}, index=['recall', 'precision'])  # 두 모델의 recall/precision을 표로 나란히 정리하면 트레이드오프를 한눈에 비교하기 좋음\nprint(compare)",
+          "checks": [
+            {
+              "var": "compare",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                2,
+                2
+              ]
+            },
+            {
+              "var": "pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409
+              ]
+            },
+            {
+              "var": "pred_bal",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

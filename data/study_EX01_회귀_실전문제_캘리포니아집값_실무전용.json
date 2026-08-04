@@ -1,0 +1,211 @@
+{
+  "chapter_id": "EX01_회귀_실전문제_캘리포니아집값_실무전용",
+  "title": "EX01. [추가연습] 회귀 실무전용 문제 모음 - 캘리포니아 집값",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\nhousing = pd.read_csv('data/california_housing.csv')\nX = housing.drop(columns=['MedHouseVal'])\ny = housing['MedHouseVal']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\nscaler = StandardScaler()\nX_train_s = scaler.fit_transform(X_train)\nX_test_s = scaler.transform(X_test)\nX_train.shape",
+  "sections": [
+    {
+      "no": 1,
+      "title": "규제 회귀 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`Ridge(alpha=1.0)`을 학습시켜 R2를 구하세요.",
+          "answer_code": "from sklearn.linear_model import Ridge\nfrom sklearn.metrics import r2_score\nridge = Ridge(alpha=1.0)  # L2 규제: 가중치를 0 근처로 줄여 과적합을 완화\nridge.fit(X_train_s, y_train)\nprint(r2_score(y_test, ridge.predict(X_test_s)))",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                4128,
+                8
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                16512,
+                8
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                4128
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                16512
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`Lasso(alpha=0.1)`을 학습시켜 가중치 중 0에 가까운 것이 있는지 확인하세요.",
+          "answer_code": "from sklearn.linear_model import Lasso\nlasso = Lasso(alpha=0.1)  # L1 규제: 일부 가중치를 정확히 0으로 만들어 변수 선택 효과를 줌\nlasso.fit(X_train_s, y_train)\nprint(lasso.coef_.round(3))  # round(3)으로 소수점을 정리해 0에 가까운 계수를 눈으로 확인하기 쉽게 함",
+          "checks": [
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                16512,
+                8
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                16512
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "모델 비교 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 3,
+          "prompt_markdown": "`GradientBoostingRegressor(n_estimators=100, random_state=42)`를 학습시켜 RandomForest와 R2를 비교하세요.",
+          "answer_code": "from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor\ngb = GradientBoostingRegressor(n_estimators=100, random_state=42).fit(X_train_s, y_train)  # 부스팅(순차 학습): 이전 모델의 오차를 보완\nrf = RandomForestRegressor(n_estimators=100, random_state=42).fit(X_train_s, y_train)  # 배깅(병렬 학습): 여러 트리의 다수결/평균\nprint('GB:', r2_score(y_test, gb.predict(X_test_s)))\nprint('RF:', r2_score(y_test, rf.predict(X_test_s)))",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                4128,
+                8
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                16512,
+                8
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                4128
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                16512
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "Feature 조합 실험",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 4,
+          "prompt_markdown": "`MedInc`, `AveRooms`, `HouseAge` 세 컬럼만으로 다시 학습시켰을 때 R2가 어떻게 달라지는지 확인하세요.",
+          "answer_code": "X3 = housing[['MedInc', 'AveRooms', 'HouseAge']]  # 변수를 3개로 줄여도 성능이 크게 떨어지지 않으면 나머지 변수의 기여도가 낮다는 뜻\nX3_train, X3_test, y3_train, y3_test = train_test_split(X3, y, test_size=0.2, random_state=42)\nrf3 = RandomForestRegressor(n_estimators=100, random_state=42).fit(X3_train, y3_train)\nprint(r2_score(y3_test, rf3.predict(X3_test)))",
+          "checks": [
+            {
+              "var": "X3",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                20640,
+                3
+              ]
+            },
+            {
+              "var": "X3_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                4128,
+                3
+              ]
+            },
+            {
+              "var": "X3_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                16512,
+                3
+              ]
+            },
+            {
+              "var": "housing",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                20640,
+                9
+              ]
+            },
+            {
+              "var": "y",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                20640
+              ]
+            },
+            {
+              "var": "y3_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                4128
+              ]
+            },
+            {
+              "var": "y3_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                16512
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1149 @@
+{
+  "chapter_id": "02_NumPy_Pandas_기초",
+  "title": "02. NumPy & Pandas 기초 다지기 - 실전 문제 모음",
+  "setup_code": "import numpy as np\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\ntrain = pd.read_csv('data/train.csv')\ntrain.head(3)",
+  "sections": [
+    {
+      "no": 1,
+      "title": "NumPy 배열 기초",
+      "theory_markdown": "### 📖 이론 설명\nNumPy 배열(ndarray)은 파이썬 리스트와 달리 **모든 원소가 같은 타입**이어야 합니다. 이 덕분에 내부적으로 C 수준의 반복문을 사용해 훨씬 빠르게 계산할 수 있습니다. 반대로 말하면, 배열 안에 문자열이 하나라도 섞이면 **전체 원소가 문자열로 강제 변환**됩니다. 시험에서 '왜 계산이 안 되지?'라는 상황의 절반은 이 dtype 문제입니다.\n\n배열을 만드는 방법은 리스트를 그대로 변환(`np.array(list)`)하는 것 말고도 여러 가지가 있습니다: `np.zeros(n)`(0으로 채운 배열), `np.ones(n)`(1로 채운 배열), `np.arange(start, stop, step)`(range처럼 순차적인 값), `np.linspace(start, stop, num)`(시작~끝을 num개로 균등 분할)이 가장 자주 쓰입니다. 또 리스트처럼 `arr[0]`(위치), `arr[1:3]`(슬라이싱), `arr[arr > 5]`(조건을 만족하는 값만 골라내는 **불리언 인덱싱**)로 원하는 원소를 꺼낼 수 있습니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| np.array(list) | 배열 생성 |\n| .dtype | 원소들의 데이터 타입 확인 |\n| .shape | 배열의 형태(차원별 크기) |\n| .ndim | 차원 수 |",
+      "example_code": "scores = np.array([98.0, 92.5, 84.5, 77.0, 75.5])\nprint(scores, scores.dtype)\n\n# 문자열 하나가 섞이면 전체가 문자열(dtype='<U...')로 바뀐다\nscores_mixed = np.array([98.0, 92.5, 84.5, 77.0, '75.5'])\nprint(scores_mixed, scores_mixed.dtype)",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "정수 리스트 `[10, 20, 30]`을 `arr`라는 이름의 NumPy 배열로 만들고 dtype을 출력하세요.",
+          "answer_code": "arr = np.array([10, 20, 30])\nprint(arr.dtype)  # 정수만 있으므로 dtype은 int64로 자동 추론됨",
+          "checks": [
+            {
+              "var": "arr",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`[1, 2, '3']`을 배열로 만들면 dtype이 무엇이 되는지 확인하고, 그 이유를 주석으로 적어보세요.",
+          "answer_code": "mixed = np.array([1, 2, '3'])\nprint(mixed.dtype)\n# 문자열 원소가 하나라도 있으면 전체가 문자열(U타입)로 강제 변환된다.",
+          "checks": [
+            {
+              "var": "mixed",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 3,
+          "prompt_markdown": "`np.zeros(5)`와 `np.ones((2,3))`을 각각 만들어 출력하세요.",
+          "answer_code": "print(np.zeros(5))       # 크기 5인 1차원 0-배열\nprint(np.ones((2, 3)))   # 2행 3열의 1-배열",
+          "checks": [],
+          "manual_review": true
+        },
+        {
+          "no": 4,
+          "prompt_markdown": "`arr = np.arange(10)`에서, 인덱스 2~4번째 값을 슬라이싱으로 뽑고, 그 다음 `arr` 중 5보다 큰 값만 불리언 인덱싱으로 뽑아보세요.",
+          "answer_code": "arr = np.arange(10)\nsliced = arr[2:5]  # 슬라이싱: 2번 인덱스부터 4번 인덱스까지(5번 직전까지)\nprint(sliced)\nover_5 = arr[arr > 5]  # 불리언 인덱싱: arr > 5는 True/False 배열을 만들고, 이걸로 원본을 필터링\nprint(over_5)",
+          "checks": [
+            {
+              "var": "arr",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                10
+              ]
+            },
+            {
+              "var": "over_5",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                4
+              ]
+            },
+            {
+              "var": "sliced",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "배열 연산과 통계",
+      "theory_markdown": "### 📖 이론 설명\nNumPy 배열은 반복문 없이 배열 전체에 연산을 적용하는 **브로드캐스팅**을 지원합니다. `arr * 2`처럼 배열과 스칼라를 바로 곱할 수 있고, `axis` 옵션으로 '행 방향'과 '열 방향' 중 어느 쪽으로 통계를 낼지 지정할 수 있습니다. `axis=0`은 '각 열(컬럼)을 따라 내려가며 계산'(→ 결과가 행 방향으로 나열), `axis=1`은 '각 행을 따라 가로질러 계산'입니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| arr.mean()/std()/sum() | 평균/표준편차/합계 |\n| axis=0 | 열 기준(세로 방향) 계산 |\n| axis=1 | 행 기준(가로 방향) 계산 |",
+      "example_code": "mat = np.array([[1, 2, 3], [4, 5, 6]])\nprint(mat.sum())          # 전체 합\nprint(mat.sum(axis=0))    # 열 방향 합 -> [5 7 9]\nprint(mat.sum(axis=1))    # 행 방향 합 -> [6 15]\nprint(mat * 10)           # 브로드캐스팅",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`scores = np.array([80, 90, 70, 100, 60])`의 평균과 표준편차를 구하세요.",
+          "answer_code": "scores = np.array([80, 90, 70, 100, 60])\nprint(scores.mean())  # 평균: 데이터의 중심 위치\nprint(scores.std())   # 표준편차: 평균에서 흩어진 정도",
+          "checks": [
+            {
+              "var": "scores",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "2행 3열 배열 `np.array([[1,2,3],[4,5,6]])`에서 각 열의 평균을 axis 옵션을 사용해 구하세요.",
+          "answer_code": "mat = np.array([[1, 2, 3], [4, 5, 6]])\nprint(mat.mean(axis=0))  # axis=0: 행 방향으로 계산 -> 열별 평균이 나옴",
+          "checks": [
+            {
+              "var": "mat",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                2,
+                3
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 3,
+          "prompt_markdown": "`y = np.array([0,0,0,1,1,2,2,2,2])`에서 `np.unique(y, return_counts=True)`로 각 클래스가 몇 개씩 있는지 확인하세요. (train_test_split 이후 `stratify`가 제대로 적용됐는지, 클래스가 균형 잡혀 있는지 확인할 때 자주 씀)",
+          "answer_code": "y = np.array([0, 0, 0, 1, 1, 2, 2, 2, 2])\nclasses, counts = np.unique(y, return_counts=True)  # return_counts=True: 고유값(classes)뿐 아니라 각 값의 개수(counts)까지 함께 반환\nprint(classes)\nprint(counts)",
+          "checks": [
+            {
+              "var": "classes",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3
+              ]
+            },
+            {
+              "var": "counts",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3
+              ]
+            },
+            {
+              "var": "y",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                9
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "배열 형태 다루기",
+      "theory_markdown": "### 📖 이론 설명\n`reshape`은 배열의 원소 개수는 그대로 두고 '몇 행 몇 열로 볼 것인가'만 바꿉니다. 딥러닝 파트에서 이미지를 1차원으로 펴거나(`.flatten()`), 입력 형태를 맞출 때(`input_shape`) 자주 쓰입니다. `np.random.seed()`(또는 `np.random.default_rng(seed)`)로 난수 시드를 고정하면, 코드를 몇 번 실행해도 항상 같은 결과가 나와 채점/재현이 가능해집니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| arr.reshape(r, c) | r행 c열로 형태 변경 |\n| arr[start:end] | 슬라이싱 |\n| np.random.seed(n) | 난수 시드 고정 |",
+      "example_code": "arr = np.arange(6)          # [0 1 2 3 4 5]\nprint(arr.reshape(2, 3))\n\nnp.random.seed(42)\nprint(np.random.randint(0, 10, size=5))  # 시드를 고정하면 항상 같은 값",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`np.arange(12)`를 3행 4열로 reshape 하세요.",
+          "answer_code": "arr = np.arange(12)\nprint(arr.reshape(3, 4))  # 원소 개수(12)는 그대로 두고 형태만 3행 4열로 재배열(3*4=12로 맞아야 함)",
+          "checks": [
+            {
+              "var": "arr",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "시드를 42로 고정하고 0~100 사이 정수 난수 5개를 뽑아 `rand_nums`에 저장하세요.",
+          "answer_code": "np.random.seed(42)  # 시드 고정: 실행할 때마다 같은 난수가 나오도록 재현성을 확보\nrand_nums = np.random.randint(0, 100, size=5)\nprint(rand_nums)",
+          "checks": [
+            {
+              "var": "rand_nums",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "데이터 파악하기 (Getting & Knowing Your Data)",
+      "theory_markdown": "### 📖 이론 설명\n어떤 데이터든 분석의 첫 걸음은 '생김새 파악'입니다. `head`/`tail`로 눈으로 확인하고, `info`로 타입과 결측치 유무를, `describe`로 수치형 컬럼의 분포를, `shape`으로 크기를 확인하는 것이 습관이 되어야 합니다. 시험에서도 본격적인 전처리에 들어가기 전 거의 항상 이 함수들로 시작합니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| df.head(n)/tail(n) | 상/하위 n개 행 |\n| df.info() | 타입, 결측치 개수, 메모리 |\n| df.describe() | 수치형 통계 요약 |\n| df.shape | (행 수, 열 수) |\n| df.columns / df.dtypes | 컬럼명 / 컬럼별 타입 |",
+      "example_code": "train.info()\nprint(train.shape)\ntrain.describe()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`train`의 뒤에서 3개 행을 출력하세요.",
+          "answer_code": "train.tail(3)  # 뒤에서부터 3개 행 (head()의 반대)",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`train`의 컬럼명 목록을 리스트로 확인하세요.",
+          "answer_code": "print(train.columns.tolist())  # columns는 Index 객체라 tolist()로 순수 파이썬 리스트로 변환",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 3,
+          "prompt_markdown": "`train`에서 수치형 컬럼만 골라 `train_num`에 저장하세요. (`select_dtypes` 사용)",
+          "answer_code": "train_num = train.select_dtypes(include='number')  # 문자열(object) 컬럼은 제외하고 수치형만 추출\nprint(train_num.columns.tolist())",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            },
+            {
+              "var": "train_num",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                7
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 4,
+          "prompt_markdown": "`train`의 각 컬럼별 결측치 개수를 확인하세요.",
+          "answer_code": "print(train.isnull().sum())  # isnull()은 결측 여부를 True/False로, sum()으로 컬럼별 True(결측) 개수를 셈",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 5,
+      "title": "DataFrame/Series 생성·수정·저장",
+      "theory_markdown": "### 📖 이론 설명\nDataFrame은 dict로도, Series를 조합해서도 만들 수 있습니다. 여기서 자주 놓치는 함정이 하나 있습니다: **딕셔너리 값으로 Series를 넣을 때, DataFrame의 index와 Series의 index가 다르면 값이 매칭되지 않고 NaN이 됩니다.** pandas는 위치(순서)가 아니라 **인덱스 라벨**을 기준으로 값을 맞추기 때문입니다. 컬럼을 추가할 때는 `df['col']=값`으로 맨 끝에 붙거나, `insert(위치, 이름, 값)`으로 원하는 위치에 넣을 수 있습니다. `drop`은 `axis=1`(열) 또는 기본값 `axis=0`(행)을 지정하고, `inplace=True`를 주지 않으면 원본은 그대로 두고 삭제된 '새 결과'만 반환합니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| pd.DataFrame(dict, index=...) | 딕셔너리로 생성 |\n| pd.Series(list, index=...) | 시리즈 생성 |\n| df.insert(pos, name, value) | 원하는 위치에 컬럼 추가 |\n| df.rename(columns={...}) | 컬럼명 변경 |\n| df.drop(label, axis=, inplace=) | 행/열 삭제 |\n| df.to_csv(path, index=False) | CSV로 저장 |",
+      "example_code": "fruit_s = pd.Series(['사과', '딸기', '참외'], index=['A', 'B', 'C'])\n\n# index가 같으면 정상적으로 매칭됨\nfruits_df = pd.DataFrame({'fruit': fruit_s, 'price': [1000, 300, 700]}, index=['A', 'B', 'C'])\nprint(fruits_df)\n\n# index가 다르면 매칭이 안 되어 fruit 컬럼이 전부 NaN이 됨\nfruits_df_mismatch = pd.DataFrame({'fruit': fruit_s, 'price': [1000, 300, 700]}, index=['X', 'Y', 'Z'])\nprint(fruits_df_mismatch)",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`fruit`(사과/딸기/참외), `price`(1000/300/700) 두 컬럼을 가진 `fruits_df`를 index=['A','B','C']로 만드세요.",
+          "answer_code": "# index를 지정하지 않으면 0,1,2로 자동 부여되므로, 원하는 라벨을 쓰려면 index=로 직접 지정\nfruits_df = pd.DataFrame({'fruit': ['사과', '딸기', '참외'], 'price': [1000, 300, 700]}, index=['A', 'B', 'C'])\nfruits_df",
+          "checks": [
+            {
+              "var": "fruits_df",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3,
+                2
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`fruits_df`의 1번 위치(인덱스 1)에 `tax` 컬럼을 `price*0.1`로 추가하세요. (`insert` 사용)",
+          "answer_code": "fruits_df.insert(1, 'tax', fruits_df['price'] * 0.1)  # insert(위치, 이름, 값): 원하는 순서에 열을 끼워넣음(그냥 대입하면 맨 뒤에 추가됨)\nfruits_df",
+          "checks": [
+            {
+              "var": "fruits_df",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3,
+                3
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 3,
+          "prompt_markdown": "`fruit` 컬럼명을 `name`으로 바꾸세요.",
+          "answer_code": "fruits_df = fruits_df.rename(columns={'fruit': 'name'})  # rename은 원본을 바꾸지 않으므로 다시 대입해야 반영됨\nfruits_df",
+          "checks": [
+            {
+              "var": "fruits_df",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3,
+                3
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 4,
+          "prompt_markdown": "`tax` 컬럼을 삭제하고 `fruits_df`를 `../data/fruits_saved.csv`로 저장하세요. (인덱스는 저장하지 않기)",
+          "answer_code": "fruits_df = fruits_df.drop('tax', axis=1)  # axis=1: 행이 아니라 '열'을 삭제\nfruits_df.to_csv('data/fruits_saved.csv', index=False)  # index=False: 인덱스를 별도 컬럼으로 저장하지 않음(안 주면 Unnamed: 0 컬럼이 생김)",
+          "checks": [
+            {
+              "var": "fruits_df",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3,
+                2
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 6,
+      "title": "필터링과 정렬 (Filtering & Sorting)",
+      "theory_markdown": "### 📖 이론 설명\n`loc`는 라벨(이름) 기준, `iloc`는 위치(정수) 기준으로 데이터를 선택합니다. 조건을 여러 개 결합할 때는 파이썬의 `and`/`or`가 아니라 `&`/`|`를 쓰고, 각 조건을 반드시 괄호로 감싸야 합니다(연산자 우선순위 때문).",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 문법 | 설명 |\n|---|---|\n| df.loc[조건] | 라벨/조건 기준 선택 |\n| df.iloc[정수] | 위치 기준 선택 |\n| (조건1) \\& (조건2) | AND 조건 결합 |\n| df.sort_values(by=, ascending=) | 값 기준 정렬 |",
+      "example_code": "# 30세 이상, 1등실 승객만\ncond = (train['Age'] >= 30) & (train['Pclass'] == 1)\ntrain.loc[cond, ['Name', 'Age', 'Pclass']].head()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`train`에서 `Fare`가 100 이상인 승객의 `Name`, `Fare`만 출력하세요.",
+          "answer_code": "train.loc[train['Fare'] >= 100, ['Name', 'Fare']]  # loc[행 조건, 열 목록]: 조건에 맞는 행에서 지정한 열만 선택",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`train`에서 성별이 'female'이고 생존(`Survived==1`)한 승객 수를 구하세요.",
+          "answer_code": "# 여러 조건을 동시에 걸 때는 &(and)/|(or)로 연결하고, 각 조건은 반드시 괄호로 감싸야 함\nlen(train.loc[(train['Sex'] == 'female') & (train['Survived'] == 1)])",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 3,
+          "prompt_markdown": "`train`을 `Fare` 기준 내림차순으로 정렬해 상위 5명을 확인하세요.",
+          "answer_code": "train.sort_values(by='Fare', ascending=False).head()  # ascending=False: 내림차순(큰 값이 위로)",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 4,
+          "prompt_markdown": "`train`의 0~2번째 행, 0~2번째 열만 `iloc`로 선택하세요.",
+          "answer_code": "train.iloc[0:3, 0:3]  # iloc는 라벨이 아니라 '위치(정수 순번)' 기준으로 선택(loc와 헷갈리기 쉬움)",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 7,
+      "title": "그룹화 (Grouping)",
+      "theory_markdown": "### 📖 이론 설명\n`groupby`는 '기준 컬럼의 값이 같은 행들끼리 묶어서' 통계를 냅니다. 여러 컬럼으로 묶으면 결과 인덱스가 **MultiIndex**가 되는데, 특정 그룹만 보고 싶으면 `.loc[값]` 또는 `.loc[(값1, 값2)]`로 접근합니다. 집계 함수를 하나가 아니라 여러 개 동시에 적용하고 싶다면 `.agg(['mean', 'max', 'min'])`처럼 리스트로 넘기면 됩니다. `pd.crosstab`은 두 범주형 변수의 조합별 빈도를 표로 바로 보여주는, groupby보다 더 간단한 지름길입니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| df.groupby('col') | 그룹 객체 생성 |\n| .groups | 그룹별 인덱스 확인 |\n| .agg(['mean','max']) | 여러 집계함수 동시 적용 |\n| pd.crosstab(a, b) | 두 범주형 변수의 교차표 |",
+      "example_code": "# Pclass, Embarked로 그룹화한 뒤 Fare의 평균/최대/최소를 한 번에\ngrouped = train.groupby(['Pclass', 'Embarked'])['Fare'].agg(['mean', 'max', 'min'])\nprint(grouped.loc[1])          # Pclass==1인 그룹만\nprint(grouped.loc[(1, 'C')])   # Pclass==1, Embarked=='C'인 그룹\n\n# 성별 x 생존여부 교차표\nprint(pd.crosstab(train['Sex'], train['Survived']))",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`Pclass`별 `Age` 평균을 구하세요.",
+          "answer_code": "train.groupby('Pclass')['Age'].mean()  # groupby 뒤에 붙는 컬럼이 '무엇을 집계할지'를 정함",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`Pclass`, `Sex` 두 기준으로 그룹화한 뒤 생존율(`Survived` 평균)을 구하세요.",
+          "answer_code": "train.groupby(['Pclass', 'Sex'])['Survived'].mean()  # 그룹 기준을 리스트로 여러 개 주면 다단계(계층적)로 묶임",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 3,
+          "prompt_markdown": "`Embarked`별 승객 수를 `value_counts()`로 구하세요.",
+          "answer_code": "train['Embarked'].value_counts()  # 결측치는 기본적으로 세지 않음(dropna=False를 주면 결측치도 포함)",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 4,
+          "prompt_markdown": "`Pclass`와 `Survived`의 교차표를 `pd.crosstab`으로 만드세요.",
+          "answer_code": "pd.crosstab(train['Pclass'], train['Survived'])  # groupby+value_counts 조합보다 두 범주형 변수의 교차 빈도를 보기 편함",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 8,
+      "title": "Apply 함수 활용",
+      "theory_markdown": "### 📖 이론 설명\n`apply`는 함수를 행/열 단위로, `map`(Series 전용)은 원소 단위로 적용합니다. 실무에서 아주 자주 쓰이는 패턴은 문자열 컬럼에서 `split()`/`strip()`으로 원하는 조각만 뽑아 **새로운 파생 컬럼**을 만드는 것입니다. 예를 들어 Titanic의 `Name` 컬럼(`'Braund, Mr. Owen Harris'`)에서 호칭(Mr, Mrs, Miss 등)만 뽑아내면 나이/성별 정보가 부족한 행을 보완하는 새로운 특징(feature)이 됩니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| Series.map(func) | 원소마다 함수 적용 |\n| DataFrame.apply(func, axis=) | 행/열 단위로 함수 적용 |\n| str.split(구분자) | 문자열 나누기 |\n| str.strip() | 앞뒤 공백 제거 |",
+      "example_code": "# 'Braund, Mr. Owen Harris' -> 'Mr'\nget_title = lambda name: name.split(',')[1].split('.')[0].strip()\ntrain['Title'] = train['Name'].map(get_title)\nprint(train['Title'].value_counts())",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`Fare`가 30을 초과하면 'high', 아니면 'low'를 반환하는 파생컬럼 `FareLevel`을 apply로 만드세요.",
+          "answer_code": "# apply + lambda: 컬럼의 각 값을 하나씩 조건에 따라 다른 값으로 바꿀 때 사용\ntrain['FareLevel'] = train['Fare'].apply(lambda x: 'high' if x > 30 else 'low')\ntrain['FareLevel'].value_counts()",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                14
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`Title` 컬럼(위 예제 코드로 생성됨)에서 'Mr','Mrs','Miss','Master' 외의 값은 모두 'Rare'로 바꾼 `Title2` 컬럼을 만드세요.",
+          "answer_code": "common = ['Mr', 'Mrs', 'Miss', 'Master']\ntrain['Title2'] = train['Title'].apply(lambda t: t if t in common else 'Rare')  # 목록에 없는 소수 값들을 'Rare'로 묶어 카테고리 수를 줄임(인코딩 시 유용)\ntrain['Title2'].value_counts()",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 9,
+      "title": "데이터 재구조화 (Pivot / Melt / Stack / Unstack)",
+      "theory_markdown": "### 📖 이론 설명\n`stack`/`unstack`은 **인덱스와 컬럼 사이를 서로 이동**시킵니다(unstack: 인덱스→컬럼, stack: 컬럼→인덱스). `pivot`은 `pivot(index=, columns=, values=)`으로 표를 다시 짜지만, **(index, columns) 조합에 중복 값이 있으면 에러**가 납니다. 이럴 때는 집계 함수를 같이 지정할 수 있는 `pivot_table(aggfunc=...)`을 씁니다. `melt`는 반대로 여러 컬럼을 하나의 '변수/값' 컬럼 쌍으로 길게 늘어뜨립니다(wide → long).",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| df.unstack(level=) | 인덱스를 컬럼으로 이동 |\n| df.stack(level=) | 컬럼을 인덱스로 이동 |\n| df.pivot(index=,columns=,values=) | 중복 없을 때만 사용 가능 |\n| df.pivot_table(...,aggfunc=) | 중복 있어도 집계해서 사용 가능 |\n| df.melt(id_vars=,var_name=,value_name=) | wide → long 변환 |",
+      "example_code": "data = {'날짜': ['2023-01-01']*2 + ['2023-01-02']*2,\n        '지역': ['서울', '부산', '서울', '대구'],\n        '판매량': [100, 50, 120, 40]}\ndf = pd.DataFrame(data)\n\npivot_df = df.pivot_table(index='날짜', columns='지역', values='판매량', aggfunc='sum')\nprint(pivot_df)\n\nmelted = pivot_df.reset_index().melt(id_vars='날짜', var_name='지역', value_name='판매량')\nprint(melted)",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "위 `pivot_df`를 `unstack`이 아니라 `stack()`으로 다시 긴 형태로 되돌려보세요.",
+          "answer_code": "print(pivot_df.stack())  # stack()은 unstack()의 반대: 열을 다시 인덱스(행)로 눕혀 긴 형태로 되돌림",
+          "checks": [
+            {
+              "var": "pivot_df",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                2,
+                3
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`train`에서 `Pclass`(행)와 `Sex`(열)를 기준으로 `Fare`의 평균을 `pivot_table`로 구하세요.",
+          "answer_code": "train.pivot_table(index='Pclass', columns='Sex', values='Fare', aggfunc='mean')  # groupby+unstack과 결과는 같지만 더 간결하게 표현",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 10,
+      "title": "데이터 병합 (Merge & Concat)",
+      "theory_markdown": "### 📖 이론 설명\n`concat`은 단순히 이어붙이기(행 방향 `axis=0` 또는 열 방향 `axis=1`)이고, `merge`는 **공통 키(key) 값을 기준으로 관계형 데이터베이스처럼 조인**합니다. `how='inner'`는 양쪽에 다 있는 키만, `'outer'`는 전체, `'left'`/`'right'`는 한쪽 기준으로 결과를 만듭니다. 컬럼명이 다르면 `left_on`/`right_on`을, 인덱스를 기준으로 합칠 땐 `left_index=True`/`right_index=True`를 씁니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| pd.concat([a,b], axis=0/1) | 단순 이어붙이기 |\n| pd.concat(..., join='inner'/'outer') | 공통 컬럼만 / 전체 컬럼 |\n| pd.merge(a,b,on=,how=) | 키 기준 조인 |\n| left_on/right_on | 컬럼명이 다를 때 |\n| left_index/right_index | 인덱스 기준 조인 |",
+      "example_code": "test = pd.read_csv('data/test.csv')  # PassengerId, LuggageCount, HasPet\n\ndf_inner = pd.merge(train, test, on='PassengerId', how='inner')\nprint(df_inner.shape)  # test.csv에 있는 60명만 남음\n\ndf_left = pd.merge(train, test, on='PassengerId', how='left')\nprint(df_left.shape)   # train 전체가 유지되고 없는 값은 NaN",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`train`과 `test`를 `PassengerId` 기준 `outer`로 병합해 `df_outer`에 저장하고 shape을 확인하세요.",
+          "answer_code": "df_outer = pd.merge(train, test, on='PassengerId', how='outer')  # outer: 한쪽에만 있는 행도 버리지 않고 포함(없는 값은 NaN)\nprint(df_outer.shape)",
+          "checks": [
+            {
+              "var": "df_outer",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                17
+              ]
+            },
+            {
+              "var": "test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                60,
+                3
+              ]
+            },
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`train`의 앞 5행과 뒤 5행을 각각 `head5`, `tail5`로 만든 뒤 `pd.concat`으로 이어붙이세요.",
+          "answer_code": "head5 = train.head()\ntail5 = train.tail()\npd.concat([head5, tail5])  # concat은 키 매칭 없이 위아래로 단순히 이어붙임(merge와 다름)",
+          "checks": [
+            {
+              "var": "head5",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5,
+                15
+              ]
+            },
+            {
+              "var": "tail5",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5,
+                15
+              ]
+            },
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 11,
+      "title": "통계 함수 (Stats)",
+      "theory_markdown": "### 📖 이론 설명\n기초 통계 함수들은 데이터의 '중심'과 '퍼짐'을 숫자로 요약해줍니다. `corr()`은 -1~1 사이 값으로, 1에 가까울수록 강한 양의 상관, -1에 가까울수록 강한 음의 상관을 의미합니다(단, 상관관계가 인과관계를 뜻하지는 않습니다).\n\n> 💡 **왜 시험에 나오는가**: `value_counts()`/`corr()`/`nunique()`는 EDA 단계에서 가장 먼저 실행하는 명령어들이라, AICE 문제에서 '가장 많이 나타나는 값', '가장 상관관계가 높은 변수' 등을 묻는 초반 문항에 거의 항상 등장합니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| mean/median/std | 평균/중앙값/표준편차 |\n| df.corr(numeric_only=True) | 수치형 변수 간 상관계수 |\n| value_counts() | 값별 빈도 |\n| unique()/nunique() | 고유값 목록 / 고유값 개수 |",
+      "example_code": "print(train['Age'].median())\nprint(train.corr(numeric_only=True)['Survived'].sort_values(ascending=False))",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`Fare`와 `Survived`의 상관계수를 구하세요.",
+          "answer_code": "train['Fare'].corr(train['Survived'])  # 상관계수: 0에 가까우면 약한 관계, +-1에 가까우면 강한 관계",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`Embarked` 컬럼의 고유값 개수를 구하세요.",
+          "answer_code": "train['Embarked'].nunique()  # unique()는 값 목록, nunique()는 그 개수만 바로 반환",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 12,
+      "title": "판다스 내장 시각화",
+      "theory_markdown": "### 📖 이론 설명\nseaborn/matplotlib을 따로 부르지 않아도, Series/DataFrame에 바로 `.plot()`을 호출해 빠르게 그래프를 그릴 수 있습니다. 탐색 단계에서 '일단 눈으로 빨리 보고 싶을 때' 유용합니다.\n\n> 💡 **왜 시험에 나오는가**: 시험 문제 자체는 보통 `sns.countplot`처럼 seaborn 함수 이름을 직접 지정하지만(03번 노트북 참고), `.plot()`은 채점 대상이 아니더라도 내가 만든 결과를 빠르게 눈으로 확인(셀프 검증)하는 용도로 실전에서 매우 유용합니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 문법 | 설명 |\n|---|---|\n| series.plot(kind='bar') | 막대그래프 |\n| series.plot(kind='pie') | 파이차트 |\n| series.plot(kind='hist') | 히스토그램 |",
+      "example_code": "train['Pclass'].value_counts().plot(kind='bar')\nplt.title('Pclass distribution')\nplt.show()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`Embarked` 값 분포를 파이차트(`kind='pie'`)로 그리세요.",
+          "answer_code": "train['Embarked'].value_counts().plot(kind='pie', autopct='%1.1f%%')  # autopct: 각 조각에 비율(%)을 함께 표시\nplt.show()",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 13,
+      "title": "시계열 데이터 (Time Series)",
+      "theory_markdown": "### 📖 이론 설명\n날짜 문자열은 `pd.to_datetime()`으로 실제 날짜 타입으로 바꿔야 `.dt.year`, `.dt.month` 같은 접근자와 `resample`(기간 단위 재집계), `rolling`(이동평균) 같은 시계열 전용 기능을 쓸 수 있습니다. 시계열 데이터의 결측치는 단순 평균 대체보다 **앞/뒤 값으로 채우거나(`bfill`/`ffill`) 선형 보간(`interpolate`)** 하는 경우가 많습니다 - 시간 순서에 의미가 있기 때문입니다.\n\n> 💡 **왜 시험에 나오는가**: AICE Associate의 핵심 50개 예제는 Titanic류의 정형 데이터가 중심이라 시계열 전용 문제의 비중은 크지 않지만, 날짜 컬럼이 포함된 데이터가 나오면 `pd.to_datetime()`으로 변환 후 `.dt.year`/`.dt.month`를 새 피처로 추가하라는 식의 응용 문항이 나올 수 있습니다. 알아두면 손해 볼 것 없는 보완 지식으로 접근하면 됩니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| pd.to_datetime(col) | 문자열 → datetime 변환 |\n| .dt.year/.dt.month | 날짜 속성 추출 |\n| df.resample('M').sum() | 월 단위 재집계 |\n| .rolling(window=n).mean() | n기간 이동평균 |\n| .interpolate() | 선형 보간 |\n| .bfill()/.ffill() | 뒤/앞 값으로 채우기 |",
+      "example_code": "dates = pd.date_range('2023-01-01', periods=6, freq='D')\nts = pd.Series([10, np.nan, 12, np.nan, 15, 16], index=dates)\nprint(ts.interpolate())\nprint(ts.ffill())",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "위 `ts`를 `bfill()`로 채운 결과와 `interpolate()`로 채운 결과를 비교해 어떤 값이 다른지 확인하세요.",
+          "answer_code": "print(ts.bfill())\nprint(ts.interpolate())\n# bfill은 다음 유효값을 그대로 복사, interpolate는 앞뒤 값을 선형으로 계산해 채운다",
+          "checks": [
+            {
+              "var": "ts",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                6
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`ts`의 3일 이동평균(`rolling(3).mean()`)을 구하세요.",
+          "answer_code": "ts.interpolate().rolling(3).mean()  # 결측치를 먼저 보간해야 이동평균 구간이 NaN으로 깨지지 않음",
+          "checks": [
+            {
+              "var": "ts",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                6
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 14,
+      "title": "데이터 삭제 & 인덱싱",
+      "theory_markdown": "### 📖 이론 설명\n`drop_duplicates()`는 완전히 똑같은 행(또는 지정한 컬럼 기준 중복)을 제거합니다. `set_index`로 특정 컬럼을 인덱스로 승격시키면 `loc`로 그 값을 바로 조회할 수 있고, 여러 컬럼을 인덱스로 지정하면 MultiIndex가 됩니다. `reset_index(drop=True)`는 반대로 인덱스를 버리고 0부터 다시 매깁니다 - `train_test_split` 뒤 인덱스가 뒤섞였을 때 자주 씁니다.\n\n> 💡 **왜 시험에 나오는가**: `drop_duplicates()`는 EDA 초반 '중복 데이터 제거' 문항에 직접 나오고, `reset_index(drop=True)`는 데이터를 나누거나(`train_test_split`) 필터링한 뒤 이어지는 코드가 인덱스 어긋남으로 에러 나는 것을 막아주는 실무 필수 습관이라 뒤쪽 머신러닝 노트북(04~08번)에서도 계속 재사용됩니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| df.drop_duplicates(subset=) | 중복 행 제거 |\n| df.set_index('col') | 컬럼을 인덱스로 |\n| df.reset_index(drop=True) | 인덱스를 0부터 재부여 |",
+      "example_code": "dup_df = pd.DataFrame({'a': [1, 1, 2], 'b': [3, 3, 4]})\nprint(dup_df.drop_duplicates())\n\nnamed = train.set_index('PassengerId')\nprint(named.loc[1])  # PassengerId==1인 행 바로 조회",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`train`에서 `Embarked` 기준으로 중복을 제거하면 몇 개 행이 남는지 확인하세요.",
+          "answer_code": "print(train.drop_duplicates(subset='Embarked'))  # subset 지정 시 그 컬럼 값이 같으면 첫 번째 행만 남기고 나머지는 제거",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`train`을 `Name`을 인덱스로 설정한 `train_named`을 만들고, 인덱스를 다시 0부터 초기화해보세요.",
+          "answer_code": "train_named = train.set_index('Name')\ntrain_named.reset_index(drop=True)  # drop=True: 기존 인덱스(Name)를 컬럼으로 되살리지 않고 그냥 버림",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                15
+              ]
+            },
+            {
+              "var": "train_named",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                14
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 15,
+      "title": "실전 심화 테크닉 (pandas_exercises 대조 보완)",
+      "theory_markdown": "### 📖 이론 설명\n지금까지 배운 함수들만으로도 대부분의 문제를 풀 수 있지만, 실무에서 아주 자주 마주치는 몇 가지 패턴을 더 소개합니다. 컬럼마다 **다른 집계 함수**를 적용하고 싶을 때, 그룹을 **하나씩 순회하며 확인**하고 싶을 때, **csv를 잘못 저장/로딩해서 생기는 'Unnamed' 컬럼** 문제, **헤더가 없는 파일**을 읽어야 할 때 등은 이론 수업에서는 잘 안 다루지만 실제 데이터를 만지다 보면 거의 매번 마주치는 상황들입니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 상황 | 함수/문법 |\n|---|---|\n| 컬럼마다 다른 집계함수 적용 | `groupby(...).agg({'col1': 'mean', 'col2': 'max'})` |\n| 그룹을 하나씩 순회 | `for name, group in df.groupby(...):` |\n| 그룹별 비율(%) 계산 | `groupby(...)['col'].value_counts(normalize=True)` |\n| 컬럼 순서 재배치 | `df[['원하는', '순서', '리스트']]` |\n| 'Unnamed' 컬럼 제거 | `df.loc[:, ~df.columns.str.contains('^Unnamed')]` |\n| 인덱스 범위 확장/재정렬 | `df.reindex(range(n))` |\n| 헤더 없는 파일 읽기 | `pd.read_csv(path, header=None, names=[...])` |\n| 인덱스 중복 확인/제거 | `df.index.duplicated()` |",
+      "example_code": "# 컬럼마다 다른 집계함수 적용\nprint(train.groupby('Pclass').agg({'Age': 'mean', 'Fare': 'max'}))\n\n# 그룹을 하나씩 순회하기\nfor name, group in train.groupby('Pclass'):\n    print(f'Pclass={name}: {len(group)}명, 평균 나이={group[\"Age\"].mean():.1f}')\n\n# 그룹별 비율 계산 (생존 여부를 Pclass별 비율로)\nprint(train.groupby('Pclass')['Survived'].value_counts(normalize=True))\n\n# 'Unnamed' 컬럼 제거 (index=True로 저장했다가 다시 읽으면 흔히 생김)\nmessy = pd.DataFrame({'a': [1, 2], 'Unnamed: 0': [0, 1]})\nmessy = messy.loc[:, ~messy.columns.str.contains('^Unnamed')]\nprint(messy)",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`train`을 `Embarked`로 그룹화해 `Age`는 평균, `Fare`는 합계로 각각 다르게 집계하세요.",
+          "answer_code": "train.groupby('Embarked').agg({'Age': 'mean', 'Fare': 'sum'})  # 딕셔너리로 컬럼마다 다른 집계 함수를 한 번에 지정",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`train`을 `Sex`로 그룹화해 반복문으로 각 그룹의 이름과 평균 `Fare`를 출력하세요.",
+          "answer_code": "for name, group in train.groupby('Sex'):  # groupby 객체를 반복하면 (그룹 이름, 그 그룹만 담긴 DataFrame) 튜플이 나옴\n    print(name, group['Fare'].mean())",
+          "checks": [
+            {
+              "var": "group",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                577,
+                15
+              ]
+            },
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 3,
+          "prompt_markdown": "`train`의 컬럼을 `['Survived', 'Pclass', 'Sex', 'Age']` 순서로만 재배치한 `train_reordered`를 만드세요.",
+          "answer_code": "train_reordered = train[['Survived', 'Pclass', 'Sex', 'Age']]  # 대괄호 안 리스트 순서대로 컬럼이 재배치됨\ntrain_reordered.head()",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                15
+              ]
+            },
+            {
+              "var": "train_reordered",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                4
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 4,
+          "prompt_markdown": "`train.index`에 중복이 있는지 확인하세요.",
+          "answer_code": "print(train.index.duplicated().sum())  # 0이면 인덱스에 중복이 없다는 뜻(merge/concat 이후 자주 체크)",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 16,
+      "title": "문자열(.str) 접근자 심화",
+      "theory_markdown": "### 📖 이론 설명\n문자열 컬럼에 파이썬 for문을 돌리는 대신, pandas의 `.str` 접근자를 쓰면 컬럼 전체에 문자열 연산을 한 번에(벡터화) 적용할 수 있습니다. `Apply 함수 활용`(8절)에서 `split`/`strip`을 잠깐 썼지만, 실무·시험에서는 `contains`(패턴 포함 여부), `replace`(치환), `extract`(정규식으로 그룹만 뽑기)를 더 자주 쓰게 됩니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| str.contains(pat) | 패턴 포함 여부(bool) |\n| str.replace(a, b) | 문자열 치환 |\n| str.extract(regex) | 정규식 그룹을 컬럼으로 추출 |\n| str.upper() / str.lower() | 대/소문자 변환 |\n| str.len() | 문자열 길이 |",
+      "example_code": "print(train['Name'].str.contains('Mrs').sum())  # 'Mrs'가 들어간 이름 개수\nprint(train['Name'].str.upper().head(2))  # 문자열 컬럼 전체를 대문자로 한 번에 변환",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`Cabin` 컬럼에서 선실 등급을 나타내는 첫 글자(예: `'C85'` → `'C'`)만 뽑아 `CabinDeck` 컬럼을 `str.extract(r'([A-Za-z])', expand=False)`로 만드세요. (결측치는 그대로 결측치로 남아도 됩니다)",
+          "answer_code": "train['CabinDeck'] = train['Cabin'].str.extract(r'([A-Za-z])', expand=False)  # 정규식 그룹 1개만 뽑으면 expand=False로 Series로 받을 수 있음\nprint(train['CabinDeck'].value_counts())",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                16
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`Name`에 `'William'`이 포함된 승객이 몇 명인지 `str.contains`로 구하세요.",
+          "answer_code": "print(train['Name'].str.contains('William').sum())  # bool Series의 sum()은 True 개수와 같음",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                16
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 17,
+      "title": "query()와 메서드 체이닝",
+      "theory_markdown": "### 📖 이론 설명\n조건이 여러 개 겹치면 `df[(df['A']>1) & (df['B']<2)]`처럼 괄호가 많아져 읽기 어려워집니다. `df.query('A > 1 and B < 2')`는 문자열 조건식으로 훨씬 간결하게 쓸 수 있고, 외부 변수는 `@변수명`으로 참조합니다. 또한 실무 코드에서는 중간 변수를 계속 만들지 않고 `.query().groupby().mean()`처럼 메서드를 점(`.`)으로 이어붙이는 **메서드 체이닝** 스타일을 자주 씁니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 문법 | 설명 |\n|---|---|\n| df.query('조건식') | 문자열 조건으로 필터링 |\n| df.query('A > @변수') | @로 파이썬 변수 참조 |\n| df.query(...).groupby(...).mean() | 메서드 체이닝: 중간 변수 없이 이어서 처리 |",
+      "example_code": "min_fare = 50\nresult = train.query('Pclass == 1 and Fare > @min_fare')[['Name', 'Fare']]\nprint(result.head())",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`query()`로 `Age`가 60 이상인 승객의 `Name`, `Age`, `Survived`만 뽑으세요.",
+          "answer_code": "print(train.query('Age >= 60')[['Name', 'Age', 'Survived']])",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                16
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "메서드 체이닝으로, `train`에서 `Survived == 1`인 행만 필터링한 뒤 바로 이어서 `Pclass`별 평균 `Fare`를 구하는 코드를 한 줄로 작성하세요.",
+          "answer_code": "print(train.query('Survived == 1').groupby('Pclass')['Fare'].mean())  # query 결과에 바로 groupby를 이어붙임(체이닝)",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                16
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 18,
+      "title": "병합 심화(join)와 인덱싱 주의사항",
+      "theory_markdown": "### 📖 이론 설명\n`merge`는 컬럼 기준 병합이 기본이지만, `join`은 **인덱스 기준** 병합을 더 짧게 쓸 수 있는 축약 문법입니다. 그리고 pandas에서 아주 자주 겪는 실수가 `SettingWithCopyWarning`입니다: 필터링한 결과(`df[cond]`)에 바로 값을 대입하면 그것이 원본의 '뷰'인지 '복사본'인지 애매해서 경고가 뜨고, 실제로 원본이 안 바뀔 수도 있습니다. 안전하게 하려면 `.copy()`로 명시적으로 복사한 뒤 `.loc[]`로 위치를 정확히 지정해서 대입해야 합니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수/패턴 | 설명 |\n|---|---|\n| df1.join(df2) | 인덱스 기준 병합 (merge보다 간단) |\n| df[cond]['col'] = x | ❌ 체인 인덱싱 — SettingWithCopyWarning 위험 |\n| df.loc[cond, 'col'] = x | ✅ 안전한 대입 방식 |\n| df.copy() | 명시적 복사본 생성 |",
+      "example_code": "ages = train.set_index('PassengerId')[['Age']]\nfares = train.set_index('PassengerId')[['Fare']]\njoined = ages.join(fares)  # 같은 인덱스(PassengerId)를 기준으로 옆으로 합침\nprint(joined.head())\n\n# 아래처럼 필터링 결과에 바로 대입하면 SettingWithCopyWarning이 뜰 수 있습니다(원본이 안 바뀔 수도 있음).\n# risky = train[train['Pclass'] == 1]\n# risky['Fare'] = 0  # 위험한 패턴 (참고용으로 주석 처리)\n\nsafe = train.copy()\nsafe.loc[safe['Pclass'] == 1, 'Fare'] = 0  # 안전: copy() + loc로 명확하게 대입\nprint(safe.loc[safe['Pclass'] == 1, 'Fare'].unique())",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`train`을 `PassengerId`로 인덱싱한 `Title`만 있는 데이터프레임과 `Embarked`만 있는 데이터프레임을 각각 만들고, `join`으로 합쳐 `joined2`를 만드세요. (`Title` 컬럼은 8절 예제 코드로 이미 만들어져 있어야 합니다)",
+          "answer_code": "titles = train.set_index('PassengerId')[['Title']]\nembarks = train.set_index('PassengerId')[['Embarked']]\njoined2 = titles.join(embarks)\nprint(joined2.head())",
+          "checks": [
+            {
+              "var": "embarks",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                1
+              ]
+            },
+            {
+              "var": "joined2",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                2
+              ]
+            },
+            {
+              "var": "titles",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                1
+              ]
+            },
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                16
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`train`을 `.copy()`로 복사한 `train_safe`를 만들고, `.loc`을 사용해 `Age`가 결측치인 행만 골라 `Age`를 0으로 채우세요. (체인 인덱싱이 아니라 안전한 방식으로)",
+          "answer_code": "train_safe = train.copy()\ntrain_safe.loc[train_safe['Age'].isnull(), 'Age'] = 0  # copy본에 loc로 안전하게 대입\nprint(train_safe['Age'].isnull().sum())  # 0이 나와야 정상",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                16
+              ]
+            },
+            {
+              "var": "train_safe",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                16
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 19,
+      "title": "category dtype으로 메모리 절약",
+      "theory_markdown": "### 📖 이론 설명\n`Sex`, `Embarked`, `Pclass`처럼 값의 종류가 몇 개 안 되는데 반복적으로 나오는 컬럼을 기본 문자열(object)로 두면 메모리를 불필요하게 많이 씁니다. `astype('category')`로 바꾸면 내부적으로 정수 코드로 저장되어 메모리를 크게 줄이고, groupby 같은 연산도 더 빨라집니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| astype('category') | 카테고리형으로 변환 |\n| .cat.codes | 카테고리를 정수 코드로 확인 |\n| .cat.categories | 카테고리 목록 확인 |\n| .memory_usage(deep=True) | 실제 메모리 사용량(문자열 포함) 확인 |",
+      "example_code": "before = train['Sex'].memory_usage(deep=True)\ntrain['Sex_cat'] = train['Sex'].astype('category')\nafter = train['Sex_cat'].memory_usage(deep=True)\nprint(f'object: {before} bytes -> category: {after} bytes')\nprint(train['Sex_cat'].cat.categories)",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`Embarked` 컬럼을 category dtype으로 바꾼 `Embarked_cat` 컬럼을 만들고 `.cat.codes`를 출력하세요.",
+          "answer_code": "train['Embarked_cat'] = train['Embarked'].astype('category')\nprint(train['Embarked_cat'].cat.codes.head())  # 카테고리마다 내부적으로 부여된 정수 코드",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                18
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`Pclass` 컬럼을 category로 바꾸기 전/후의 메모리 사용량을 각각 출력해 비교하세요.",
+          "answer_code": "before2 = train['Pclass'].memory_usage(deep=True)\ntrain['Pclass_cat'] = train['Pclass'].astype('category')\nafter2 = train['Pclass_cat'].memory_usage(deep=True)\nprint(before2, after2)  # int64였던 Pclass는 원래도 작지만, object 문자열 컬럼일수록 차이가 커짐",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                19
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

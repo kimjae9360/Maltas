@@ -1,0 +1,53 @@
+{
+  "chapter_id": "00_AI개념_작업환경_오픈북활용법",
+  "title": "00. AI 개념, 작업환경, 오픈북 활용법",
+  "setup_code": "# 이 챕터는 개념 정리 위주라 별도 데이터 로딩은 없습니다.",
+  "sections": [
+    {
+      "no": 1,
+      "title": "인공지능, 머신러닝, 딥러닝이란?",
+      "theory_markdown": "### 📖 이론 설명\n세 단어는 자주 섞어 쓰지만 포함 관계가 있습니다.\n\n- **인공지능(AI)**: 사람처럼 판단·추론하는 컴퓨터 시스템을 만드는 것 전체를 가리키는 가장 넓은 개념입니다.\n- **머신러닝(ML)**: AI를 구현하는 방법 중 하나로, 사람이 규칙을 일일이 코딩하지 않고 **데이터를 통해 패턴을 스스로 학습**시키는 방식입니다. (예: `scikit-learn`의 회귀·분류 모델)\n- **딥러닝(DL)**: 머신러닝 중에서도 사람의 신경망 구조를 본뜬 **인공신경망**을 여러 층 쌓아(Deep) 학습하는 방식입니다. (예: `tensorflow`/`keras`의 `Sequential` 모델)\n\n즉 딥러닝 ⊂ 머신러닝 ⊂ 인공지능 순서로 포함됩니다. AICE 문제에서 \"회귀 모델을 학습시키세요\"라고 하면 보통 머신러닝(scikit-learn) 트랙, \"Sequential 모델을 구성하세요\"라고 하면 딥러닝(tensorflow) 트랙입니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 용어 | 범위 | AICE에서 주로 쓰는 라이브러리 |\n|---|---|---|\n| 인공지능(AI) | 가장 넓은 개념 | - |\n| 머신러닝(ML) | AI의 구현 방법 중 하나 | `scikit-learn`, `xgboost` |\n| 딥러닝(DL) | ML 중 인공신경망 기반 | `tensorflow`(`keras`) |",
+      "example_code": "",
+      "practices": []
+    },
+    {
+      "no": 2,
+      "title": "AICE 작업환경",
+      "theory_markdown": "### 📖 이론 설명\nAICE Associate 실기는 웹 브라우저에서 **Jupyter 노트북과 같은 형태**로 진행됩니다. 문항이 순서대로 이어져 있고, 코드 셀을 실행하면 **그 이전 문항들의 코드가 먼저 순서대로 다시 실행된 뒤** 지금 코드가 실행됩니다 — 즉 3번 문제에서 만든 변수를 5번 문제에서 그대로 이어받아 쓸 수 있다는 뜻입니다. 반대로 말하면, 앞에서 변수 이름을 잘못 쓰거나 셀 실행을 건너뛰면 뒤 문제까지 연쇄적으로 에러가 날 수 있으니, **문제 순서대로 처음부터 끝까지 실행**하는 습관이 중요합니다.\n\n시험 환경에는 `pandas`, `numpy`, `matplotlib`, `seaborn`, `scikit-learn`, `tensorflow`, `xgboost`가 이미 설치되어 있어 별도 설치 없이 바로 `import`해서 씁니다. 실행 후에는 에러 메시지의 **마지막 줄**부터 읽는 습관을 들이면 원인을 훨씬 빨리 찾을 수 있습니다 (`NameError`는 변수명 오타/미실행, `KeyError`는 존재하지 않는 컬럼명을 뜻합니다).",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 상황 | 흔한 원인 |\n|---|---|\n| `NameError: name 'df' is not defined` | 앞 셀을 실행하지 않았거나 변수명 오타 |\n| `KeyError: 'colname'` | 존재하지 않는 컬럼명 (대소문자·띄어쓰기 확인) |\n| 계속 같은 결과가 나옴 | 코드를 고치고 다시 실행하지 않음 (셀을 반드시 재실행) |",
+      "example_code": "import sklearn\nimport tensorflow as tf\n\nprint('scikit-learn:', sklearn.__version__)\nprint('tensorflow:', tf.__version__)",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`sklearn` 라이브러리를 불러와 버전을 `sk_version`이라는 이름의 문자열 변수에 저장하세요. (시험 환경에 어떤 버전이 깔려있는지 확인하는 습관을 들여봅니다.)",
+          "answer_code": "import sklearn\nsk_version = sklearn.__version__  # 문자열이라 정확한 숫자보다는 \"값이 잘 채워졌는지\"가 중요",
+          "checks": [],
+          "manual_review": true
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "오픈북 활용법 - 공식문서 빠르게 찾기",
+      "theory_markdown": "### 📖 이론 설명\nAICE는 **모든 함수의 파라미터를 외우고 있는지**가 아니라 **필요할 때 정확한 정보를 빠르게 찾아 쓸 수 있는지**를 훈련시키는 시험입니다. 시험 중 `pandas`, `numpy`, `scikit-learn`, `matplotlib`, `seaborn`, `tensorflow`, `xgboost`의 공식 API 문서를 열람할 수 있는 제한적 오픈북이 허용됩니다. 그래서 실전에서 막혔을 때는 아래 순서로 찾는 게 가장 빠릅니다.\n\n1. **즐겨찾기 활용**: 자주 쓰는 라이브러리의 `API reference` 페이지를 미리 즐겨찾기 해두면, 검색 없이 바로 진입할 수 있습니다.\n2. **브라우저 내 검색(Ctrl+F)**: API reference 페이지에서 함수 이름으로 바로 찾습니다. 예를 들어 결측치 처리 함수가 헷갈리면 `pandas` 문서에서 `Ctrl+F` → `fillna`로 바로 이동합니다.\n3. **함수 시그니처 읽는 법**: 문서에는 `DataFrame.fillna(value, *, axis=None, inplace=False, limit=None)`처럼 함수의 파라미터 목록이 나옵니다. `=값`이 붙은 파라미터는 기본값이 있어 생략 가능하다는 뜻이므로, 문제에서 요구하는 파라미터만 골라 채우면 됩니다. 문서 맨 아래 `Examples`(예시) 섹션을 그대로 복사해서 내 데이터에 맞게 고치는 것도 빠른 방법입니다.\n\n시험은 시간이 정해져 있으므로(90분), 모르는 함수가 나왔을 때 **기억을 쥐어짜는 대신 곧바로 문서를 찾는 습관**이 점수를 지킵니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 라이브러리 | API Reference 경로 |\n|---|---|\n| pandas | pandas.pydata.org/docs/reference |\n| NumPy | numpy.org/doc/stable/reference |\n| scikit-learn | scikit-learn.org/stable/api |\n| Matplotlib | matplotlib.org/stable/api |\n| seaborn | seaborn.pydata.org/api.html |\n| TensorFlow | tensorflow.org/api_docs |\n| XGBoost | xgboost.readthedocs.io |",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "pandas 공식문서에서 `DataFrame.fillna`를 찾아보세요. 첫 번째 파라미터의 이름은 결측치를 무엇으로 채울지 지정하는 값입니다. 그 파라미터 이름을 문자열로 `first_param`에 저장하세요. (힌트: 위 오픈북 활용법대로 `pandas` API reference에서 `Ctrl+F`로 `fillna`를 찾아 시그니처를 확인하세요.)",
+          "answer_code": "first_param = \"value\"  # DataFrame.fillna(value, *, axis=None, inplace=False, limit=None) 의 첫 파라미터",
+          "checks": [
+            {
+              "var": "first_param",
+              "op": "eq",
+              "expected": "value"
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

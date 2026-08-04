@@ -1,0 +1,178 @@
+{
+  "chapter_id": "11_비지도학습_군집분석_PCA",
+  "title": "11. 비지도학습 - 군집분석과 PCA",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.cluster import KMeans\nfrom sklearn.decomposition import PCA\nfrom sklearn.metrics import silhouette_score\n\niris = pd.read_csv('data/iris.csv')\nX = iris.drop(columns=['target'])\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)",
+  "sections": [
+    {
+      "no": 1,
+      "title": "지도학습과 비지도학습",
+      "theory_markdown": "### 📖 이론 설명\n지도학습(회귀·분류)은 정답(target)을 알려주고 \"이 입력이면 이 정답\"이라는 관계를 학습시킵니다. 반면 **비지도학습**은 정답 없이 데이터의 구조나 패턴만 보고 스스로 그룹을 나누거나(군집분석), 중요한 정보만 압축합니다(차원축소).\n\n문제 지문에 \"target 없이\", \"레이블 없이 그룹을 나누세요\" 같은 표현이 나오면 비지도학습 문제라는 신호입니다. 대표적으로 **군집분석(Clustering)**은 비슷한 데이터끼리 그룹으로 묶고, **차원축소(Dimensionality Reduction)**는 변수(컬럼) 개수를 줄이면서 정보 손실을 최소화합니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 구분 | 지도학습 | 비지도학습 |\n|---|---|---|\n| 정답(target) | 있음 | 없음 |\n| 목적 | 정답을 맞히는 모델 학습 | 데이터의 숨은 구조 파악 |\n| 대표 알고리즘 | 회귀, 분류 | 군집분석(K-Means), 차원축소(PCA) |\n| 평가 방법 | accuracy, r2 등 정답과 직접 비교 | 실루엣 계수 등 군집 자체의 응집도로 평가 |",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`iris`에서 `target` 컬럼을 제외한 특성만 `X_unsup`이라는 이름으로 저장하세요. (비지도학습은 target을 쓰지 않는다는 걸 코드로 직접 확인해봅니다.)",
+          "answer_code": "X_unsup = iris.drop(columns=['target'])  # target 없이 특성(feature)만 남긴다 = 비지도학습 준비",
+          "checks": [
+            {
+              "var": "X_unsup",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                4
+              ]
+            },
+            {
+              "var": "iris",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                5
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "K-Means 군집분석",
+      "theory_markdown": "### 📖 이론 설명\nK-Means는 가장 널리 쓰이는 군집분석 알고리즘입니다. 미리 정한 군집 개수 `k`만큼 중심점(centroid)을 두고, ① 각 데이터를 가장 가까운 중심에 배정 → ② 배정된 데이터들의 평균으로 중심을 다시 계산, 이 두 단계를 중심이 더 이상 움직이지 않을 때까지 반복합니다.\n\n거리 기반 알고리즘이라 변수 간 스케일 차이에 민감합니다 — 반드시 `StandardScaler`로 스케일링한 뒤 학습해야 값의 범위가 큰 변수가 거리 계산을 독점하지 않습니다(이미 위 setup에서 `X_scaled`로 준비해뒀습니다).",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 속성/메서드 | 설명 |\n|---|---|\n| `KMeans(n_clusters=k, random_state=42, n_init=10)` | k개의 군집으로 나누는 모델 생성 |\n| `.fit(X)` | 군집 학습 |\n| `.labels_` | 각 데이터가 배정된 군집 번호(0 ~ k-1) |\n| `.cluster_centers_` | 각 군집의 중심 좌표 |\n| `.inertia_` | 각 데이터와 배정된 중심 간 거리 제곱합(작을수록 군집이 응집됨) |",
+      "example_code": "kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)\nkmeans.fit(X_scaled)\n\nprint('군집별 데이터 개수:', np.bincount(kmeans.labels_))\nprint('inertia:', kmeans.inertia_)",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`KMeans(n_clusters=3, random_state=42, n_init=10)`로 `km2`라는 이름의 모델을 만들어 `X_scaled`로 학습시키고, 군집 중심 좌표를 `centers`에 저장하세요.",
+          "answer_code": "km2 = KMeans(n_clusters=3, random_state=42, n_init=10)\nkm2.fit(X_scaled)\ncenters = km2.cluster_centers_  # shape = (군집 수, 변수 수) = (3, 4)",
+          "checks": [
+            {
+              "var": "X_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                4
+              ]
+            },
+            {
+              "var": "centers",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3,
+                4
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "실제 붓꽃 품종(`iris['target']`)과 군집 결과(`km2.labels_`)가 얼마나 일치하는지 확인하기 위해, 둘의 교차표를 `pd.crosstab`으로 만들어 `ct`에 저장하세요.",
+          "answer_code": "ct = pd.crosstab(km2.labels_, iris['target'])  # 군집 번호(0~2)가 실제 품종과 대략 겹치는지 눈으로 확인\nprint(ct)",
+          "checks": [
+            {
+              "var": "ct",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3,
+                3
+              ]
+            },
+            {
+              "var": "iris",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                5
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "군집 개수 정하기 - 실루엣 계수",
+      "theory_markdown": "### 📖 이론 설명\nK-Means를 쓰려면 군집 개수 `k`를 미리 정해야 하는데, 실제 데이터엔 몇 개의 자연스러운 그룹이 있는지 미리 알기 어려운 경우가 많습니다. **실루엣 계수(Silhouette Score)**는 \"같은 군집끼리는 가깝고, 다른 군집과는 멀수록\" 높은 값(최대 1)을 주는 지표로, 여러 `k` 값을 시도해보고 실루엣 계수가 가장 높은 `k`를 고르는 데 씁니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| `silhouette_score(X, labels)` | 전체 데이터의 평균 실루엣 계수 (-1 ~ 1, 높을수록 군집이 잘 나뉨) |",
+      "example_code": "for k in [2, 3, 4]:\n    km_k = KMeans(n_clusters=k, random_state=42, n_init=10)\n    labels_k = km_k.fit_predict(X_scaled)\n    score = silhouette_score(X_scaled, labels_k)\n    print(f'k={k}, silhouette={score:.3f}')",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`k=3`으로 `KMeans(n_clusters=3, random_state=42, n_init=10)`를 학습시키고, 실루엣 계수를 `sil_score`에 저장하세요.",
+          "answer_code": "km3 = KMeans(n_clusters=3, random_state=42, n_init=10)\nlabels3 = km3.fit_predict(X_scaled)\nsil_score = silhouette_score(X_scaled, labels3)  # 1에 가까울수록 군집이 잘 나뉜 것",
+          "checks": [
+            {
+              "var": "X_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                4
+              ]
+            },
+            {
+              "var": "labels3",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150
+              ]
+            },
+            {
+              "var": "sil_score",
+              "op": "gte",
+              "expected": 0.4299,
+              "tolerance": 0.0
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "PCA로 차원 축소하고 시각화하기",
+      "theory_markdown": "### 📖 이론 설명\nPCA(주성분분석)는 여러 변수(컬럼)를 정보 손실을 최소화하면서 더 적은 개수의 새로운 변수(주성분)로 압축하는 기법입니다. 특히 변수가 많아서(4개, 10개, ...) 한눈에 시각화하기 어려울 때, 2개의 주성분으로 압축해 산점도로 데이터를 눈으로 확인하는 용도로 자주 씁니다.\n\nPCA도 K-Means처럼 분산(퍼짐 정도) 기반이라 스케일링된 데이터(`X_scaled`)를 입력으로 써야 특정 변수가 분산 계산을 독점하지 않습니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 속성/메서드 | 설명 |\n|---|---|\n| `PCA(n_components=2)` | 2개의 주성분으로 압축하는 모델 생성 |\n| `.fit_transform(X)` | 학습과 동시에 압축된 좌표를 반환 |\n| `.explained_variance_ratio_` | 각 주성분이 원본 데이터 정보를 몇 % 보존하는지 |",
+      "example_code": "pca = PCA(n_components=2)\nX_pca = pca.fit_transform(X_scaled)\n\nplt.scatter(X_pca[:, 0], X_pca[:, 1], c=iris['target'])\nplt.xlabel('PC1')\nplt.ylabel('PC2')\nplt.title('PCA 2차원 압축 결과')\nplt.show()\n\nprint('설명된 분산 비율:', pca.explained_variance_ratio_)",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`PCA(n_components=2)`로 `X_scaled`를 압축해 `X_pca2`에 저장하고, 두 주성분이 설명하는 분산 비율의 합을 `explained_total`에 저장하세요.",
+          "answer_code": "pca2 = PCA(n_components=2)\nX_pca2 = pca2.fit_transform(X_scaled)\nexplained_total = pca2.explained_variance_ratio_.sum()  # 주성분 2개가 원본 정보의 몇 %를 보존하는지",
+          "checks": [
+            {
+              "var": "X_pca2",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                2
+              ]
+            },
+            {
+              "var": "X_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                4
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

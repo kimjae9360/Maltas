@@ -1,0 +1,275 @@
+{
+  "chapter_id": "08_딥러닝_회귀_실무전용",
+  "title": "08. 딥러닝 회귀 - 실무전용 문제 모음",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nimport tensorflow as tf\n\ntf.random.set_seed(100)\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\nsales = pd.read_csv('data/retail_sales.csv')\nsales['광고비_만원'] = sales['광고비_만원'].fillna(sales['광고비_만원'].mean())\nq1, q3 = sales['매출_만원'].quantile([0.25, 0.75])\niqr = q3 - q1\nsales['매출_만원'] = sales['매출_만원'].clip(upper=q3 + 1.5 * iqr)\nsales_enc = pd.get_dummies(sales, columns=['지역', '주말여부'], drop_first=True)\nX = sales_enc.drop(columns=['매출_만원'])\ny = sales_enc['매출_만원']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\nscaler = StandardScaler()\nX_train_s = scaler.fit_transform(X_train)\nX_test_s = scaler.transform(X_test)\nX_train.shape",
+  "sections": [
+    {
+      "no": 1,
+      "title": "모델 설계 & 컴파일 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "입력층 32(relu)→16(relu)→출력 1(활성화 없음)인 `model`을 만들고 `loss='mse'`로 컴파일하세요.",
+          "answer_code": "from tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\nmodel = Sequential()\nmodel.add(Dense(32, activation='relu', input_shape=(X_train_s.shape[1],)))\nmodel.add(Dense(16, activation='relu'))\nmodel.add(Dense(1))  # 회귀 출력층: 노드 1개, activation 없음\nmodel.compile(optimizer='adam', loss='mse', metrics=['mae'])  # 회귀는 loss='mse'가 기본\nmodel.summary()",
+          "checks": [
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                240,
+                8
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "모델 학습 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 2,
+          "prompt_markdown": "`EarlyStopping(patience=5)`를 사용해 `epochs=50`으로 학습시키세요.",
+          "answer_code": "from tensorflow.keras.callbacks import EarlyStopping\nes = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)  # patience=5: 5번 연속 개선이 없으면 학습 중단\nhistory = model.fit(X_train_s, y_train, epochs=50, batch_size=16, validation_data=(X_test_s, y_test), callbacks=[es], verbose=0)\nprint(len(history.history['loss']))  # epochs=50을 다 채우지 못하고 조기 종료됐다면 이 길이가 50보다 작음",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                60,
+                8
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                240,
+                8
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                60
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                240
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "성능 시각화 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 3,
+          "prompt_markdown": "loss curve를 그리세요.",
+          "answer_code": "plt.plot(history.history['loss'], label='train')\nplt.plot(history.history['val_loss'], label='val')  # 두 곡선이 함께 내려가면 정상, val만 다시 올라가면 과적합 신호\nplt.legend(); plt.show()",
+          "checks": [],
+          "manual_review": true
+        },
+        {
+          "no": 4,
+          "prompt_markdown": "예측 vs 실제 산점도를 그리고 R2를 구하세요.",
+          "answer_code": "from sklearn.metrics import r2_score\npred = model.predict(X_test_s).flatten()  # predict 결과가 (샘플수,1) 형태로 나오므로 flatten()으로 1차원으로 펼침\nplt.scatter(y_test, pred, alpha=0.5)\nplt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')  # y=x 대각선에 가까울수록 예측이 정확함\nplt.show()\nprint(r2_score(y_test, pred))",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                60,
+                8
+              ]
+            },
+            {
+              "var": "pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                60
+              ]
+            },
+            {
+              "var": "y",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                300
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                60
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "구조 비교 & 저장/불러오기 반복 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 5,
+          "prompt_markdown": "은닉층을 하나 더 쌓은(64→32→16→1) `model2`를 새로 만들어 같은 방식으로 컴파일하세요.",
+          "answer_code": "model2 = Sequential()\nmodel2.add(Dense(64, activation='relu', input_shape=(X_train_s.shape[1],)))\nmodel2.add(Dense(32, activation='relu'))\nmodel2.add(Dense(16, activation='relu'))\nmodel2.add(Dense(1))\nmodel2.compile(optimizer='adam', loss='mse', metrics=['mae'])\nmodel2.summary()",
+          "checks": [
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                240,
+                8
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 6,
+          "prompt_markdown": "`model2`를 `patience=3`짜리 `EarlyStopping`으로 학습시키고, `model`(문제 2)과 `model2`의 최종 `val_loss`를 비교하세요.",
+          "answer_code": "es2 = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)\nhistory2 = model2.fit(X_train_s, y_train, epochs=50, batch_size=16,\n                       validation_data=(X_test_s, y_test), callbacks=[es2], verbose=0)\nprint('model  최종 val_loss:', history.history['val_loss'][-1])\nprint('model2 최종 val_loss:', history2.history['val_loss'][-1])  # 구조/patience가 다르면 결과도 달라짐",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                60,
+                8
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                240,
+                8
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                60
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                240
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 7,
+          "prompt_markdown": "`model`의 예측 결과로 MAE(`mean_absolute_error`)를 추가로 확인하세요.",
+          "answer_code": "from sklearn.metrics import mean_absolute_error\npred_mae = model.predict(X_test_s).flatten()\nprint(mean_absolute_error(y_test, pred_mae))  # R2와 달리 MAE는 원래 단위(만원) 그대로의 오차 크기",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                60,
+                8
+              ]
+            },
+            {
+              "var": "pred_mae",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                60
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                60
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 8,
+          "prompt_markdown": "학습된 `model`을 `model_reg.keras`로 저장한 뒤 `load_model`로 다시 불러와서, 원래 `model`과 예측값이 (거의) 같은지 확인하세요. (실전에서 학습한 모델을 저장/재사용할 때 자주 쓰는 패턴입니다)",
+          "answer_code": "from tensorflow.keras.models import load_model\nmodel.save('model_reg.keras')\nreloaded = load_model('model_reg.keras')\npred_before = model.predict(X_test_s).flatten()\npred_after = reloaded.predict(X_test_s).flatten()\nprint(np.allclose(pred_before, pred_after))  # True면 저장/불러오기가 가중치를 그대로 보존했다는 뜻",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                60,
+                8
+              ]
+            },
+            {
+              "var": "pred_after",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                60
+              ]
+            },
+            {
+              "var": "pred_before",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                60
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

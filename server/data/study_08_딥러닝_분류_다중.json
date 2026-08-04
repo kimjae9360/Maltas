@@ -1,0 +1,287 @@
+{
+  "chapter_id": "08_딥러닝_분류_다중",
+  "title": "08. 딥러닝 - 다중분류 (Keras)",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nimport tensorflow as tf\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\ntf.random.set_seed(100)\n\nwine = pd.read_csv('data/wine.csv')\nX = wine.drop(columns=['target'])\ny = wine['target']\nclass_num = y.nunique()\nprint('클래스 수:', class_num)\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X_train)\nX_test = scaler.transform(X_test)\nX_train.shape",
+  "sections": [
+    {
+      "no": 1,
+      "title": "다중분류 DL이란? 이진분류 DL과 무엇이 다른가",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": []
+    },
+    {
+      "no": 2,
+      "title": "다중분류용 Sequential 모델 설계",
+      "theory_markdown": "### 📖 이론 설명\n출력층 노드 수는 `class_num`(=3)으로 지정하고 activation은 'softmax'로 고정합니다. `08_딥러닝_분류_이진.ipynb`에서 다룬 `BatchNormalization`(학습 안정화)과 `Dropout`(과적합 방지)은 이진분류든 다중분류든 동일하게 `Dense` 층 사이에 넣어 조합할 수 있습니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 레이어 | 노드 수 | activation |\n|---|---|---|\n| 은닉층 | 자유 | 'relu' |\n| BatchNormalization | - | 층 출력값 재정규화 |\n| 출력층(다중분류) | 클래스 수 | 'softmax' |",
+      "example_code": "from tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense, Dropout, BatchNormalization\n\nmodel = Sequential()\nmodel.add(Dense(16, activation='relu', input_shape=(X_train.shape[1],)))\nmodel.add(BatchNormalization())\nmodel.add(Dropout(0.2))\nmodel.add(Dense(8, activation='relu'))\nmodel.add(Dense(class_num, activation='softmax'))\nmodel.summary()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "은닉층 32(relu)→16(relu), 출력층 `class_num`개(softmax)로 구성된 `model2`를 만들어 `summary()`를 확인하세요.",
+          "answer_code": "model2 = Sequential()\nmodel2.add(Dense(32, activation='relu', input_shape=(X_train.shape[1],)))\nmodel2.add(Dense(16, activation='relu'))\nmodel2.add(Dense(class_num, activation='softmax'))  # 다중분류 출력층: 노드 수=클래스 수, softmax로 클래스별 확률 합이 1이 되도록 함\nmodel2.summary()",
+          "checks": [
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142,
+                13
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "모델 컴파일",
+      "theory_markdown": "### 📖 이론 설명\n`wine['target']`은 0,1,2 정수 레이블이므로(원-핫 인코딩되지 않은 상태) `sparse_categorical_crossentropy`를 사용합니다. 만약 `y`를 `to_categorical()`로 원-핫 인코딩했다면 `categorical_crossentropy`를 써야 합니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| y의 형태 | loss |\n|---|---|\n| 정수 레이블(0,1,2) | sparse_categorical_crossentropy |\n| 원-핫 벡터([1,0,0]) | categorical_crossentropy |",
+      "example_code": "model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`model2`를 동일한 옵션으로 컴파일하세요.",
+          "answer_code": "model2.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])  # y가 정수 레이블(0,1,2)이므로 sparse_categorical_crossentropy 사용(원-핫이면 categorical_crossentropy)",
+          "checks": [],
+          "manual_review": true
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "모델 학습",
+      "theory_markdown": "### 📖 이론 설명\n이진분류와 동일하게 `EarlyStopping`을 사용해 학습시킵니다.",
+      "concept_table_markdown": "",
+      "example_code": "from tensorflow.keras.callbacks import EarlyStopping\n\nes = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)\nhistory = model.fit(X_train, y_train, epochs=100, batch_size=16,\n                     validation_data=(X_test, y_test), callbacks=[es], verbose=0)\nprint('학습된 epoch 수:', len(history.history['loss']))",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`model2`를 `epochs=100`, `batch_size=16`, `EarlyStopping(patience=10)`로 학습시키세요.",
+          "answer_code": "es2 = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)\nhistory2 = model2.fit(X_train, y_train, epochs=100, batch_size=16, validation_data=(X_test, y_test), callbacks=[es2], verbose=0)  # 이진분류(09번)와 동일하게 EarlyStopping으로 조기 종료\nprint(len(history2.history['loss']))",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36,
+                13
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142,
+                13
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 5,
+      "title": "예측 결과 후처리",
+      "theory_markdown": "### 📖 이론 설명\n`model.predict(X_test)`는 각 샘플에 대해 **클래스별 확률로 이루어진 벡터**(예: `[0.1, 0.7, 0.2]`)를 반환합니다. 이 중 **가장 큰 확률을 가진 위치(인덱스)**가 곧 예측 클래스이므로, `np.argmax(pred, axis=1)`로 최종 클래스 라벨을 얻습니다. `axis=1`은 '각 행(샘플)에서' 최댓값의 위치를 찾으라는 뜻입니다 - 이진분류에서 0.5 임계값을 쓰는 것과 대응되는, 다중분류의 표준적인 후처리 방법입니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 코드 | 설명 |\n|---|---|\n| model.predict(X) | shape=(샘플수, 클래스수) 확률 벡터 반환 |\n| np.argmax(pred, axis=1) | 각 행에서 확률이 가장 큰 클래스 인덱스 추출 |",
+      "example_code": "pred_proba = model.predict(X_test)\nprint('예측 확률 벡터 shape:', pred_proba.shape)\nprint('첫 샘플 확률:', pred_proba[0])\n\ny_pred = np.argmax(pred_proba, axis=1)\nprint('예측 클래스 라벨:', y_pred[:10])",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`model2`의 예측 확률에서 첫 5개 샘플의 최종 클래스 라벨을 `argmax`로 구하세요.",
+          "answer_code": "pred2_proba = model2.predict(X_test)  # 각 샘플마다 클래스별 확률 벡터(합계 1)가 반환됨\npred2_label = np.argmax(pred2_proba, axis=1)  # axis=1: 각 행(샘플)에서 확률이 가장 큰 클래스의 인덱스를 찾음\nprint(pred2_label[:5])",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36,
+                13
+              ]
+            },
+            {
+              "var": "pred2_label",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "pred2_proba",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36,
+                3
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 6,
+      "title": "성능 시각화",
+      "theory_markdown": "### 📖 이론 설명\nloss curve와 다중클래스 confusion matrix(3x3)로 성능을 확인합니다.",
+      "concept_table_markdown": "",
+      "example_code": "from sklearn.metrics import confusion_matrix, classification_report, accuracy_score\n\nplt.plot(history.history['loss'], label='train loss')\nplt.plot(history.history['val_loss'], label='val loss')\nplt.xlabel('Epoch'); plt.ylabel('Loss'); plt.title('Loss Curve'); plt.legend(); plt.show()\n\ncm = confusion_matrix(y_test, y_pred)\nsns.heatmap(cm, annot=True, fmt='d', cmap='Purples')\nplt.xlabel('Predicted'); plt.ylabel('Actual'); plt.title('DL Multi-class Confusion Matrix')\nplt.show()\n\nprint('accuracy:', accuracy_score(y_test, y_pred))\nprint(classification_report(y_test, y_pred))",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`model2`의 예측 결과로 confusion matrix를 그리세요.",
+          "answer_code": "pred2_proba = model2.predict(X_test)\npred2_label = np.argmax(pred2_proba, axis=1)  # confusion_matrix는 클래스 라벨을 받으므로 argmax로 변환한 뒤 넘겨야 함\ncm2 = confusion_matrix(y_test, pred2_label)\nsns.heatmap(cm2, annot=True, fmt='d', cmap='Greens')\nplt.xlabel('Predicted'); plt.ylabel('Actual')\nplt.show()",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36,
+                13
+              ]
+            },
+            {
+              "var": "cm2",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3,
+                3
+              ]
+            },
+            {
+              "var": "pred2_label",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "pred2_proba",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36,
+                3
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 7,
+      "title": "종합 실전 문제",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "입력층 64(relu)+Dropout(0.2)→32(relu)→출력 `class_num`(softmax) 구조의 `model_final`을 만들고 `sparse_categorical_crossentropy`로 컴파일하세요.",
+          "answer_code": "model_final = Sequential()\nmodel_final.add(Dense(64, activation='relu', input_shape=(X_train.shape[1],)))\nmodel_final.add(Dropout(0.2))  # 다중분류에서도 이진분류와 동일하게 Dropout으로 과적합을 방지할 수 있음\nmodel_final.add(Dense(32, activation='relu'))\nmodel_final.add(Dense(class_num, activation='softmax'))\nmodel_final.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])\nmodel_final.summary()",
+          "checks": [
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142,
+                13
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`model_final`을 학습시킨 뒤 예측 결과를 `argmax`로 변환해 accuracy를 구하세요.",
+          "answer_code": "es_f = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)\nmodel_final.fit(X_train, y_train, epochs=100, batch_size=16, validation_data=(X_test, y_test), callbacks=[es_f], verbose=0)\npred_f = np.argmax(model_final.predict(X_test), axis=1)  # softmax 확률 벡터를 argmax로 최종 클래스 라벨로 변환\nprint(accuracy_score(y_test, pred_f))",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36,
+                13
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142,
+                13
+              ]
+            },
+            {
+              "var": "pred_f",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,274 @@
+{
+  "chapter_id": "EX03_불균형데이터_실전문제_고객이탈_실무전용",
+  "title": "EX03. [추가연습] 불균형 데이터 실무전용 문제 모음 - 고객 이탈",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\ndf = pd.read_csv('data/telco_churn.csv')\ndf['TotalCharges'] = df['TotalCharges'].replace(' ', np.nan).astype(float)\ndf['TotalCharges'] = df['TotalCharges'].fillna(df['TotalCharges'].median())\ndf = df.drop(columns=['customerID'])\ndf['Churn'] = df['Churn'].map({'Yes': 1, 'No': 0})\ncat_cols = df.select_dtypes(include='object').columns.tolist()\ndf = pd.get_dummies(df, columns=cat_cols, drop_first=True)\nX = df.drop(columns=['Churn'])\ny = df['Churn']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\nscaler = StandardScaler()\nX_train_s = scaler.fit_transform(X_train)\nX_test_s = scaler.transform(X_test)\nX_train.shape",
+  "sections": [
+    {
+      "no": 1,
+      "title": "모델 학습 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`XGBClassifier(n_estimators=100, random_state=42, scale_pos_weight=3)`를 학습시켜 recall을 구하세요. (scale_pos_weight는 XGBoost의 불균형 대응 옵션입니다)",
+          "answer_code": "from xgboost import XGBClassifier\nfrom sklearn.metrics import recall_score, precision_score\nxgb = XGBClassifier(n_estimators=100, random_state=42, scale_pos_weight=3, eval_metric='logloss')  # scale_pos_weight: 양성(소수) 클래스의 가중치를 높여 class_weight='balanced'와 비슷한 효과를 줌(XGBoost 전용 옵션)\nxgb.fit(X_train_s, y_train)\npred = xgb.predict(X_test_s)\nprint(recall_score(y_test, pred), precision_score(y_test, pred))",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409,
+                30
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5634,
+                30
+              ]
+            },
+            {
+              "var": "pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5634
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "임계값 튜닝 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 2,
+          "prompt_markdown": "`LogisticRegression`의 예측 확률에서 임계값을 0.3으로 낮췄을 때와 0.5일 때 recall을 비교하세요.",
+          "answer_code": "from sklearn.linear_model import LogisticRegression\nlogi = LogisticRegression(max_iter=1000).fit(X_train_s, y_train)\nproba = logi.predict_proba(X_test_s)[:, 1]  # 임계값을 조정하려면 0/1 예측이 아니라 확률이 필요\npred_05 = (proba > 0.5).astype(int)\npred_03 = (proba > 0.3).astype(int)  # 임계값을 낮추면 더 쉽게 양성(이탈)으로 판단해 recall이 오르는 경향이 있음\nprint(recall_score(y_test, pred_05), recall_score(y_test, pred_03))",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409,
+                30
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5634,
+                30
+              ]
+            },
+            {
+              "var": "pred_03",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409
+              ]
+            },
+            {
+              "var": "pred_05",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409
+              ]
+            },
+            {
+              "var": "proba",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5634
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "PR Curve 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 3,
+          "prompt_markdown": "PR curve를 그리고 average_precision_score를 확인하세요.",
+          "answer_code": "from sklearn.metrics import precision_recall_curve, average_precision_score\nprecision, recall, _ = precision_recall_curve(y_test, proba)  # 임계값을 바꿔가며 계산한 precision/recall 쌍들을 반환\nplt.plot(recall, precision)\nplt.title(f'AP={average_precision_score(y_test, proba):.3f}')  # AP(Average Precision)는 PR curve 아래 면적을 하나의 숫자로 요약\nplt.show()",
+          "checks": [
+            {
+              "var": "_",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1407
+              ]
+            },
+            {
+              "var": "precision",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1408
+              ]
+            },
+            {
+              "var": "proba",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409
+              ]
+            },
+            {
+              "var": "recall",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1408
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "딥러닝 + SMOTE 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 4,
+          "prompt_markdown": "SMOTE로 오버샘플링한 뒤 이진분류 DL 모델을 학습시켜 recall을 확인하세요.",
+          "answer_code": "import tensorflow as tf\ntf.random.set_seed(100)  # 가중치 초기화가 무작위라 결과가 매번 조금씩 달라질 수 있어 시드를 고정\nfrom imblearn.over_sampling import SMOTE\nfrom tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense, Dropout\nfrom tensorflow.keras.callbacks import EarlyStopping\nsmote = SMOTE(random_state=42)\nX_over, y_over = smote.fit_resample(X_train_s, y_train)  # 딥러닝에서도 머신러닝과 동일하게 학습 데이터에만 오버샘플링을 적용\nmodel = Sequential()\nmodel.add(Dense(32, activation='relu', input_shape=(X_train_s.shape[1],)))\nmodel.add(Dropout(0.3))\nmodel.add(Dense(16, activation='relu'))\nmodel.add(Dense(1, activation='sigmoid'))  # 이진분류 출력층: 노드 1개 + sigmoid\nmodel.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])\nes = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)\nmodel.fit(X_over, y_over, epochs=50, batch_size=32, validation_data=(X_test_s, y_test), callbacks=[es], verbose=0)\ndl_pred = (model.predict(X_test_s).flatten() > 0.5).astype(int)\nprint(recall_score(y_test, dl_pred))  # 오버샘플링 전후로 recall이 어떻게 개선됐는지 확인",
+          "checks": [
+            {
+              "var": "X_over",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                8278,
+                30
+              ]
+            },
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409,
+                30
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5634,
+                30
+              ]
+            },
+            {
+              "var": "dl_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409
+              ]
+            },
+            {
+              "var": "y_over",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                8278
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                1409
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5634
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

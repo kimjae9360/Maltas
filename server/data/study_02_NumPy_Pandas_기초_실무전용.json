@@ -1,0 +1,924 @@
+{
+  "chapter_id": "02_NumPy_Pandas_기초_실무전용",
+  "title": "02. NumPy & Pandas 기초 - 실무전용 문제 모음",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\nwine = pd.read_csv('data/wine.csv')\niris = pd.read_csv('data/iris.csv')\nwine.head()",
+  "sections": [
+    {
+      "no": 1,
+      "title": "NumPy 배열 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`wine['alcohol']` 컬럼을 numpy 배열로 변환해 `alcohol_arr`에 저장하고 dtype을 확인하세요.",
+          "answer_code": "alcohol_arr = wine['alcohol'].to_numpy()  # Series를 순수 numpy 배열로 변환\nprint(alcohol_arr.dtype)",
+          "checks": [
+            {
+              "var": "alcohol_arr",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178
+              ]
+            },
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                14
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`alcohol_arr`의 평균, 표준편차, 최댓값을 구하세요.",
+          "answer_code": "print(alcohol_arr.mean(), alcohol_arr.std(), alcohol_arr.max())  # 평균/표준편차/최댓값을 한 번에 출력해 데이터 범위를 파악",
+          "checks": [
+            {
+              "var": "alcohol_arr",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 3,
+          "prompt_markdown": "`np.where()`를 사용해 `alcohol_arr`이 13 이상이면 1, 아니면 0인 배열을 만드세요.",
+          "answer_code": "result = np.where(alcohol_arr >= 13, 1, 0)  # np.where(조건, 참일때 값, 거짓일때 값): 조건에 따라 값을 한 번에 치환\nprint(result[:10])",
+          "checks": [
+            {
+              "var": "alcohol_arr",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178
+              ]
+            },
+            {
+              "var": "result",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "데이터프레임 생성·수정·저장 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 4,
+          "prompt_markdown": "`{'품종': ['setosa', 'versicolor', 'virginica'], '평균키(cm)': [5, 6, 6.5]}`로 `species_df`를 만드세요.",
+          "answer_code": "species_df = pd.DataFrame({'품종': ['setosa', 'versicolor', 'virginica'], '평균키(cm)': [5, 6, 6.5]})  # 딕셔너리의 key가 컬럼명, value 리스트가 각 행의 값이 됨\nspecies_df",
+          "checks": [
+            {
+              "var": "species_df",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3,
+                2
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 5,
+          "prompt_markdown": "`species_df`의 1번 위치에 `등급` 컬럼을 ['A','B','A']로 추가하세요. (insert 사용)",
+          "answer_code": "species_df.insert(1, '등급', ['A', 'B', 'A'])  # insert(위치, 컬럼명, 값): 원하는 순서에 열을 끼워넣음\nspecies_df",
+          "checks": [
+            {
+              "var": "species_df",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3,
+                3
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 6,
+          "prompt_markdown": "`iris`를 `iris_backup.csv`로 인덱스 없이 저장하세요.",
+          "answer_code": "iris.to_csv('iris_backup.csv', index=False)  # index=False로 저장해야 다시 읽을 때 불필요한 'Unnamed: 0' 컬럼이 생기지 않음",
+          "checks": [
+            {
+              "var": "iris",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                5
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "필터링과 정렬 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 7,
+          "prompt_markdown": "`iris`에서 `petal length (cm)`가 5 이상인 행만 골라 `long_petal`에 저장하세요.",
+          "answer_code": "long_petal = iris.loc[iris['petal length (cm)'] >= 5]  # loc에 조건(Boolean Series)을 넣으면 조건을 만족하는 행만 남김\nlong_petal.head()",
+          "checks": [
+            {
+              "var": "iris",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                5
+              ]
+            },
+            {
+              "var": "long_petal",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                46,
+                5
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 8,
+          "prompt_markdown": "`wine`을 `alcohol` 기준 내림차순으로 정렬해 상위 3개 행만 확인하세요.",
+          "answer_code": "wine.sort_values(by='alcohol', ascending=False).head(3)  # ascending=False(내림차순) 정렬 후 head(3)으로 상위 3개만 확인",
+          "checks": [
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                14
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 9,
+          "prompt_markdown": "`iris`에서 `target`이 0이면서 `sepal width (cm)`가 3.5 초과인 행의 개수를 구하세요.",
+          "answer_code": "# 조건 두 개를 &로 동시에 만족하는 행만 남긴 뒤 len()으로 개수를 셈(각 조건은 괄호 필수)\nlen(iris.loc[(iris['target'] == 0) & (iris['sepal width (cm)'] > 3.5)])",
+          "checks": [
+            {
+              "var": "iris",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                5
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 10,
+          "prompt_markdown": "`iris`의 앞에서 3번째 행(0-based index 2)만 `iloc`으로 골라 `third_row`에 저장하세요.",
+          "answer_code": "# iloc은 '위치(정수) 기반' 인덱싱 - loc과 달리 컬럼/인덱스 이름이 아니라 몇 번째인지로 접근\nthird_row = iris.iloc[2]\nthird_row",
+          "checks": [
+            {
+              "var": "iris",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                5
+              ]
+            },
+            {
+              "var": "third_row",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 11,
+          "prompt_markdown": "`wine`에서 `alcohol`이 14 이상이거나 `color_intensity`가 10 이상인 행만 골라 `strong_wine`에 저장하세요.",
+          "answer_code": "# |는 OR(둘 중 하나만 참이어도 True) - &(AND)와 달리 각 조건 중 하나만 만족해도 선택됨(괄호 필수)\nstrong_wine = wine.loc[(wine['alcohol'] >= 14) | (wine['color_intensity'] >= 10)]\nstrong_wine.shape",
+          "checks": [
+            {
+              "var": "strong_wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                28,
+                14
+              ]
+            },
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                14
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 12,
+          "prompt_markdown": "`wine`에서 `target`이 0 또는 2인 행만 `isin()`으로 골라 `subset_wine`에 저장하세요.",
+          "answer_code": "# isin()은 여러 값 중 하나라도 일치하면 True - ==를 여러 번 |로 잇는 것보다 간결함\nsubset_wine = wine.loc[wine['target'].isin([0, 2])]\nsubset_wine.shape",
+          "checks": [
+            {
+              "var": "subset_wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                107,
+                14
+              ]
+            },
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                14
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "그룹화 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 13,
+          "prompt_markdown": "`wine`을 `target`별로 그룹화해 `alcohol`의 평균을 구하세요.",
+          "answer_code": "wine.groupby('target')['alcohol'].mean()  # target별로 나눈 뒤 alcohol 컬럼만 골라 평균을 구함",
+          "checks": [
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                14
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 14,
+          "prompt_markdown": "`iris`를 `target`별로 그룹화해 모든 수치형 컬럼의 평균을 한 번에 구하세요.",
+          "answer_code": "iris.groupby('target').mean()  # 컬럼을 따로 지정하지 않으면 모든 수치형 컬럼에 대해 한 번에 평균을 구해줌",
+          "checks": [
+            {
+              "var": "iris",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                5
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 15,
+          "prompt_markdown": "`wine`을 `target`별로 그룹화해 `alcohol`의 min/mean/max를 한 번에 구하세요. (agg 사용)",
+          "answer_code": "wine.groupby('target')['alcohol'].agg(['min', 'mean', 'max'])  # 문자열 리스트를 넘기면 지정한 여러 통계를 한 번에 계산",
+          "checks": [
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                14
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 5,
+      "title": "Apply·파생변수 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 16,
+          "prompt_markdown": "`iris['petal length (cm)']`을 [0, 2, 4, 6, 10] 구간으로 나눠 `petal_group` 컬럼을 만드세요. (pd.cut)",
+          "answer_code": "iris['petal_group'] = pd.cut(iris['petal length (cm)'], bins=[0, 2, 4, 6, 10], labels=['S', 'M', 'L', 'XL'])  # pd.cut: 연속형 값을 지정한 구간(bins)별로 나눠 범주형으로 변환\niris['petal_group'].value_counts()",
+          "checks": [
+            {
+              "var": "iris",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                6
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 17,
+          "prompt_markdown": "`wine['alcohol']`에 apply와 lambda를 사용해 소수점 첫째자리로 반올림한 `alcohol_round` 컬럼을 만드세요.",
+          "answer_code": "wine['alcohol_round'] = wine['alcohol'].apply(lambda x: round(x, 1))  # apply+lambda로 각 값에 파이썬 내장 round()를 적용\nwine[['alcohol', 'alcohol_round']].head()",
+          "checks": [
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 6,
+      "title": "재구조화 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 18,
+          "prompt_markdown": "`iris`를 `target`, `petal_group`으로 그룹화해 개수를 세고, `unstack()`으로 `petal_group`을 컬럼으로 펼치세요.",
+          "answer_code": "grouped = iris.groupby(['target', 'petal_group'])['petal_group'].count()  # 두 기준으로 그룹화하면 계층적(MultiIndex) 결과가 나옴\ngrouped.unstack(level=1)  # unstack(level=1): 두 번째 인덱스(petal_group)를 컬럼으로 펼쳐서 보기 편하게 만듦",
+          "checks": [
+            {
+              "var": "grouped",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5
+              ]
+            },
+            {
+              "var": "iris",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                6
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 7,
+      "title": "병합 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 19,
+          "prompt_markdown": "`wine`의 앞 5행(`w1`)과 뒤 5행(`w2`)을 만들어 `pd.concat`으로 이어붙이세요.",
+          "answer_code": "w1 = wine.head()\nw2 = wine.tail()\npd.concat([w1, w2])  # concat은 키 매칭 없이 위아래로 단순히 이어붙임",
+          "checks": [
+            {
+              "var": "w1",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5,
+                15
+              ]
+            },
+            {
+              "var": "w2",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                5,
+                15
+              ]
+            },
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 20,
+          "prompt_markdown": "`iris`(index 기준)와 `iris['target']`만 뽑은 새 DataFrame을 인덱스로 merge 해보세요.",
+          "answer_code": "target_only = iris[['target']].copy()  # 원본이 바뀌지 않도록 copy()로 복사본을 만듦\npd.merge(iris.drop(columns=['target']), target_only, left_index=True, right_index=True)  # 공통 키 컬럼이 없을 때는 left_index/right_index=True로 '인덱스' 자체를 기준으로 병합",
+          "checks": [
+            {
+              "var": "iris",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                6
+              ]
+            },
+            {
+              "var": "target_only",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                1
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 8,
+      "title": "통계·시계열·삭제·인덱싱 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 21,
+          "prompt_markdown": "`wine`에서 `alcohol`과 `color_intensity`의 상관계수를 구하세요.",
+          "answer_code": "print(wine['alcohol'].corr(wine['color_intensity']))  # 상관계수: 0에 가까우면 약한 관계, +-1에 가까우면 강한 관계",
+          "checks": [
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 22,
+          "prompt_markdown": "2023-01-01부터 5일간의 날짜(`pd.date_range`)를 만들고 `dt.day_name()`으로 요일을 확인하세요.",
+          "answer_code": "dates = pd.date_range('2023-01-01', periods=5)  # periods=5: 시작일로부터 5개의 날짜를 자동 생성\nprint(dates.day_name())  # day_name(): 각 날짜가 무슨 요일인지 문자열로 반환",
+          "checks": [],
+          "manual_review": true
+        },
+        {
+          "no": 23,
+          "prompt_markdown": "`iris`에서 중복 행이 있는지 확인하고, `drop_duplicates()`로 제거했을 때 행 개수를 확인하세요.",
+          "answer_code": "print(iris.duplicated().sum())  # duplicated()는 완전히 동일한 행에 True를 반환, sum()으로 개수를 셈\nprint(iris.drop_duplicates().shape)  # 중복 제거 후 행 개수가 줄었는지 shape으로 확인",
+          "checks": [
+            {
+              "var": "iris",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                6
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 24,
+          "prompt_markdown": "`wine`을 `target`으로 `set_index` 한 뒤 다시 `reset_index`로 원상복구하세요.",
+          "answer_code": "wine_indexed = wine.set_index('target')  # target 컬럼을 인덱스로 승격\nwine_restored = wine_indexed.reset_index()  # reset_index()는 그 인덱스를 다시 컬럼으로 되돌림(drop=True 없으면 컬럼으로 복원)\nwine_restored.head()",
+          "checks": [
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                15
+              ]
+            },
+            {
+              "var": "wine_indexed",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                14
+              ]
+            },
+            {
+              "var": "wine_restored",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 9,
+      "title": "pandas_exercises 스타일 심화 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`wine`을 `target`으로 그룹화한 뒤, `alcohol`은 평균, `color_intensity`는 최댓값을 각각 다르게 집계하세요. (agg에 딕셔너리 전달)",
+          "answer_code": "wine.groupby('target').agg({'alcohol': 'mean', 'color_intensity': 'max'})  # 딕셔너리로 컬럼마다 다른 집계 함수를 한 번에 지정",
+          "checks": [
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`wine`을 `target`으로 그룹화한 뒤, `for` 반복문으로 각 그룹의 이름과 행 개수를 출력하세요.",
+          "answer_code": "for name, group in wine.groupby('target'):  # groupby 객체를 반복하면 (그룹 이름, 그 그룹의 DataFrame) 튜플이 나옴\n    print(name, len(group))",
+          "checks": [
+            {
+              "var": "group",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                48,
+                15
+              ]
+            },
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 3,
+          "prompt_markdown": "`iris`의 `petal_group`(구간화 컬럼, 앞 섹션에서 생성)을 `target`별로 비율(`normalize=True`)로 확인하세요.",
+          "answer_code": "iris.groupby('target')['petal_group'].value_counts(normalize=True)  # normalize=True: 개수 대신 비율(합계 1)로 반환",
+          "checks": [
+            {
+              "var": "iris",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                6
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 4,
+          "prompt_markdown": "`wine`의 컬럼 순서를 `['target', 'alcohol', 'ash']` 순서로 바꾼 `wine_reordered`를 만드세요.",
+          "answer_code": "wine_reordered = wine[['target', 'alcohol', 'ash']]  # 대괄호 안 리스트 순서대로 컬럼이 재배치됨\nwine_reordered.head()",
+          "checks": [
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                15
+              ]
+            },
+            {
+              "var": "wine_reordered",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                3
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 5,
+          "prompt_markdown": "`pd.DataFrame({'a': [1,2,3], 'Unnamed: 0': [0,1,2]})`처럼 불필요한 'Unnamed' 컬럼이 섞인 데이터프레임을 만들고, `str.contains('^Unnamed')`로 찾아 제거하세요. (csv를 index 포함해서 저장했다가 다시 읽으면 흔히 생기는 컬럼입니다)",
+          "answer_code": "messy = pd.DataFrame({'a': [1, 2, 3], 'Unnamed: 0': [0, 1, 2]})\nmessy = messy.loc[:, ~messy.columns.str.contains('^Unnamed')]  # ~(NOT)로 'Unnamed'로 시작하는 컬럼만 제외하고 나머지를 선택\nmessy",
+          "checks": [
+            {
+              "var": "messy",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3,
+                1
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 6,
+          "prompt_markdown": "`iris`(150행)를 `reindex(range(0, 200))`로 확장한 뒤, 새로 생긴 행들이 결측치로 채워지는지 확인하세요.",
+          "answer_code": "iris_extended = iris.reindex(range(0, 200))  # reindex: 지정한 범위로 재배열, 원래 없던 인덱스(150~199)는 값이 없어 NaN으로 채워짐\nprint(iris_extended.isnull().sum())",
+          "checks": [
+            {
+              "var": "iris",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                6
+              ]
+            },
+            {
+              "var": "iris_extended",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                200,
+                6
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 7,
+          "prompt_markdown": "헤더가 없는 CSV를 읽을 때는 `pd.read_csv(path, header=None, names=[...])`를 씁니다. 아래 문자열(`csv_text`)을 `io.StringIO`로 감싸 헤더 없이 읽고, 컬럼명을 `['a', 'b', 'c']`로 직접 지정하세요.",
+          "answer_code": "import io  # 실제 파일 없이 문자열을 파일처럼 다루기 위해 사용\ncsv_text = '1,2,3\\n4,5,6\\n7,8,9'\nheaderless = pd.read_csv(io.StringIO(csv_text), header=None, names=['a', 'b', 'c'])  # header=None: 첫 행도 데이터로 취급, names=로 컬럼명을 직접 지정\nheaderless",
+          "checks": [
+            {
+              "var": "headerless",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3,
+                3
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 8,
+          "prompt_markdown": "`wine`의 인덱스가 중복되는지(`duplicated()`) 확인하고, 중복이 있다면 첫 번째만 남기고 제거하세요.",
+          "answer_code": "print(wine.index.duplicated().sum())  # 0이면 인덱스 중복 없음\nwine_dedup = wine[~wine.index.duplicated(keep='first')]  # keep='first': 중복된 인덱스 중 처음 것만 남기고 나머지는 제거",
+          "checks": [
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                15
+              ]
+            },
+            {
+              "var": "wine_dedup",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                15
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 10,
+      "title": "문자열·쿼리·병합심화·카테고리형 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 25,
+          "prompt_markdown": "`wine`의 `target`(0,1,2)을 각각 `'A등급'`, `'B등급'`, `'C등급'` 문자열로 매핑한 `grade` 컬럼을 만들고, `grade`에서 `'A'`가 포함된 값의 개수를 `str.contains`로 구하세요.",
+          "answer_code": "grade_map = {0: 'A등급', 1: 'B등급', 2: 'C등급'}\nwine['grade'] = wine['target'].map(grade_map)\nprint(wine['grade'].str.contains('A').sum())",
+          "checks": [
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                16
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 26,
+          "prompt_markdown": "`wine['grade']`에서 `'등급'`이라는 글자를 빈 문자열로 바꾼 `grade_short` 컬럼을 `str.replace`로 만드세요.",
+          "answer_code": "wine['grade_short'] = wine['grade'].str.replace('등급', '')\nprint(wine['grade_short'].unique())",
+          "checks": [
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                17
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 27,
+          "prompt_markdown": "`wine`에서 `alcohol`이 13 이상인 행을 `query()`로 필터링해 `alcohol`, `grade` 컬럼만 출력하세요.",
+          "answer_code": "print(wine.query('alcohol >= 13')[['alcohol', 'grade']])",
+          "checks": [
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                17
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 28,
+          "prompt_markdown": "메서드 체이닝으로, `wine`에서 `grade == 'A등급'`인 행만 필터링한 뒤 바로 이어서 `alcohol` 평균을 구하는 코드를 한 줄로 작성하세요.",
+          "answer_code": "print(wine.query(\"grade == 'A등급'\")['alcohol'].mean())",
+          "checks": [
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                17
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 29,
+          "prompt_markdown": "`iris`에서 `sepal length (cm)`만 있는 `sepal_df`와 `petal length (cm)`만 있는 `petal_df`를 각각 만들고(둘 다 원본과 같은 인덱스), `sepal_df.join(petal_df)`로 합쳐 `iris_joined`를 만드세요.",
+          "answer_code": "sepal_df = iris[['sepal length (cm)']]\npetal_df = iris[['petal length (cm)']]\niris_joined = sepal_df.join(petal_df)  # 인덱스가 같으므로 merge 대신 join으로 간단히 합침\nprint(iris_joined.head())",
+          "checks": [
+            {
+              "var": "iris",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                6
+              ]
+            },
+            {
+              "var": "iris_joined",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                2
+              ]
+            },
+            {
+              "var": "petal_df",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                1
+              ]
+            },
+            {
+              "var": "sepal_df",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                1
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 30,
+          "prompt_markdown": "`wine`에서 `alcohol`이 14 이상인 행만 `.copy()`로 복사한 `high_alcohol`을 만들고, `.loc`을 사용해 `grade` 컬럼을 전부 `'Premium'`으로 바꾸세요. (체인 인덱싱이 아니라 안전한 방식으로)",
+          "answer_code": "high_alcohol = wine[wine['alcohol'] >= 14].copy()  # 먼저 명시적으로 복사\nhigh_alcohol.loc[:, 'grade'] = 'Premium'  # copy본에 loc로 안전하게 대입\nprint(high_alcohol['grade'].unique())",
+          "checks": [
+            {
+              "var": "high_alcohol",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                22,
+                17
+              ]
+            },
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                17
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 31,
+          "prompt_markdown": "`wine['grade']`를 category dtype으로 바꾼 `grade_cat` 컬럼을 만들고, 변환 전/후의 메모리 사용량(`memory_usage(deep=True)`)을 비교하세요.",
+          "answer_code": "before = wine['grade'].memory_usage(deep=True)\nwine['grade_cat'] = wine['grade'].astype('category')\nafter = wine['grade_cat'].memory_usage(deep=True)\nprint(before, after)  # category로 바꾸면 object(문자열)보다 메모리를 훨씬 적게 씀",
+          "checks": [
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                18
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

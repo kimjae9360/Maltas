@@ -1,0 +1,249 @@
+{
+  "chapter_id": "08_딥러닝_분류_다중_실무전용",
+  "title": "08. 딥러닝 다중분류 - 실무전용 문제 모음",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nimport tensorflow as tf\n\ntf.random.set_seed(100)\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\nwine = pd.read_csv('data/wine.csv')\nX = wine.drop(columns=['target'])\ny = wine['target']\nclass_num = y.nunique()\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\nscaler = StandardScaler()\nX_train_s = scaler.fit_transform(X_train)\nX_test_s = scaler.transform(X_test)\nX_train.shape",
+  "sections": [
+    {
+      "no": 1,
+      "title": "모델 설계 연습 (더 깊은 구조)",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "입력층 32(relu)→16(relu)→8(relu)→출력 class_num(softmax)인 `model`을 만들어 `sparse_categorical_crossentropy`로 컴파일하세요.",
+          "answer_code": "from tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\nmodel = Sequential()\nmodel.add(Dense(32, activation='relu', input_shape=(X_train_s.shape[1],)))\nmodel.add(Dense(16, activation='relu'))\nmodel.add(Dense(8, activation='relu'))  # 은닉층을 여러 겹 쌓을수록 더 복잡한 패턴을 학습할 수 있지만 과적합 위험도 커짐\nmodel.add(Dense(class_num, activation='softmax'))  # 다중분류 출력층: 노드 수=클래스 수, softmax\nmodel.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])\nmodel.summary()",
+          "checks": [
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142,
+                13
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "모델 학습 & 예측 후처리 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 2,
+          "prompt_markdown": "`EarlyStopping(patience=10)`로 학습시킨 뒤 `np.argmax`로 예측 클래스를 구하세요.",
+          "answer_code": "from tensorflow.keras.callbacks import EarlyStopping\nes = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)\nmodel.fit(X_train_s, y_train, epochs=100, batch_size=16, validation_data=(X_test_s, y_test), callbacks=[es], verbose=0)\npred_label = np.argmax(model.predict(X_test_s), axis=1)  # predict가 반환하는 클래스별 확률 벡터에서 argmax로 최종 클래스를 뽑아냄\nprint(pred_label[:10])",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36,
+                13
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142,
+                13
+              ]
+            },
+            {
+              "var": "pred_label",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "성능 평가 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 3,
+          "prompt_markdown": "accuracy와 confusion matrix를 확인하세요.",
+          "answer_code": "from sklearn.metrics import accuracy_score, confusion_matrix\nprint(accuracy_score(y_test, pred_label))\ncm = confusion_matrix(y_test, pred_label)  # 클래스 개수만큼 NxN 행렬이 반환됨\nsns.heatmap(cm, annot=True, fmt='d', cmap='Purples')\nplt.show()",
+          "checks": [
+            {
+              "var": "cm",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3,
+                3
+              ]
+            },
+            {
+              "var": "pred_label",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "심화 평가지표 & 구조 비교 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 4,
+          "prompt_markdown": "`pred_label`을 사용해 macro 평균 f1-score와 precision을 구하세요. (다중분류에서는 클래스별 결과를 `average='macro'`로 평균 내는 것이 표준입니다)",
+          "answer_code": "from sklearn.metrics import f1_score, precision_score\nprint(f1_score(y_test, pred_label, average='macro'))\nprint(precision_score(y_test, pred_label, average='macro'))",
+          "checks": [
+            {
+              "var": "pred_label",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 5,
+          "prompt_markdown": "은닉층을 하나 줄인(32→class_num) `model2`를 만들어 학습시키고, `model`(문제 2)과 accuracy를 비교하세요.",
+          "answer_code": "model2 = Sequential()\nmodel2.add(Dense(32, activation='relu', input_shape=(X_train_s.shape[1],)))\nmodel2.add(Dense(class_num, activation='softmax'))\nmodel2.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])\nes2 = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)\nmodel2.fit(X_train_s, y_train, epochs=100, batch_size=16,\n           validation_data=(X_test_s, y_test), callbacks=[es2], verbose=0)\npred_label2 = np.argmax(model2.predict(X_test_s), axis=1)\nprint('model  accuracy:', accuracy_score(y_test, pred_label))\nprint('model2 accuracy:', accuracy_score(y_test, pred_label2))  # 은닉층을 줄이면 보통 표현력이 줄어 성능이 같거나 낮아짐",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36,
+                13
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142,
+                13
+              ]
+            },
+            {
+              "var": "pred_label",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "pred_label2",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 6,
+          "prompt_markdown": "`model`에 대해 `classification_report`로 클래스별 precision/recall/f1을 한 번에 출력하세요.",
+          "answer_code": "from sklearn.metrics import classification_report\nprint(classification_report(y_test, pred_label))",
+          "checks": [
+            {
+              "var": "pred_label",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

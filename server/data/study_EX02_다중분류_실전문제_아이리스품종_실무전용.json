@@ -1,0 +1,193 @@
+{
+  "chapter_id": "EX02_다중분류_실전문제_아이리스품종_실무전용",
+  "title": "EX02. [추가연습] 다중분류 실무전용 문제 모음 - 아이리스 품종",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\niris = pd.read_csv('data/iris.csv')\nX = iris.drop(columns=['target'])\ny = iris['target']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\nscaler = StandardScaler()\nX_train_s = scaler.fit_transform(X_train)\nX_test_s = scaler.transform(X_test)\nX_train.shape",
+  "sections": [
+    {
+      "no": 1,
+      "title": "모델 학습 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`DecisionTreeClassifier(max_depth=4, random_state=42)`를 학습시켜 accuracy를 구하세요.",
+          "answer_code": "from sklearn.tree import DecisionTreeClassifier\nfrom sklearn.metrics import accuracy_score\ndt = DecisionTreeClassifier(max_depth=4, random_state=42)  # max_depth로 깊이를 제한해 과적합을 방지\ndt.fit(X_train_s, y_train)\nprint(accuracy_score(y_test, dt.predict(X_test_s)))",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                30,
+                4
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                120,
+                4
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                30
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                120
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`XGBClassifier(n_estimators=100, random_state=42)`를 학습시켜 classification_report를 출력하세요.",
+          "answer_code": "from xgboost import XGBClassifier\nfrom sklearn.metrics import classification_report\nxgb = XGBClassifier(n_estimators=100, random_state=42, eval_metric='mlogloss')  # 다중분류이므로 eval_metric='mlogloss'(이진분류의 logloss에 대응)를 지정\nxgb.fit(X_train_s, y_train)\nprint(classification_report(y_test, xgb.predict(X_test_s)))  # average 옵션 없이도 클래스별 precision/recall/f1을 모두 확인 가능",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                30,
+                4
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                120,
+                4
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                30
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                120
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "딥러닝 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 3,
+          "prompt_markdown": "입력층 8(relu)→출력 3(softmax)인 작은 모델을 만들어 학습시키고 accuracy를 구하세요.",
+          "answer_code": "import tensorflow as tf\ntf.random.set_seed(100)  # 딥러닝은 가중치 초기화가 무작위라 결과가 매번 조금씩 달라질 수 있어 시드를 고정\nfrom tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\nfrom tensorflow.keras.callbacks import EarlyStopping\nmodel = Sequential()\nmodel.add(Dense(8, activation='relu', input_shape=(X_train_s.shape[1],)))\nmodel.add(Dense(3, activation='softmax'))  # 다중분류 출력층: 노드 수=클래스 수(3), softmax\nmodel.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])\nes = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)\nmodel.fit(X_train_s, y_train, epochs=100, batch_size=8, validation_data=(X_test_s, y_test), callbacks=[es], verbose=0)\npred = np.argmax(model.predict(X_test_s), axis=1)  # softmax 확률 벡터를 argmax로 최종 클래스 라벨로 변환\nprint(accuracy_score(y_test, pred))",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                30,
+                4
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                120,
+                4
+              ]
+            },
+            {
+              "var": "pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                30
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                30
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                120
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "모델 비교 시각화",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 4,
+          "prompt_markdown": "`DecisionTreeClassifier`의 feature_importances_를 막대그래프로 그리세요.",
+          "answer_code": "imp = pd.Series(dt.feature_importances_, index=X.columns)\nimp.sort_values().plot(kind='barh')  # sort_values()로 정렬해야 막대그래프가 크기순으로 깔끔하게 보임\nplt.show()",
+          "checks": [
+            {
+              "var": "X",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                150,
+                4
+              ]
+            },
+            {
+              "var": "imp",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                4
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

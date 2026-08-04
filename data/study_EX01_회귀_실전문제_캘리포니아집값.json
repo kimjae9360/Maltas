@@ -1,0 +1,219 @@
+{
+  "chapter_id": "EX01_회귀_실전문제_캘리포니아집값",
+  "title": "EX01. [추가연습] 회귀 실전 문제 - 캘리포니아 집값 예측",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\nhousing = pd.read_csv('data/california_housing.csv')\nhousing.head()",
+  "sections": [
+    {
+      "no": 1,
+      "title": "데이터 로딩 & EDA",
+      "theory_markdown": "### 📖 이론 설명\n이 데이터는 전부 연속형(수치형) 변수로만 이루어져 있어 Titanic과는 성격이 다릅니다. 결측치나 범주형 인코딩보다는 **변수 간 스케일 차이**와 **분포의 치우침(skew)**을 먼저 살펴봐야 합니다.",
+      "concept_table_markdown": "",
+      "example_code": "housing.info()\nprint(housing.describe())\n\nsns.histplot(housing['MedHouseVal'], kde=True)\nplt.title('House Value Distribution')\nplt.show()\n\nsns.heatmap(housing.corr(), annot=True, cmap='coolwarm', fmt='.2f')\nplt.title('Correlation Heatmap')\nplt.show()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`MedInc`(소득)과 `MedHouseVal`(주택가격)의 상관계수를 구하세요.",
+          "answer_code": "print(housing['MedInc'].corr(housing['MedHouseVal']))  # 소득이 높을수록 집값도 높은 경향이 있는지 상관계수로 먼저 확인",
+          "checks": [
+            {
+              "var": "housing",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                20640,
+                9
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`MedInc`과 `MedHouseVal`의 관계를 jointplot으로 확인하세요.",
+          "answer_code": "sns.jointplot(data=housing, x='MedInc', y='MedHouseVal', kind='reg')  # kind='reg'로 회귀선을 함께 그려 선형 관계를 시각적으로 확인\nplt.show()",
+          "checks": [
+            {
+              "var": "housing",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                20640,
+                9
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "전처리",
+      "theory_markdown": "### 📖 이론 설명\n결측치가 없는 데이터이므로 스케일링과 분할에 집중합니다. 컬럼마다 범위가 크게 달라(예: `Population`은 수백~수만, `AveRooms`은 한 자리 수) 스케일링이 특히 중요합니다.",
+      "concept_table_markdown": "",
+      "example_code": "from sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\nprint(housing.isnull().sum().sum())  # 결측치 없음 확인\n\nX = housing.drop(columns=['MedHouseVal'])\ny = housing['MedHouseVal']\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\nscaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)\nX_train.shape",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "스케일링 전/후 `MedInc` 컬럼의 표준편차를 비교하세요.",
+          "answer_code": "print(X_train['MedInc'].std())  # 스케일링 전 표준편차\nprint(X_train_scaled[:, list(X.columns).index('MedInc')].std())  # 스케일링 후에는 넘파이 배열이라 컬럼 위치(인덱스)를 찾아 선택해야 함",
+          "checks": [
+            {
+              "var": "X",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                20640,
+                8
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                16512,
+                8
+              ]
+            },
+            {
+              "var": "X_train_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                16512,
+                8
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "머신러닝 회귀 모델링",
+      "theory_markdown": "### 📖 이론 설명\n05번 노트북과 동일한 5단계 템플릿을 그대로 적용합니다.",
+      "concept_table_markdown": "",
+      "example_code": "from sklearn.ensemble import RandomForestRegressor\nfrom xgboost import XGBRegressor\nfrom sklearn.metrics import mean_squared_error, r2_score\n\nrf = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)\nrf.fit(X_train_scaled, y_train)\nrf_pred = rf.predict(X_test_scaled)\nprint('RandomForest R2:', r2_score(y_test, rf_pred))\n\nxgb = XGBRegressor(n_estimators=100, random_state=42)\nxgb.fit(X_train_scaled, y_train)\nxgb_pred = xgb.predict(X_test_scaled)\nprint('XGBoost R2:', r2_score(y_test, xgb_pred))",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`RandomForest` 모델의 feature_importances_를 확인해 가장 중요한 변수를 `top_feature`에 저장하세요.",
+          "answer_code": "imp = pd.Series(rf.feature_importances_, index=X.columns)  # feature_importances_ 배열에 컬럼명을 인덱스로 붙여 어떤 값이 어떤 변수인지 알 수 있게 함\ntop_feature = imp.idxmax()  # 값이 가장 큰 위치(컬럼명)를 반환\nprint(top_feature)",
+          "checks": [
+            {
+              "var": "X",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                20640,
+                8
+              ]
+            },
+            {
+              "var": "imp",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                8
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "딥러닝 회귀 모델링",
+      "theory_markdown": "### 📖 이론 설명\n08번 노트북과 동일하게, 출력층 1노드(활성화 없음), `loss='mse'`로 설계합니다.",
+      "concept_table_markdown": "",
+      "example_code": "import tensorflow as tf\nfrom tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\nfrom tensorflow.keras.callbacks import EarlyStopping\n\ntf.random.set_seed(100)\nmodel = Sequential()\nmodel.add(Dense(32, activation='relu', input_shape=(X_train_scaled.shape[1],)))\nmodel.add(Dense(16, activation='relu'))\nmodel.add(Dense(1))\nmodel.compile(optimizer='adam', loss='mse', metrics=['mae'])\n\nes = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)\nhistory = model.fit(X_train_scaled, y_train, epochs=50, batch_size=64,\n                     validation_data=(X_test_scaled, y_test), callbacks=[es], verbose=0)\n\nplt.plot(history.history['loss'], label='train')\nplt.plot(history.history['val_loss'], label='val')\nplt.legend(); plt.title('Loss Curve'); plt.show()\n\ndl_pred = model.predict(X_test_scaled).flatten()\nprint('DL R2:', r2_score(y_test, dl_pred))",
+      "practices": []
+    },
+    {
+      "no": 5,
+      "title": "종합 실전 문제",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, random_state=42)`를 학습시키고 R2를 구하세요.",
+          "answer_code": "from sklearn.ensemble import GradientBoostingRegressor\ngb = GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, random_state=42)  # learning_rate: 부스팅 각 단계의 반영 비율\ngb.fit(X_train_scaled, y_train)\nprint(r2_score(y_test, gb.predict(X_test_scaled)))",
+          "checks": [
+            {
+              "var": "X_test_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                4128,
+                8
+              ]
+            },
+            {
+              "var": "X_train_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                16512,
+                8
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                4128
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                16512
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "머신러닝(RandomForest)과 딥러닝 모델 중 어느 쪽 R2가 더 높은지 비교하는 코드를 작성하세요.",
+          "answer_code": "print('RandomForest R2:', r2_score(y_test, rf_pred))  # 같은 평가지표(R2)로 ML과 DL을 나란히 비교해야 공정한 비교가 됨\nprint('DL R2:', r2_score(y_test, dl_pred))",
+          "checks": [
+            {
+              "var": "dl_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                4128
+              ]
+            },
+            {
+              "var": "rf_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                4128
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                4128
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

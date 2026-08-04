@@ -1,0 +1,333 @@
+{
+  "chapter_id": "03_데이터시각화",
+  "title": "03. 데이터 시각화",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\ntrain = pd.read_csv('data/train.csv')\ntrain.head(3)",
+  "sections": [
+    {
+      "no": 1,
+      "title": "시각화 해석의 기본 원칙",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": []
+    },
+    {
+      "no": 2,
+      "title": "countplot - 범주형 변수 빈도",
+      "theory_markdown": "### 📖 이론 설명\n`sns.countplot`은 범주형 컬럼의 값별 **개수(빈도)**를 막대그래프로 보여줍니다. '범주(글자)별로 값을 비교하라'는 문제가 나오면 가장 먼저 떠올려야 하는 함수입니다. `hue=` 옵션을 주면 다른 범주형 컬럼으로 막대를 한번 더 나눠서 비교할 수 있습니다(예: 성별별 생존자 수).",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 옵션 | 설명 |\n|---|---|\n| x= | 빈도를 셀 범주형 컬럼 |\n| data= | 대상 데이터프레임 |\n| hue= | 추가로 나눠 볼 범주형 컬럼 |",
+      "example_code": "sns.countplot(x='Sex', data=train)\nplt.title('Count of Passengers by Sex')\nplt.show()\n\nsns.countplot(x='Sex', hue='Survived', data=train)\nplt.title('Survived count by Sex')\nplt.show()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`Pclass`별 승객 수를 countplot으로 그리세요.",
+          "answer_code": "sns.countplot(x='Pclass', data=train)  # countplot은 각 범주(Pclass 값)별 '개수'를 자동으로 세어 막대로 그려줌\nplt.title('Count by Pclass')  # 제목이 없으면 무엇을 그린 그래프인지 알 수 없어 시험에서도 감점 요인\nplt.show()",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`Pclass`별 승객 수를 `Survived`로 나눠(`hue`) 그리세요.",
+          "answer_code": "sns.countplot(x='Pclass', hue='Survived', data=train)  # hue로 Survived를 지정하면 각 Pclass 막대가 생존/사망으로 다시 나뉘어 비교하기 쉬움\nplt.title('Survived by Pclass')\nplt.show()",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "histplot / kdeplot - 분포 보기",
+      "theory_markdown": "### 📖 이론 설명\n`histplot`은 데이터가 어느 구간에 많이/적게 몰려 있는지 계단 모양(히스토그램)으로 보여줍니다. `kde=True`를 주면 그 위에 부드러운 밀도 곡선을 함께 그려 분포의 전체적인 모양(정규성, 치우침, 이상치)을 더 쉽게 볼 수 있습니다. `kdeplot`은 히스토그램 없이 곡선만 그리며, `hue=`로 그룹별 분포를 겹쳐 비교할 때 유용합니다. 출제 포인트는 '이 분포가 정규분포에 가까운가', '이상치로 보이는 값이 있는가'입니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| sns.histplot(data=, x=, kde=, bins=) | 히스토그램(+밀도곡선) |\n| sns.kdeplot(data=, x=, hue=) | 밀도곡선만, 그룹 비교에 유리 |",
+      "example_code": "sns.histplot(data=train, x='Age', kde=True)\nplt.title('Distribution of Age')\nplt.show()\n\nsns.kdeplot(data=train, x='Fare', hue='Survived')\nplt.title('Fare distribution by Survived')\nplt.show()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`Fare` 컬럼의 히스토그램을 `bins=30`, `kde=True`로 그리세요.",
+          "answer_code": "sns.histplot(data=train, x='Fare', bins=30, kde=True)  # bins=30: 구간을 30개로 나눔(너무 적으면 뭉개지고 너무 많으면 들쭉날쭉함), kde=True로 부드러운 분포선도 함께 표시\nplt.title('Fare distribution')\nplt.show()",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`Age`를 `Survived`로 나눠 kdeplot을 그리고, 어느 연령대가 상대적으로 더 생존했는지 관찰하세요.",
+          "answer_code": "sns.kdeplot(data=train, x='Age', hue='Survived')  # hue로 그룹을 나누면 두 분포 곡선이 겹쳐 그려져 생존/사망 그룹의 연령대 차이를 비교할 수 있음\nplt.title('Age distribution by Survived')\nplt.show()",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "scatterplot / jointplot - 두 변수 간 관계",
+      "theory_markdown": "### 📖 이론 설명\n두 연속형 변수 사이에 어떤 관계가 있는지 보고 싶을 때는 산점도(scatter)를 그립니다. `sns.jointplot`은 산점도와 함께 각 축의 히스토그램을 동시에 보여주기 때문에, 관계와 개별 분포를 한 번에 파악할 수 있습니다. `kind='reg'`를 주면 회귀선을 함께 그려 대략적인 선형 관계 유무를 보여줍니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| sns.scatterplot(data=, x=, y=) | 산점도 |\n| sns.jointplot(data=, x=, y=, kind=) | 산점도+히스토그램, kind='scatter'/'reg'/'hex' |",
+      "example_code": "sns.jointplot(data=train, x='Age', y='Fare')\nplt.show()\n\ncorrelation = train['Age'].corr(train['Fare'])\nprint(f'Age-Fare 상관계수: {correlation:.4f}')  # 0에 가까우면 선형관계가 약하다는 뜻",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`Age`와 `Fare`의 관계를 `kind='reg'` jointplot으로 그려 회귀선을 확인하세요.",
+          "answer_code": "sns.jointplot(data=train, x='Age', y='Fare', kind='reg')  # kind='reg'는 산점도 위에 회귀선을 추가로 그려 대략적인 선형 관계를 보여줌\nplt.show()",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 5,
+      "title": "heatmap - 상관관계 행렬",
+      "theory_markdown": "### 📖 이론 설명\n`df.corr()`로 계산한 상관계수 표를 색상으로 시각화한 것이 heatmap입니다. `annot=True`를 빼먹으면 색만 보이고 숫자가 안 보이므로, 정확한 값을 요구하는 문제에서는 반드시 켜야 합니다. 색이 진하다고 해서 그 변수가 '원인'이라는 뜻은 아니라는 점(상관관계≠인과관계)을 다시 기억하세요.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 옵션 | 설명 |\n|---|---|\n| df.corr(numeric_only=True) | 수치형 변수 간 상관계수 계산 |\n| annot=True | 칸 안에 숫자 표시(필수 옵션) |\n| cmap= | 색상 팔레트 |",
+      "example_code": "numeric_corr = train.select_dtypes(include=np.number).corr()\nsns.heatmap(numeric_corr, annot=True, cmap='coolwarm')\nplt.title('Correlation between Numeric Variables')\nplt.show()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "수치형 변수 간 상관관계 heatmap을 보고, `Survived`와 가장 상관관계가 강한 변수 이름을 `top_corr_col`에 저장하세요. (자기 자신 제외)",
+          "answer_code": "corr = train.select_dtypes(include=np.number).corr()['Survived'].drop('Survived')  # Survived 자기 자신과의 상관계수(항상 1)는 drop으로 제외\ntop_corr_col = corr.abs().idxmax()  # abs()로 절댓값을 취해야 음의 상관관계도 '강한 관계'로 함께 비교할 수 있음\nprint(top_corr_col)",
+          "checks": [
+            {
+              "var": "corr",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                6
+              ]
+            },
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 6,
+      "title": "boxplot / violinplot - 분포와 이상치",
+      "theory_markdown": "### 📖 이론 설명\nboxplot은 사분위수(Q1, Q3)와 중앙값, 그리고 그 범위를 벗어난 점(이상치)을 한눈에 보여줍니다. x에 범주형, y에 수치형 컬럼을 주면 그룹별 분포를 나란히 비교할 수 있습니다. violinplot은 boxplot에 분포의 모양(밀도)까지 더해서 보여주는 확장판입니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| sns.boxplot(x=, y=, data=) | 그룹별 분포+이상치 |\n| sns.violinplot(x=, y=, data=) | 분포 모양까지 포함 |",
+      "example_code": "sns.boxplot(x='Pclass', y='Age', data=train)\nplt.title('Age distribution by Pclass')\nplt.show()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`Survived`별 `Fare` 분포를 boxplot으로 비교하세요.",
+          "answer_code": "sns.boxplot(x='Survived', y='Fare', data=train)  # x에 범주형, y에 수치형을 주면 그룹별 분포(사분위수, 이상치)를 나란히 비교\nplt.title('Fare by Survived')\nplt.show()",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 7,
+      "title": "df.plot() / pie / 여러 그래프 나란히 그리기",
+      "theory_markdown": "### 📖 이론 설명\nseaborn 없이 pandas에 내장된 `.plot()`으로도 빠르게 그릴 수 있습니다. 여러 그래프를 한 화면에 비교하고 싶을 때는 `plt.subplots(행, 열)`로 여러 개의 축(Axes)을 만들고, 각 축에 그래프를 하나씩 그립니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 문법 | 설명 |\n|---|---|\n| series.value_counts().plot(kind='bar'/'pie') | 빠른 막대/파이차트 |\n| f, ax = plt.subplots(1, 2, figsize=(12,6)) | 1행 2열 배치 |\n| ax[i]에 그래프를 그리면 해당 위치에 그려짐 | |",
+      "example_code": "f, ax = plt.subplots(1, 2, figsize=(12, 6))\ntrain['Survived'].value_counts().plot.pie(autopct='%1.1f%%', ax=ax[0])\nax[0].set_title('Survived (pie)')\nsns.countplot(x='Survived', data=train, ax=ax[1])\nax[1].set_title('Survived (count)')\nplt.show()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "1행 2열로 서브플롯을 만들어, 왼쪽엔 `Pclass` countplot, 오른쪽엔 `Embarked` countplot을 그리세요.",
+          "answer_code": "f, ax = plt.subplots(1, 2, figsize=(12, 5))  # 1행 2열의 그래프 영역(Axes)을 미리 만들어둠\nsns.countplot(x='Pclass', data=train, ax=ax[0])  # ax=로 그릴 위치를 지정하지 않으면 매번 새 그림이 따로 그려짐\nsns.countplot(x='Embarked', data=train, ax=ax[1])\nplt.show()",
+          "checks": [
+            {
+              "var": "ax",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                2
+              ]
+            },
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 8,
+      "title": "그래프 해석 실전 문제 (객관식형)",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "아래 코드로 `Age` 히스토그램을 그린 뒤, 해석으로 **옳지 않은** 것을 골라 `답안1` 변수에 번호를 저장하세요.\n\n1. 나이 분포는 20~30대에 많이 몰려 있다.\n2. 나이는 정규분포에 가까우며 평균과 중앙값이 비슷해 보인다.\n3. Age 컬럼에는 결측치가 없다.",
+          "answer_code": "답안1 = 3\n# train['Age'].isnull().sum()을 확인하면 177개의 결측치가 있다. 따라서 3번이 옳지 않은 설명이다.\nprint(train['Age'].isnull().sum())",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false,
+          "starter_code": "sns.histplot(train['Age'].dropna(), kde=True, color='orange')\nplt.title('Distribution of Age')\nplt.show()\n\n# 여기에 답안을 작성하세요\n답안1 = None"
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "아래 heatmap을 보고 해석으로 **옳지 않은** 것을 골라 `답안2` 변수에 번호를 저장하세요.\n\n1. Pclass와 Survived는 음의 상관관계를 가진다.\n2. Fare와 Survived는 양의 상관관계를 가진다.\n3. 모든 수치형 변수들은 서로 강한 상관관계를 보인다.",
+          "answer_code": "답안2 = 3\n# 대부분의 변수쌍은 상관계수가 0에 가깝거나 약하다. '모두 강한 상관관계'라는 설명은 옳지 않다.",
+          "checks": [],
+          "manual_review": true,
+          "starter_code": "numeric_corr = train.select_dtypes(include=np.number).corr()\nsns.heatmap(numeric_corr, annot=True, cmap='coolwarm')\nplt.show()\n\n답안2 = None"
+        }
+      ]
+    },
+    {
+      "no": 9,
+      "title": "버블 차트 (점 크기로 세 번째 변수 표현)",
+      "theory_markdown": "### 📖 이론 설명\n산점도는 두 변수의 관계만 보여주지만, 점의 **크기(size)**에 또 다른 수치형 변수를 매핑하면 **세 번째 변수까지 한 그래프에 담을 수 있습니다.** 이런 그래프를 흔히 '버블 차트'라고 부릅니다. `plt.scatter`의 `s=` 옵션에 값(보통 보기 좋게 배율을 곱한 값)을 넣고, `c=`로 색까지 다르게 하면 네 번째 변수(범주)도 함께 표현할 수 있습니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 옵션 | 설명 |\n|---|---|\n| s= | 점 크기 - 세 번째 수치형 변수 매핑 |\n| c= | 점 색상 - 네 번째 변수(범주) 매핑 |\n| cmap= | 색상 팔레트 지정 |",
+      "example_code": "plt.scatter(train['Age'], train['Fare'],\n            s=train['SibSp'] * 50 + 20, c=train['Survived'], cmap='coolwarm', alpha=0.6)\nplt.xlabel('Age'); plt.ylabel('Fare')\nplt.title('Bubble chart: size=SibSp, color=Survived')\nplt.show()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`Age`(x), `Fare`(y) 산점도를 그리되 점 크기를 `Parch`에 비례하게, 색은 `Pclass`로 다르게 그리세요.",
+          "answer_code": "plt.scatter(train['Age'], train['Fare'], s=train['Parch'] * 50 + 20, c=train['Pclass'], cmap='viridis', alpha=0.6)  # s(크기)=Parch에 배율(*50)과 최소크기(+20)를 더해 점이 너무 작거나 안 보이지 않게 조정, c(색)=Pclass로 네 번째 변수까지 표현\nplt.xlabel('Age'); plt.ylabel('Fare')\nplt.show()",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 10,
+      "title": "종합 실전 문제",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`Embarked`별 생존율(`Survived` 평균)을 bar 그래프로 그리세요.",
+          "answer_code": "train.groupby('Embarked')['Survived'].mean().plot(kind='bar')  # groupby+mean으로 만든 Series에 바로 .plot()을 연결해 빠르게 시각화\nplt.title('Survival rate by Embarked')\nplt.ylabel('Survival rate')\nplt.show()",
+          "checks": [
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`Pclass`, `Age`, `Fare`, `Survived` 네 컬럼만으로 상관관계 heatmap을 그리세요.",
+          "answer_code": "cols = ['Pclass', 'Age', 'Fare', 'Survived']  # 컬럼을 미리 골라두면 필요 없는 변수까지 heatmap에 섞이지 않음\nsns.heatmap(train[cols].corr(), annot=True, cmap='coolwarm')  # annot=True: 칸 안에 숫자를 함께 표시(필수 옵션)\nplt.show()",
+          "checks": [
+            {
+              "var": "corr",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                6
+              ]
+            },
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

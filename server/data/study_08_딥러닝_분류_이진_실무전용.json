@@ -1,0 +1,265 @@
+{
+  "chapter_id": "08_딥러닝_분류_이진_실무전용",
+  "title": "08. 딥러닝 이진분류 - 실무전용 문제 모음",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nimport tensorflow as tf\n\ntf.random.set_seed(100)\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\ndf = pd.read_csv('data/breast_cancer.csv')\nX = df.drop(columns=['target'])\ny = df['target']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\nscaler = StandardScaler()\nX_train_s = scaler.fit_transform(X_train)\nX_test_s = scaler.transform(X_test)\nX_train.shape",
+  "sections": [
+    {
+      "no": 1,
+      "title": "모델 설계 연습 (Dropout 포함)",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "입력층 32(relu)+Dropout(0.3)→16(relu)→출력 1(sigmoid)인 `model`을 만들어 `binary_crossentropy`로 컴파일하세요.",
+          "answer_code": "from tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense, Dropout\nmodel = Sequential()\nmodel.add(Dense(32, activation='relu', input_shape=(X_train_s.shape[1],)))\nmodel.add(Dropout(0.3))  # 30%의 노드 연결을 무작위로 꺼서 과적합을 줄임(추론 시에는 적용되지 않음)\nmodel.add(Dense(16, activation='relu'))\nmodel.add(Dense(1, activation='sigmoid'))  # 이진분류 출력층: 노드 1개 + sigmoid\nmodel.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])\nmodel.summary()",
+          "checks": [
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                455,
+                30
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "모델 학습 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 2,
+          "prompt_markdown": "`EarlyStopping(patience=10)`로 `epochs=100`까지 학습시키세요.",
+          "answer_code": "from tensorflow.keras.callbacks import EarlyStopping\nes = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)  # restore_best_weights=True: 학습이 끝나면 가장 좋았던 시점의 가중치로 되돌림\nhistory = model.fit(X_train_s, y_train, epochs=100, batch_size=16, validation_data=(X_test_s, y_test), callbacks=[es], verbose=0)\nprint(len(history.history['loss']))",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114,
+                30
+              ]
+            },
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                455,
+                30
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                455
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "성능 평가 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 3,
+          "prompt_markdown": "예측 확률을 0.5 기준으로 0/1로 바꿔 accuracy와 recall을 구하세요.",
+          "answer_code": "from sklearn.metrics import accuracy_score, recall_score\npred_proba = model.predict(X_test_s).flatten()  # 확률(0~1) 그대로는 정확도를 계산할 수 없어 flatten으로 1차원 배열로 변환\npred_label = (pred_proba > 0.5).astype(int)  # 0.5 임계값으로 확률을 0/1 클래스로 변환\nprint(accuracy_score(y_test, pred_label), recall_score(y_test, pred_label))",
+          "checks": [
+            {
+              "var": "X_test_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114,
+                30
+              ]
+            },
+            {
+              "var": "pred_label",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            },
+            {
+              "var": "pred_proba",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 4,
+          "prompt_markdown": "confusion matrix를 heatmap으로 그리세요.",
+          "answer_code": "from sklearn.metrics import confusion_matrix\ncm = confusion_matrix(y_test, pred_label)\nsns.heatmap(cm, annot=True, fmt='d', cmap='Reds')  # annot=True로 칸 안에 숫자를 함께 표시\nplt.show()",
+          "checks": [
+            {
+              "var": "cm",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                2,
+                2
+              ]
+            },
+            {
+              "var": "pred_label",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "구조 비교 & 심화 평가지표 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 5,
+          "prompt_markdown": "`Dropout` 비율을 0.5로 높인 `model2`를 만들어 같은 방식으로 컴파일하세요.",
+          "answer_code": "model2 = Sequential()\nmodel2.add(Dense(32, activation='relu', input_shape=(X_train_s.shape[1],)))\nmodel2.add(Dropout(0.5))  # 0.3보다 더 많은 노드를 꺼서 과적합을 더 강하게 억제(대신 학습이 불안정해질 수도 있음)\nmodel2.add(Dense(16, activation='relu'))\nmodel2.add(Dense(1, activation='sigmoid'))\nmodel2.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])\nmodel2.summary()",
+          "checks": [
+            {
+              "var": "X_train_s",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                455,
+                30
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 6,
+          "prompt_markdown": "`model`의 예측 결과(`pred_label`)로 precision과 f1-score까지 추가로 구하세요.",
+          "answer_code": "from sklearn.metrics import precision_score, f1_score\nprint(precision_score(y_test, pred_label), f1_score(y_test, pred_label))",
+          "checks": [
+            {
+              "var": "pred_label",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 7,
+          "prompt_markdown": "`pred_proba`(확률값, 0.5로 자르기 전)를 사용해 ROC-AUC(`roc_auc_score`)를 구하세요. (불균형 이진분류에서 accuracy보다 신뢰할 수 있는 지표입니다)",
+          "answer_code": "from sklearn.metrics import roc_auc_score\nprint(roc_auc_score(y_test, pred_proba))  # 0.5에 가까우면 무작위 추측 수준, 1에 가까울수록 좋음",
+          "checks": [
+            {
+              "var": "pred_proba",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 8,
+          "prompt_markdown": "`classification_report`로 `model`의 성능을 종합적으로 출력하세요.",
+          "answer_code": "from sklearn.metrics import classification_report\nprint(classification_report(y_test, pred_label))",
+          "checks": [
+            {
+              "var": "pred_label",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                114
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

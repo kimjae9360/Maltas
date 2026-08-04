@@ -1,0 +1,432 @@
+{
+  "chapter_id": "05_머신러닝_회귀_실무전용",
+  "title": "05. 머신러닝 회귀 - 실무전용 문제 모음",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\nfrom sklearn.model_selection import train_test_split\n\ndiabetes = pd.read_csv('data/diabetes.csv')\nX = diabetes.drop(columns=['target'])\ny = diabetes['target']\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\nX_train.shape",
+  "sections": [
+    {
+      "no": 1,
+      "title": "모델 학습 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`LinearRegression`을 학습시켜 예측값 `lr_pred`를 만드세요.",
+          "answer_code": "from sklearn.linear_model import LinearRegression\nlr = LinearRegression()  # 가장 단순한 선형 모델: 다른 모델과 성능을 비교하는 베이스라인으로 자주 사용\nlr.fit(X_train, y_train)\nlr_pred = lr.predict(X_test)",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89,
+                10
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                353,
+                10
+              ]
+            },
+            {
+              "var": "lr_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                353
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`RandomForestRegressor(n_estimators=150, random_state=42)`를 학습시켜 예측값 `rf_pred`를 만드세요.",
+          "answer_code": "from sklearn.ensemble import RandomForestRegressor\nrf = RandomForestRegressor(n_estimators=150, random_state=42)  # 여러 개의 결정트리를 배깅 방식으로 묶어 과적합을 줄인 모델\nrf.fit(X_train, y_train)\nrf_pred = rf.predict(X_test)",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89,
+                10
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                353,
+                10
+              ]
+            },
+            {
+              "var": "rf_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                353
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 3,
+          "prompt_markdown": "`XGBRegressor(n_estimators=150, random_state=42)`를 학습시켜 예측값 `xgb_pred`를 만드세요.",
+          "answer_code": "from xgboost import XGBRegressor\nxgb = XGBRegressor(n_estimators=150, random_state=42)  # 부스팅 계열: 이전 모델의 오차를 보완하며 순차적으로 학습해 성능이 좋은 경우가 많음\nxgb.fit(X_train, y_train)\nxgb_pred = xgb.predict(X_test)",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89,
+                10
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                353,
+                10
+              ]
+            },
+            {
+              "var": "xgb_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                353
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 4,
+          "prompt_markdown": "`LGBMRegressor(n_estimators=150, random_state=42)`를 학습시켜 예측값 `lgbm_pred`를 만드세요.",
+          "answer_code": "from lightgbm import LGBMRegressor\nlgbm = LGBMRegressor(n_estimators=150, random_state=42)  # XGBoost처럼 부스팅 계열이지만 리프 중심 분할 방식이라 대체로 더 빠름\nlgbm.fit(X_train, y_train)\nlgbm_pred = lgbm.predict(X_test)",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89,
+                10
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                353,
+                10
+              ]
+            },
+            {
+              "var": "lgbm_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                353
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 5,
+          "prompt_markdown": "`ExtraTreesRegressor(n_estimators=150, random_state=42)`를 학습시켜 예측값 `et_pred`를 만드세요.",
+          "answer_code": "from sklearn.ensemble import ExtraTreesRegressor\net = ExtraTreesRegressor(n_estimators=150, random_state=42)  # RandomForest와 비슷하지만 분할 기준값까지 무작위로 뽑아 다양성을 더 키움(보통 더 빠름)\net.fit(X_train, y_train)\net_pred = et.predict(X_test)",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89,
+                10
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                353,
+                10
+              ]
+            },
+            {
+              "var": "et_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                353
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 2,
+      "title": "평가지표 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 6,
+          "prompt_markdown": "다섯 모델(lr_pred, rf_pred, xgb_pred, lgbm_pred, et_pred)의 R2 점수를 각각 구해 비교하세요.",
+          "answer_code": "from sklearn.metrics import r2_score\nprint('Linear:', r2_score(y_test, lr_pred))  # R2는 1에 가까울수록 좋고, 0이면 그냥 평균값으로 예측한 것과 비슷한 수준\nprint('RF:', r2_score(y_test, rf_pred))\nprint('XGB:', r2_score(y_test, xgb_pred))\nprint('LGBM:', r2_score(y_test, lgbm_pred))\nprint('ExtraTrees:', r2_score(y_test, et_pred))",
+          "checks": [
+            {
+              "var": "et_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89
+              ]
+            },
+            {
+              "var": "lgbm_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89
+              ]
+            },
+            {
+              "var": "lr_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89
+              ]
+            },
+            {
+              "var": "rf_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89
+              ]
+            },
+            {
+              "var": "xgb_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 7,
+          "prompt_markdown": "`rf_pred`의 MAE와 RMSE를 구하세요.",
+          "answer_code": "from sklearn.metrics import mean_absolute_error, mean_squared_error\nprint(mean_absolute_error(y_test, rf_pred))  # MAE: 오차 절댓값의 평균, 이상치에 덜 민감\nprint(mean_squared_error(y_test, rf_pred) ** 0.5)  # RMSE: MSE의 제곱근으로 오차를 원래 단위로 되돌려 해석",
+          "checks": [
+            {
+              "var": "rf_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 3,
+      "title": "성능 시각화 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 8,
+          "prompt_markdown": "`rf_pred`에 대한 예측 vs 실제 산점도를 그리세요.",
+          "answer_code": "plt.scatter(y_test, rf_pred, alpha=0.5)\nplt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')  # y=x 대각선: 점들이 이 선에 가까울수록 예측이 정확함\nplt.xlabel('Actual'); plt.ylabel('Predicted')\nplt.show()",
+          "checks": [
+            {
+              "var": "rf_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89
+              ]
+            },
+            {
+              "var": "y",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                442
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 9,
+          "prompt_markdown": "`rf`의 feature_importances_를 막대그래프로 그려 가장 중요한 변수를 확인하세요.",
+          "answer_code": "imp = pd.Series(rf.feature_importances_, index=X.columns).sort_values()  # sort_values()로 정렬해야 막대그래프가 크기순으로 깔끔하게 보임\nimp.plot(kind='barh')  # kind='barh': 가로 막대(변수 이름이 길 때 세로 막대보다 읽기 편함)\nplt.show()",
+          "checks": [
+            {
+              "var": "X",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                442,
+                10
+              ]
+            },
+            {
+              "var": "imp",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                10
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "종합 연습",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 10,
+          "prompt_markdown": "`RandomForestRegressor(n_estimators=300, max_depth=4, random_state=42)`를 학습시켜 R2를 구하세요.",
+          "answer_code": "rf2 = RandomForestRegressor(n_estimators=300, max_depth=4, random_state=42)  # max_depth=4로 깊이를 얕게 제한해 과적합을 방지\nrf2.fit(X_train, y_train)\nprint(r2_score(y_test, rf2.predict(X_test)))",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89,
+                10
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                353,
+                10
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                89
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                353
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,459 @@
+{
+  "chapter_id": "06_머신러닝_분류_다중",
+  "title": "06. 머신러닝 - 다중분류",
+  "setup_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\nwine = pd.read_csv('data/wine.csv')\nprint(wine['target'].value_counts())\nwine.head()\n\nX = wine.drop(columns=['target'])\ny = wine['target']\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\nscaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)\nX_train.shape, X_test.shape",
+  "sections": [
+    {
+      "no": 1,
+      "title": "다중분류란? 이진분류와 무엇이 다른가",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": []
+    },
+    {
+      "no": 2,
+      "title": "다중분류 모델·모듈·평가함수 총정리표",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": []
+    },
+    {
+      "no": 3,
+      "title": "다중분류 모델 실습",
+      "theory_markdown": "### 📖 이론 설명\n이진분류와 완전히 동일한 템플릿으로 여러 모델을 학습시킵니다. 클래스가 3개라는 것을 모델이 자동으로 인식해서 내부적으로 처리해줍니다.",
+      "concept_table_markdown": "",
+      "example_code": "from sklearn.linear_model import LogisticRegression\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.ensemble import RandomForestClassifier\nfrom xgboost import XGBClassifier\n\nmodels = {\n    'LogisticRegression': LogisticRegression(max_iter=1000),\n    'DecisionTree': DecisionTreeClassifier(max_depth=5, random_state=42),\n    'RandomForest': RandomForestClassifier(n_estimators=100, random_state=42),\n    'XGBoost': XGBClassifier(n_estimators=100, random_state=42, eval_metric='mlogloss'),\n}\n\npreds = {}\nfor name, model in models.items():\n    model.fit(X_train_scaled, y_train)\n    preds[name] = model.predict(X_test_scaled)\nprint('학습 완료:', list(models.keys()))",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`KNeighborsClassifier(n_neighbors=5)`를 학습시키고 예측값 `knn_pred`를 만드세요.",
+          "answer_code": "from sklearn.neighbors import KNeighborsClassifier\nknn = KNeighborsClassifier(n_neighbors=5)  # n_neighbors=5: 가장 가까운 5개의 이웃을 참고해 다수결로 클래스를 정함\nknn.fit(X_train_scaled, y_train)  # 거리 기반 모델이라 스케일링된 데이터를 사용하는 것이 특히 중요함\nknn_pred = knn.predict(X_test_scaled)",
+          "checks": [
+            {
+              "var": "X_test_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36,
+                13
+              ]
+            },
+            {
+              "var": "X_train_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142,
+                13
+              ]
+            },
+            {
+              "var": "knn_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 4,
+      "title": "다중분류 평가지표",
+      "theory_markdown": "### 📖 이론 설명\n이진분류와 똑같은 함수를 쓰지만 `average` 옵션을 꼭 지정해야 에러 없이 계산됩니다. `classification_report`는 옵션 없이도 클래스별 점수를 모두 보여주므로 다중분류에서 가장 먼저 찍어보기 좋은 함수입니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 옵션값 | 의미 |\n|---|---|\n| average='macro' | 클래스별 점수의 단순 평균 |\n| average='weighted' | 클래스 비율로 가중 평균 |",
+      "example_code": "from sklearn.metrics import accuracy_score, f1_score, classification_report\n\nrf_pred = preds['RandomForest']\nprint('accuracy:', accuracy_score(y_test, rf_pred))\nprint('f1 (macro):', f1_score(y_test, rf_pred, average='macro'))\nprint('f1 (weighted):', f1_score(y_test, rf_pred, average='weighted'))\nprint(classification_report(y_test, rf_pred))",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`XGBoost` 예측 결과의 f1-score를 `average='macro'`와 `average='weighted'` 두 가지로 각각 구해 비교하세요.",
+          "answer_code": "xgb_pred = preds['XGBoost']\nprint('macro:', f1_score(y_test, xgb_pred, average='macro'))  # macro: 클래스 크기와 상관없이 단순 평균(소수 클래스도 동등하게 취급)\nprint('weighted:', f1_score(y_test, xgb_pred, average='weighted'))  # weighted: 클래스별 데이터 개수로 가중 평균",
+          "checks": [
+            {
+              "var": "xgb_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 5,
+      "title": "다중클래스 confusion_matrix 시각화",
+      "theory_markdown": "### 📖 이론 설명\n클래스가 3개면 혼동행렬은 3x3이 됩니다. 대각선(왼쪽 위→오른쪽 아래)이 '맞게 예측한 개수'이고, 대각선 밖의 값은 '어떤 클래스를 어떤 클래스로 착각했는지'를 보여줍니다. 예를 들어 (실제=0행, 예측=1열) 칸의 값이 크다면, 클래스 0을 클래스 1로 자주 착각한다는 뜻입니다.",
+      "concept_table_markdown": "",
+      "example_code": "from sklearn.metrics import confusion_matrix\n\ncm = confusion_matrix(y_test, rf_pred)\nsns.heatmap(cm, annot=True, fmt='d', cmap='Purples',\n            xticklabels=sorted(y.unique()), yticklabels=sorted(y.unique()))\nplt.xlabel('Predicted'); plt.ylabel('Actual'); plt.title('RandomForest Confusion Matrix (3 classes)')\nplt.show()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`LogisticRegression` 예측 결과의 3x3 confusion matrix를 heatmap으로 그리세요.",
+          "answer_code": "logi_pred = preds['LogisticRegression']\ncm2 = confusion_matrix(y_test, logi_pred)  # 클래스가 3개이므로 3x3 행렬이 반환됨\nsns.heatmap(cm2, annot=True, fmt='d', cmap='Greens')\nplt.xlabel('Predicted'); plt.ylabel('Actual')\nplt.show()",
+          "checks": [
+            {
+              "var": "cm2",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                3,
+                3
+              ]
+            },
+            {
+              "var": "logi_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 6,
+      "title": "앙상블 개념 복습 + 다중분류 실전 비교 (배깅 vs 부스팅)",
+      "theory_markdown": "### 📖 이론 설명\n배깅(RandomForest)과 부스팅(XGBoost, LGBM)의 개념 자체는 이진분류(06 노트북 3절)와 동일합니다. 다중분류에서 실제로 확인해볼 점은, 클래스가 3개로 늘어나도 두 방식이 여전히 잘 작동하는지를 **macro f1 기준으로 나란히 비교**해보는 것입니다.",
+      "concept_table_markdown": "",
+      "example_code": "from sklearn.metrics import f1_score\nfor name in ['RandomForest', 'XGBoost']:\n    f1 = f1_score(y_test, preds[name], average='macro')\n    print(f'{name} (macro f1): {f1:.4f}')",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`GradientBoostingClassifier(n_estimators=100, random_state=42)`를 추가로 학습시키고, `RandomForest`/`XGBoost`와 macro f1을 함께 비교하세요.",
+          "answer_code": "from sklearn.ensemble import GradientBoostingClassifier\ngb_model = GradientBoostingClassifier(n_estimators=100, random_state=42)\ngb_model.fit(X_train_scaled, y_train)\npreds['GradientBoosting'] = gb_model.predict(X_test_scaled)\nfor name in ['RandomForest', 'XGBoost', 'GradientBoosting']:\n    print(name, f1_score(y_test, preds[name], average='macro'))",
+          "checks": [
+            {
+              "var": "X_test_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36,
+                13
+              ]
+            },
+            {
+              "var": "X_train_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142,
+                13
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 7,
+      "title": "Feature Importance 해석",
+      "theory_markdown": "### 📖 이론 설명\n트리 계열 모델의 `feature_importances_`로 와인의 어떤 화학 성분이 등급(target) 예측에 가장 크게 기여했는지 확인할 수 있습니다.",
+      "concept_table_markdown": "",
+      "example_code": "rf_model = models['RandomForest']\nrf_imp = pd.Series(rf_model.feature_importances_, index=X.columns).sort_values(ascending=False)\nprint(rf_imp)\nplt.barh(rf_imp.index, rf_imp.values)\nplt.title('Feature Importance (RandomForest)')\nplt.show()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`XGBoost` 모델의 feature_importances_ 상위 3개 변수 이름을 `top3_features`에 저장하세요.",
+          "answer_code": "xgb_model = models['XGBoost']\nxgb_imp = pd.Series(xgb_model.feature_importances_, index=X.columns).sort_values(ascending=False)\ntop3_features = xgb_imp.head(3).index.tolist()\nprint(top3_features)",
+          "checks": [
+            {
+              "var": "X",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                13
+              ]
+            },
+            {
+              "var": "xgb_imp",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                13
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 8,
+      "title": "여러 모델 앙상블 (VotingClassifier)",
+      "theory_markdown": "### 📖 이론 설명\n이진분류와 마찬가지로, 서로 다른 모델의 예측을 `VotingClassifier`로 종합하면 개별 모델의 약점이 상쇄되어 더 안정적인 예측을 얻을 수 있습니다. 다중분류에서도 `voting='soft'`는 각 모델이 예측한 클래스별 확률(`predict_proba`)의 평균으로 최종 클래스를 정합니다.",
+      "concept_table_markdown": "",
+      "example_code": "from sklearn.ensemble import VotingClassifier\n\nvoting_models = [('logi', LogisticRegression(max_iter=1000)),\n                 ('rf', RandomForestClassifier(n_estimators=100, random_state=42))]\nvoting = VotingClassifier(voting_models, voting='soft')\nvoting.fit(X_train_scaled, y_train)\nvoting_pred = voting.predict(X_test_scaled)\nprint('Voting macro f1:', f1_score(y_test, voting_pred, average='macro'))",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`voting_models`에 `XGBoost`(`models['XGBoost']`)까지 포함한 3개 모델짜리 `voting2`(`voting='soft'`)를 만들어 macro f1을 확인하세요.",
+          "answer_code": "voting_models2 = [('logi', LogisticRegression(max_iter=1000)),\n                  ('rf', RandomForestClassifier(n_estimators=100, random_state=42)),\n                  ('xgb', XGBClassifier(n_estimators=100, random_state=42, eval_metric='mlogloss'))]\nvoting2 = VotingClassifier(voting_models2, voting='soft')\nvoting2.fit(X_train_scaled, y_train)\nvoting2_pred = voting2.predict(X_test_scaled)\nprint('Voting(3모델) macro f1:', f1_score(y_test, voting2_pred, average='macro'))",
+          "checks": [
+            {
+              "var": "X_test_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36,
+                13
+              ]
+            },
+            {
+              "var": "X_train_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142,
+                13
+              ]
+            },
+            {
+              "var": "f1",
+              "op": "gte",
+              "expected": 0.97,
+              "tolerance": 0.0
+            },
+            {
+              "var": "voting2_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 9,
+      "title": "여러 모델 성능 비교 시각화",
+      "theory_markdown": "### 📖 이론 설명\n모델을 하나씩 따로 보는 것보다, 여러 모델의 macro f1을 한 번에 막대그래프로 나란히 비교하면 어떤 모델이 이 데이터에 더 잘 맞는지 빠르게 파악할 수 있습니다.",
+      "concept_table_markdown": "",
+      "example_code": "score_table = pd.DataFrame({\n    name: {'accuracy': accuracy_score(y_test, pred),\n           'f1_macro': f1_score(y_test, pred, average='macro')}\n    for name, pred in preds.items()\n}).T.sort_values('f1_macro', ascending=False)\nprint(score_table)\n\nscore_table['f1_macro'].plot(kind='barh')\nplt.title('Model Comparison - Macro F1 Score')\nplt.show()",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`score_table`에 `Voting`(문제 8에서 만든 `voting_pred`) 행을 추가한 뒤, accuracy 기준으로 다시 정렬해서 출력하세요.",
+          "answer_code": "score_table.loc['Voting'] = {\n    'accuracy': accuracy_score(y_test, voting_pred),\n    'f1_macro': f1_score(y_test, voting_pred, average='macro'),\n}\nprint(score_table.sort_values('accuracy', ascending=False))",
+          "checks": [
+            {
+              "var": "score_table",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                6,
+                2
+              ]
+            },
+            {
+              "var": "voting_pred",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 10,
+      "title": "소프트맥스 직관 & 다중클래스 레이블 인코딩",
+      "theory_markdown": "### 📖 이론 설명\n이진분류의 `LogisticRegression`은 시그모이드로 '하나의 확률'만 계산하지만, 다중분류에서는 내부적으로 **소프트맥스(softmax)**를 사용해 **클래스 개수만큼의 확률**을 한 번에 계산하고, 그중 가장 높은 확률의 클래스를 최종 예측으로 선택합니다. 따라서 `predict_proba()`의 각 행(row)을 모두 더하면 항상 1이 됩니다.\n\n또한 `target`이 지금처럼 이미 0,1,2 정수라면 상관없지만, 실제 데이터는 `'setosa'`, `'versicolor'`처럼 **문자열 레이블**로 되어 있는 경우가 많습니다. sklearn 모델은 문자열 레이블을 대부분 그대로 학습할 수 있지만, 나중에 다시 원래 이름으로 되돌리거나 다른 라이브러리와 맞추려면 `LabelEncoder`로 정수 ↔ 문자열을 변환하는 방법을 알아두는 것이 좋습니다.",
+      "concept_table_markdown": "",
+      "example_code": "logi_model = models['LogisticRegression']\nproba = logi_model.predict_proba(X_test_scaled)\nprint(proba[:3])  # 클래스 3개에 대한 확률\nprint(proba[:3].sum(axis=1))  # 각 행의 합은 항상 1(소프트맥스의 성질)",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`wine['target']`(0,1,2)을 `{'class_0','class_1','class_2'}` 문자열로 바꾼 `label_str`을 만들고, `LabelEncoder`로 다시 정수로 인코딩한 `label_encoded`가 원래 `target`과 같은지 확인하세요.",
+          "answer_code": "from sklearn.preprocessing import LabelEncoder\n\nlabel_str = wine['target'].map({0: 'class_0', 1: 'class_1', 2: 'class_2'})\nle = LabelEncoder()\nlabel_encoded = le.fit_transform(label_str)\nprint(le.classes_)  # 인코더가 학습한 클래스 목록(알파벳 순)\nprint((label_encoded == wine['target']).all())  # True면 원래 정수 라벨과 순서까지 동일",
+          "checks": [
+            {
+              "var": "label_encoded",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178
+              ]
+            },
+            {
+              "var": "label_str",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178
+              ]
+            },
+            {
+              "var": "wine",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                14
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    },
+    {
+      "no": 11,
+      "title": "종합 실전 문제",
+      "theory_markdown": "",
+      "concept_table_markdown": "",
+      "example_code": "",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`RandomForestClassifier(n_estimators=200, random_state=42)`를 학습시키고 `classification_report`를 출력하세요.",
+          "answer_code": "from sklearn.metrics import classification_report\nrf2 = RandomForestClassifier(n_estimators=200, random_state=42)\nrf2.fit(X_train_scaled, y_train)\nprint(classification_report(y_test, rf2.predict(X_test_scaled)))  # classification_report는 옵션 없이도 클래스별 precision/recall/f1을 모두 보여줘서 다중분류에서 가장 먼저 찍어보기 좋음",
+          "checks": [
+            {
+              "var": "X_test_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36,
+                13
+              ]
+            },
+            {
+              "var": "X_train_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142,
+                13
+              ]
+            },
+            {
+              "var": "y_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                36
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`RandomForest` 모델의 feature_importances_ 중 가장 중요한 변수 이름을 `top_feature`에 저장하세요.",
+          "answer_code": "imp = pd.Series(models['RandomForest'].feature_importances_, index=X.columns)  # feature_importances_ 배열에 컬럼명을 붙여 어떤 값이 어떤 변수인지 알 수 있게 함\ntop_feature = imp.idxmax()\nprint(top_feature)",
+          "checks": [
+            {
+              "var": "X",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                178,
+                13
+              ]
+            },
+            {
+              "var": "imp",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                13
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
+    }
+  ]
+}

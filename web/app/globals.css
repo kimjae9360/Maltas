@@ -1,0 +1,87 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+:root {
+  --background: #f7f7fb;
+  --surface: #ffffff;
+  --foreground: #1c1b29;
+  --muted: #6b6880;
+  --border: #e6e4f0;
+
+  --brand: #5b4fe5;
+  --brand-dark: #4638d1;
+  --brand-tint: #efedfd;
+
+  --ok: #1a9e6c;
+  --ok-tint: #e6f7f0;
+  --bad: #e0405a;
+  --bad-tint: #fdeaee;
+  --warn: #d68a11;
+  --warn-tint: #fdf3e2;
+
+  --code-bg: #1e1e2e;
+  --code-border: #33334d;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #131220;
+    --surface: #1b1a2b;
+    --foreground: #f0efff;
+    --muted: #a29fc0;
+    --border: #2c2a42;
+
+    --brand: #8b7dfb;
+    --brand-dark: #6d5ef8;
+    --brand-tint: #241f45;
+
+    --ok: #35c98c;
+    --ok-tint: #12301f;
+    --bad: #f16a80;
+    --bad-tint: #3a1420;
+    --warn: #f0b84c;
+    --warn-tint: #3a2c0d;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* 골든래빗 톤(밝은 포인트컬러+알약배지+팁카드)에서 영감을 받되, 색상/마스코트는 오리지널로 */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--brand-tint);
+  color: var(--brand-dark);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(20, 16, 60, 0.04);
+}
+
+.tip-box {
+  background: var(--brand-tint);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  font-size: 0.9rem;
+  color: var(--foreground);
+}
