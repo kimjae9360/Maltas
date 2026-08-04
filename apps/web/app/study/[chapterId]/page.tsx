@@ -134,27 +134,31 @@ export default function StudyChapterPage() {
     setRunningUnit(unit);
     try {
       const res = await api.runStudyUnit(chapter.chapter_id, { unit, current_code: code, code_by_unit: codeByUnit });
-      // ⚠️ exam/[examId]/page.tsx의 runProblem과 같은 종류의 경쟁 상태가 여기도 있다: 이
-      // await가 끝나길 기다리는 동안 사용자가 "다른 TODO"에 정답 보기를 누르면(revealAnswer),
-      // 그 변경이 아래 persist({ ...s, ... })가 쓰는 낡은 s에 반영 안 돼서 덮어써질 수 있다.
       setLastRuns((prev) => ({ ...prev, [unit]: res }));
 
-      const prevResult = s.practice_results_by_unit[String(unit)];
+      // ⚠️ 경쟁 상태(race condition) 방지: exam/[examId]/page.tsx의 runProblem과 같은 이유로,
+      // await 이전에 캡처해둔 `s`가 아니라 지금 이 시점의 최신 세션(sessionRef.current)을
+      // 다시 읽어서 그 위에 병합한다. 예를 들어 이 채점이 도는 동안 사용자가 다른 TODO의
+      // 정답을 봤다면(revealAnswer), 그 변경이 여기서 지워지지 않아야 한다.
+      const latest = sessionRef.current;
+      if (!latest) return;
+
+      const prevResult = latest.practice_results_by_unit[String(unit)];
       const isCorrect = !!res.is_correct;
       // !!res.is_correct : res.is_correct가 boolean이 아니라 null일 수도 있는 타입이라
       // (StudyRunResult.is_correct: boolean | null), "!!"로 null/undefined를 확실히
       // false로, true는 true로 정규화한다.
       const nextWrong = isCorrect
-        ? s.wrong_units.filter((u) => u !== unit)   // 이번엔 맞혔으니 복습 목록에서 제거
-        : s.wrong_units.includes(unit)
-          ? s.wrong_units                            // 이미 복습 목록에 있으면 중복 추가 방지
-          : [...s.wrong_units, unit];                // 처음 틀린 거면 복습 목록에 추가
+        ? latest.wrong_units.filter((u) => u !== unit)   // 이번엔 맞혔으니 복습 목록에서 제거
+        : latest.wrong_units.includes(unit)
+          ? latest.wrong_units                            // 이미 복습 목록에 있으면 중복 추가 방지
+          : [...latest.wrong_units, unit];                // 처음 틀린 거면 복습 목록에 추가
 
       persist({
-        ...s,
-        practice_code_by_unit: { ...s.practice_code_by_unit, [String(unit)]: code },
+        ...latest,
+        practice_code_by_unit: { ...latest.practice_code_by_unit, [String(unit)]: code },
         practice_results_by_unit: {
-          ...s.practice_results_by_unit,
+          ...latest.practice_results_by_unit,
           [String(unit)]: {
             is_correct: isCorrect,
             attempts: (prevResult?.attempts ?? 0) + 1,   // 시도 횟수 누적 (처음이면 0+1=1)
@@ -173,11 +177,17 @@ export default function StudyChapterPage() {
     if (!s || !chapter) return;
     const res = await api.getPracticeAnswer(chapter.chapter_id, unit);
     setAnswers((prev) => ({ ...prev, [unit]: res.answer_code }));
-    const prevResult = s.practice_results_by_unit[String(unit)];
+
+    // runPractice와 동일한 이유로 await 이후에는 최신 세션을 다시 읽어서 병합한다.
+    // (runExample/runPractice와 달리 이 함수는 runningUnit을 건드리지 않아서 버튼이 안
+    // 잠기므로, 이 await가 도는 동안 다른 TODO를 채점해 세션이 바뀌어 있을 가능성이 특히 크다.)
+    const latest = sessionRef.current;
+    if (!latest) return;
+    const prevResult = latest.practice_results_by_unit[String(unit)];
     persist({
-      ...s,
+      ...latest,
       practice_results_by_unit: {
-        ...s.practice_results_by_unit,
+        ...latest.practice_results_by_unit,
         [String(unit)]: {
           is_correct: prevResult?.is_correct ?? false,
           attempts: prevResult?.attempts ?? 0,
@@ -186,7 +196,7 @@ export default function StudyChapterPage() {
       },
       // 정답을 본 문제도 "완전히 못 푼 것"으로 간주해 복습 목록에 넣는다 —
       // sectionIncomplete 가드는 "채점했거나 정답을 본" 것만 확인하지, 정답 유무는 안 따진다.
-      wrong_units: s.wrong_units.includes(unit) ? s.wrong_units : [...s.wrong_units, unit],
+      wrong_units: latest.wrong_units.includes(unit) ? latest.wrong_units : [...latest.wrong_units, unit],
     });
   };
 

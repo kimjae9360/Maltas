@@ -203,27 +203,25 @@ export default function ExamPage() {
         current_code: getCode(no),
         code_by_problem: s.code_by_problem,
       });
-      // ⚠️ 경쟁 상태(race condition) 주의: 여기서 쓰는 `s`는 위에서 await 하기 "전에" 찍어둔
-      // 스냅샷이다. 이 await가 끝나길 기다리는 몇 초~몇십 초 동안, 사용자가 다른 문제에
-      // "검토 표시"(toggleFlag)를 누르거나 다른 문제의 정답을 보면(revealAnswer), 그 변경들은
-      // sessionRef.current/session state에는 반영되지만 이 함수가 들고 있는 `s`에는 반영되지 않는다.
-      // 아래 persist({ ...s, ... })가 그 "낡은 s"를 기준으로 새 세션을 만들어버리기 때문에,
-      // await 도중에 있었던 다른 변경사항이 조용히 덮어써져 사라질 수 있다. 지금 이 앱은
-      // 사용자가 1~2명 수준이라 실제로 문제 A를 채점하는 동안 문제 B에 깃발을 표시하는 등의
-      // 드문 상황에서만 발생하는 낮은 확률의 버그지만, 정확히 고치려면 아래처럼 "await 끝난
-      // 직후 다시 sessionRef.current를 읽어서" 병합해야 한다:
-      //   const latest = sessionRef.current; if (!latest) return;
-      //   persist({ ...latest, graded_results: { ...latest.graded_results, [String(no)]: entry } });
       setLastRuns((prev) => ({ ...prev, [no]: res }));
 
-      const revealed = s.revealed_problem_nos.includes(no);
+      // ⚠️ 경쟁 상태(race condition) 방지: 위 await가 끝나길 기다리는 동안, 사용자가 다른
+      // 문제에 "검토 표시"(toggleFlag)를 누르는 등 session을 바꿨을 수 있다. await 전에
+      // 찍어둔 `s`를 그대로 쓰면 그 사이의 변경사항이 persist에서 통째로 덮어써져 사라진다.
+      // 그래서 여기서 sessionRef.current를 다시 읽어 "지금 이 순간의 최신 세션"을 기준으로
+      // 병합한다 — s는 위쪽 guard(runningNo 등) 체크에만 쓰고, 실제로 저장할 때는 항상
+      // 이 latest를 스프레드해야 안전하다.
+      const latest = sessionRef.current;
+      if (!latest) return;
+
+      const revealed = latest.revealed_problem_nos.includes(no);
       const entry = revealed
         // 이미 정답을 본 문제는 서버가 실제로 뭐라고 채점했든 무조건 오답(0점) 처리한다 —
         // "정답 보기"의 페널티가 실제로 적용되는 지점이 바로 여기.
         ? { is_correct: false, points_earned: 0, detail: res.detail, note: "정답 보기 사용" }
         : { is_correct: res.is_correct, points_earned: res.points_earned, detail: res.detail };
 
-      persist({ ...s, graded_results: { ...s.graded_results, [String(no)]: entry } });
+      persist({ ...latest, graded_results: { ...latest.graded_results, [String(no)]: entry } });
     } finally {
       // try 블록이 성공하든 에러가 나든(예: 네트워크 오류) 반드시 실행되어 "채점 중" 상태를
       // 풀어준다 — 이게 없으면 에러가 났을 때 버튼이 영원히 "실행 중..."에 멈춰있게 된다.
@@ -235,13 +233,19 @@ export default function ExamPage() {
     const s = sessionRef.current;
     if (!s || !exam) return;
     const res = await api.getAnswer(exam.exam_id, no);
-    // (여기도 runProblem과 동일한 종류의 await-이후-낡은-s 문제가 이론적으로 있을 수 있다.)
     setAnswers((prev) => ({ ...prev, [no]: res.answer_code }));
+
+    // runProblem과 동일한 이유로, await 이후에는 s(낡은 스냅샷)가 아니라 sessionRef.current를
+    // 다시 읽어서 최신 상태 위에 병합한다. revealAnswer는 runningNo를 건드리지 않아서(버튼이
+    // 잠기지 않아서) 이 await가 도는 동안 다른 문제의 채점(runProblem)이 먼저 끝나 세션이
+    // 바뀌어 있을 가능성이 오히려 runProblem 쪽보다 더 크다.
+    const latest = sessionRef.current;
+    if (!latest) return;
     persist({
-      ...s,
-      revealed_problem_nos: [...s.revealed_problem_nos, no],
+      ...latest,
+      revealed_problem_nos: [...latest.revealed_problem_nos, no],
       graded_results: {
-        ...s.graded_results,
+        ...latest.graded_results,
         [String(no)]: { is_correct: false, points_earned: 0, detail: "정답 확인함", note: "정답 보기 사용" },
       },
     });
