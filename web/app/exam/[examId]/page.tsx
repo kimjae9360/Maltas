@@ -7,6 +7,7 @@ import { ExamSession, examStorage } from "@/lib/storage";
 import { ExamProblemCard } from "@/components/ExamProblemCard";
 import { OpenBookPanel } from "@/components/OpenBookPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import Link from "next/link";
 
 function formatTime(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -272,6 +273,9 @@ export default function ExamPage() {
     <div className="flex flex-1">
       {/* 좌측 사이드바: 문항 네비게이션 */}
       <aside className="sticky top-0 hidden h-screen w-48 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)] p-4 sm:flex">
+        <Link href="/exams" className="mb-4 text-xs font-semibold text-[var(--muted)] hover:text-[var(--brand)]">
+          ← 모의고사 목록으로
+        </Link>
         <div className="mb-3 text-xs font-bold text-[var(--muted)]">
           작성 {answeredCount}/{exam.problems.length}
         </div>
@@ -303,6 +307,11 @@ export default function ExamPage() {
       </aside>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
+        <div className="mb-4 sm:hidden">
+          <Link href="/exams" className="text-xs font-semibold text-[var(--muted)] hover:text-[var(--brand)]">
+            ← 모의고사 목록으로
+          </Link>
+        </div>
         {/* 모바일: 좌측 사이드바 대신 가로 스크롤 문항 네비게이션 */}
         <div className="sticky top-0 z-10 mb-3 -mx-4 flex gap-2 overflow-x-auto border-b border-[var(--border)] bg-[var(--surface)]/95 px-4 py-2 backdrop-blur sm:hidden">
           {exam.problems.map((p) => {

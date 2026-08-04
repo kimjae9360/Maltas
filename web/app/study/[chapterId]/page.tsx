@@ -10,6 +10,7 @@ import { PlotViewer } from "@/components/PlotViewer";
 import { StudyPracticeCard } from "@/components/StudyPracticeCard";
 import { OpenBookPanel } from "@/components/OpenBookPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import Link from "next/link";
 
 function unitIdx(sectionNo: number, practiceNo = 0) {
   return sectionNo * 100 + practiceNo;
@@ -210,6 +211,9 @@ export default function StudyChapterPage() {
   return (
     <div className="flex flex-1">
       <aside className="sticky top-0 hidden h-screen w-52 shrink-0 flex-col gap-1 overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] p-4 sm:flex">
+        <Link href="/study" className="mb-4 text-xs font-semibold text-[var(--muted)] hover:text-[var(--brand)]">
+          ← 챕터 목록으로
+        </Link>
         <div className="mb-2 text-xs font-bold text-[var(--muted)]">{chapter.title}</div>
         {chapter.sections.map((s) => {
           const done = session.completed_sections.includes(s.no);
@@ -245,6 +249,11 @@ export default function StudyChapterPage() {
       </aside>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
+        <div className="mb-4 sm:hidden">
+          <Link href="/study" className="text-xs font-semibold text-[var(--muted)] hover:text-[var(--brand)]">
+            ← 챕터 목록으로
+          </Link>
+        </div>
         {/* 모바일: 좌측 사이드바 대신 가로 스크롤 섹션 네비게이션 */}
         <div className="sticky top-0 z-10 mb-3 -mx-4 flex items-center gap-2 overflow-x-auto border-b border-[var(--border)] bg-[var(--surface)]/95 px-4 py-2 backdrop-blur sm:hidden">
           {chapter.sections.map((s) => (

@@ -43,6 +43,12 @@ function StudyPageInner() {
       </div>
 
       {error && <p className="text-[var(--bad)]">{error} (서버가 실행 중인지 확인해주세요)</p>}
+      
+      {!error && chapters === null && (
+        <div className="mt-8 flex justify-center">
+          <p className="text-[var(--muted)]">데이터를 불러오는 중입니다...</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {filtered?.map((c) => {

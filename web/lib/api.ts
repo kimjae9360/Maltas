@@ -21,7 +21,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     if (!res.ok) {
       throw new Error(`API 요청 실패 (${res.status}): ${path}`);
     }
-    return res.json() as Promise<T>;
+    const data = await res.json();
+    return data as T;
   } catch (error: unknown) {
     clearTimeout(timeoutId);
     if (error instanceof Error && error.name === 'AbortError') {
