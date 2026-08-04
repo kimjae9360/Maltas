@@ -75,7 +75,7 @@ def _run_worker(setup_code, code_by_problem, current_code, problem_no, checks, m
             "stdout": "",
             "error": f"Execution timed out ({int(timeout)}s limit).",
             "is_correct": False,
-            "detail": "❌ 실행 시간이 초과되어 오답 처리되었습니다.",
+            "detail": "⏱️ 서버 응답 시간이 초과되었습니다. 다시 시도해주세요. (서버 첫 실행 시 워밍업으로 인해 느릴 수 있습니다)",
             "plots": [],
         }
 
@@ -158,7 +158,7 @@ def run_problem(exam_id: str, body: RunRequest, request: Request, _: None = Depe
     exam = _get_exam(exam_id)
     problem = _get_problem(exam, body.problem_no)
 
-    timeout = 180.0 if "딥러닝" in problem.get("session", "") else 30.0
+    timeout = 180.0 if "딥러닝" in problem.get("session", "") else 90.0
 
     result = _run_worker(
         exam.get("setup_code", ""),
@@ -259,7 +259,7 @@ def run_study_unit(chapter_id: str, body: StudyRunRequest, request: Request, _: 
     section, practice = _find_section_practice(chapter, body.unit)
 
     is_deep_learning = "딥러닝" in chapter_id
-    timeout = 180.0 if is_deep_learning else 30.0
+    timeout = 180.0 if is_deep_learning else 90.0
 
     checks = practice.get("checks", []) if practice else []
     manual_review = practice.get("manual_review", False) if practice else True  # 예제 실행은 항상 통과 처리
