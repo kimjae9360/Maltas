@@ -19,7 +19,6 @@ import traceback
 
 import matplotlib
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 # answer_code/checks 안의 경로는 전부 "data/train.csv"처럼 리포 루트 기준 상대경로다
 # (데스크톱 버전이 AICE_Simulator 루트를 working_dir로 실행하는 것과 동일하게 맞춘다).
@@ -98,6 +97,9 @@ def run(request):
     stdout_capture = io.StringIO()
     plots = []
 
+    # matplotlib.pyplot은 무겁기 때문에 실제로 필요할 때(= 이 subprocess 안)에만 import
+    import matplotlib.pyplot as plt  # noqa: PLC0415
+
     def _mock_show(*args, **kwargs):
         fig = plt.gcf()
         buf = io.BytesIO()
@@ -118,7 +120,11 @@ def run(request):
         print(f"\n[Error]\n{error}", file=stdout_capture)
     finally:
         os.chdir(original_cwd)
-        plt.close("all")
+        try:
+            import matplotlib.pyplot as _plt
+            _plt.close("all")
+        except Exception:
+            pass
 
     stdout_text = stdout_capture.getvalue()
 
