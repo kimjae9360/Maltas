@@ -332,7 +332,12 @@ export default function ExamPage() {
         </div>
 
         <div className="sticky top-0 z-10 mb-6 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)]/90 px-4 py-3 backdrop-blur">
-          <div className="font-bold">{exam.title}</div>
+          <div className="flex items-center gap-3">
+            <Link href="/exams" className="text-sm font-semibold text-[var(--muted)] hover:text-[var(--brand)]">
+              ←
+            </Link>
+            <div className="font-bold">{exam.title}</div>
+          </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <OpenBookPanel />

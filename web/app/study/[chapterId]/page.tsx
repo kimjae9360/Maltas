@@ -309,14 +309,17 @@ export default function StudyChapterPage() {
         ) : (
           <div className="flex flex-col gap-5">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-extrabold">
-                {section.no}. {section.title}
-              </h1>
+              <Link href="/study" className="text-sm font-semibold text-[var(--muted)] hover:text-[var(--brand)]">
+                ← 챕터 목록으로
+              </Link>
               <div className="flex items-center gap-3">
                 <ThemeToggle />
                 <OpenBookPanel />
               </div>
             </div>
+            <h1 className="text-2xl font-extrabold">
+              {section.no}. {section.title}
+            </h1>
 
             {hasTheory && (
               <div className="card p-5">
