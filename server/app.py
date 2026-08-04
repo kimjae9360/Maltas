@@ -85,6 +85,15 @@ def _make_timeout_result(timeout: float) -> dict:
     }
 
 
+def _reset_pool():
+    global _POOL
+    if _POOL is not None:
+        try:
+            _POOL.shutdown(wait=False, cancel_futures=True)
+        except Exception:
+            pass
+        _POOL = None
+
 def _run_worker(setup_code, code_by_problem, current_code, problem_no, checks, manual_review, timeout):
     worker_input = {
         "setup_code": setup_code,
@@ -100,22 +109,10 @@ def _run_worker(setup_code, code_by_problem, current_code, problem_no, checks, m
         return future.result(timeout=timeout)
     except FuturesTimeout:
         future.cancel()
-        # 타임아웃 시 워커가 손상됐을 수 있으니 풀을 교체한다.
-        global _POOL
-        try:
-            _POOL.shutdown(wait=False, cancel_futures=True)
-        except Exception:
-            pass
-        _POOL = None
+        _reset_pool()
         return _make_timeout_result(timeout)
     except Exception as exc:
-        # 워커 프로세스 크래시 시 풀 교체
-        global _POOL  # noqa: F811
-        try:
-            _POOL.shutdown(wait=False, cancel_futures=True)
-        except Exception:
-            pass
-        _POOL = None
+        _reset_pool()
         return {
             "stdout": "",
             "error": str(exc),
