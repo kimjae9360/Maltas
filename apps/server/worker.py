@@ -12,15 +12,34 @@ Figure도 base64 PNG로 바꿔 JSON에 실으면 되므로 피클링 문제 자�
 --- 공부용 요약 ---
 이 파일은 "사용자가 코드 에디터에 입력한 파이썬 코드"를 실제로 돌려보고 채점하는,
 이 서비스에서 가장 핵심적인 부분입니다. 크게 3단계로 이루어져 있어요.
-  1) build_full_code : 지금까지 푼 문제들의 코드를 전부 이어붙여서 "완전한 하나의 스크립트"를 만든다
+  1) build_prefix_code/build_full_code : 지금까지 푼 문제들의 코드를 이어붙여 스크립트를 만든다
   2) run             : 그 스크립트를 exec()로 실제 실행하고, 출력/그래프/에러를 수집한다
   3) grade_problem   : 실행이 끝난 뒤 남은 변수 값들을 정답 조건(checks)과 비교해 채점한다
+
+--- 이전 문제 실행 상태 캐싱(성능 최적화) ---
+문제 10번을 채점하려면 매번 1~9번 문제 코드부터 처음부터 다시 실행해야 한다(무상태 설계이기
+때문 — build_prefix_code의 설명 참고). 문제 번호가 뒤로 갈수록, 특히 앞에서 모델을 학습시킨
+뒤라면 이 "따라잡기 재실행" 비용이 계속 누적돼서 채점이 점점 느려진다.
+그런데 실제로는 사용자가 "지금 채점 중인 문제"의 코드만 고쳐가며 여러 번 다시 시도하는
+경우가 대부분이고, 그럴 때 1~9번 문제의 코드(prefix)는 매번 똑같다. 그래서 이 워커
+프로세스(ProcessPoolExecutor로 재사용되는 바로 그 프로세스) 메모리에 "가장 최근에 실행한
+prefix의 결과(namespace)"를 딱 1개만 캐싱해뒀다가, 다음 요청의 prefix가 완전히 똑같으면
+(코드 텍스트를 해시로 비교) 그 무거운 재실행을 건너뛰고 캐시를 복사해서 이어서 쓴다.
+"완전히 똑같은지"는 prefix 코드 문자열의 해시로만 판단하므로, 앞 문제 코드를 한 글자라도
+고치면 자동으로 캐시 미스가 나서 다시 처음부터 실행된다 — 정답 여부에는 절대 영향이 없다.
+안전장치: 캐시를 읽거나(deepcopy) 쓰는 과정에서 어떤 이유로든 예외가 나면(예: 어떤 객체가
+deepcopy가 안 되는 경우) 조용히 캐싱을 포기하고 예전처럼 처음부터 다시 실행한다 — 이 최적화가
+실패해도 채점 결과 자체는 항상 정확해야 하기 때문에, "빨라지지 않을 수는 있어도 틀릴 수는
+없다"를 최우선 원칙으로 짰다.
 """
 import io
 import os
 import sys
+import copy
 import json
+import types
 import base64
+import hashlib
 import contextlib
 import traceback
 
@@ -40,19 +59,45 @@ WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 # 옮겼을 때도 이 코드는 한 글자도 안 고쳤다).
 
 
-def build_full_code(setup_code, code_by_problem, current_code, problem_no):
-    """"지금까지 푼 모든 문제의 코드를 하나로 이어붙여서" 완전한 스크립트를 만든다.
+# 모듈/함수/클래스는 "값"이 아니라 "코드 그 자체"라서 사용자 코드가 내용을 바꿀 일이 없다
+# (import pandas as pd를 아무리 다시 해도 pandas 모듈 자체는 안 바뀐다). 그래서 캐시에서
+# 복제할 때 이런 것들은 deepcopy하지 않고 참조만 공유해도 안전하다 — 애초에 모듈 객체는
+# deepcopy 자체가 안 된다(pickle 불가능한 타입이라서), 그래서 이 구분이 필수다.
+_SHARE_BY_REFERENCE_TYPES = (types.ModuleType, types.FunctionType, types.BuiltinFunctionType, type)
+
+
+def _copy_namespace(namespace):
+    """캐싱을 위해 namespace(exec 결과 변수들의 딕셔너리)를 복제한다.
+
+    모듈/함수/클래스는 참조를 그대로 공유하고, 그 외의 실제 "데이터" 값(DataFrame, ndarray,
+    학습된 모델, 숫자, 문자열 등)만 deepcopy한다. 데이터 값 중 단 하나라도 deepcopy에 실패하면
+    예외를 그대로 위로 던진다 — 호출하는 쪽(run())에서 "전부 성공하거나 아예 캐싱을 포기하거나"
+    둘 중 하나로만 처리하게 하기 위해서다(일부만 복제하면 나머지는 원본과 공유된 채로 남아
+    다음 캐시 재사용 때 조용히 오염될 수 있어서, 그런 "절반의 성공"은 아예 허용하지 않는다).
+    """
+    copied = {}
+    for key, value in namespace.items():
+        if isinstance(value, _SHARE_BY_REFERENCE_TYPES):
+            copied[key] = value
+        else:
+            copied[key] = copy.deepcopy(value)
+    return copied
+
+
+def build_prefix_code(setup_code, code_by_problem, problem_no):
+    """"지금 채점하려는 문제보다 앞선 문제들의 코드만" 이어붙인다 (현재 문제 코드는 제외).
 
     왜 이렇게 할까?
     이 앱은 문제 1번의 df = pd.read_csv(...) 같은 코드에서 만든 변수 df를,
     2번·3번 문제에서도 이어서 쓸 수 있어야 한다(실제 시험도 그렇다). 그런데 서버는
     "요청 하나 = 파이썬 프로세스 하나 실행"이라 문제마다 완전히 새로운 상태에서 시작한다.
-    그래서 매번 "setup_code(공통 준비 코드) + 이전 문제들의 코드 + 지금 채점할 코드"를
-    처음부터 순서대로 다시 실행해서, "마치 쭉 이어서 푼 것처럼" 상태를 복원하는 것이다.
-    (조금 비효율적으로 보이지만, 세션을 서버 메모리에 들고 있지 않아도 되므로 훨씬 단순하고 안전하다.)
+    그래서 매번 "setup_code(공통 준비 코드) + 이전 문제들의 코드"를 처음부터 순서대로 다시
+    실행해서, "마치 쭉 이어서 푼 것처럼" 상태를 복원하는 것이다.
+    (조금 비효율적으로 보이지만, 세션을 서버 메모리에 들고 있지 않아도 되므로 훨씬 단순하고
+    안전하다 — 그 비효율은 아래 run()의 캐싱으로 따로 완화한다.)
 
-    problem_no보다 번호가 작은 문제의 코드만 붙이는 이유: 지금 채점하려는 문제 자신의 코드는
-    맨 마지막의 current_code로 따로 넣기 때문에, 여기서 또 넣으면 중복 실행된다.
+    현재 문제 코드를 여기 안 넣고 run()에서 별도로 실행하는 이유: 이 prefix 부분만 떼어내야
+    "직전 요청과 prefix가 완전히 같은지" 비교해서 캐시를 재사용할 수 있기 때문이다.
     """
     code_blocks = [setup_code or ""]
     for p_no in sorted(code_by_problem.keys(), key=int):
@@ -60,8 +105,21 @@ def build_full_code(setup_code, code_by_problem, current_code, problem_no):
         # 문자열끼리 비교하면 "10" < "2"가 되어버리므로(사전순 비교), key=int로 숫자 기준 정렬해야 한다.
         if int(p_no) < problem_no:
             code_blocks.append(code_by_problem[p_no])
-    code_blocks.append(current_code)
     return "\n".join(code_blocks)
+
+
+def build_full_code(setup_code, code_by_problem, current_code, problem_no):
+    """prefix(이전 문제들) + 현재 문제 코드를 이어붙인 "완전한 스크립트"를 만든다.
+
+    캐싱을 쓰지 않는 단순 경로(예: main()으로 단독 테스트할 때)에서 여전히 쓰인다.
+    """
+    prefix = build_prefix_code(setup_code, code_by_problem, problem_no)
+    return "\n".join([prefix, current_code])
+
+
+# 워커 프로세스 하나당 prefix 실행 결과를 딱 1개만 기억하는 캐시. max_workers=1이라 이 프로세스
+# 안에서는 항상 요청이 한 번에 하나씩만 처리되므로, 잠금(lock) 없이 전역 변수로 충분히 안전하다.
+_PREFIX_CACHE = {"key": None, "namespace": None, "stdout": "", "plots": []}
 
 
 def grade_problem(namespace, checks, manual_review):
@@ -150,9 +208,12 @@ def run(request):
     checks = request.get("checks", [])
     manual_review = request.get("manual_review", False)
 
-    full_code = build_full_code(setup_code, code_by_problem, current_code, problem_no)
+    # prefix(이전 문제들)와 current_code(지금 채점할 문제)를 분리해서 다룬다 — prefix만 따로
+    # 해시를 내야 "직전 요청과 완전히 같은 prefix인지" 판단해 캐시를 재사용할 수 있기 때문.
+    prefix_code = build_prefix_code(setup_code, code_by_problem, problem_no)
+    prefix_key = hashlib.sha256(prefix_code.encode("utf-8")).hexdigest()
 
-    namespace = {}                    # exec()가 실행되면서 만드는 변수들이 여기 쌓인다 (= 코드의 "실행 결과 상태")
+    namespace = None                  # exec()가 실행되면서 만드는 변수들이 여기 쌓인다 (= 코드의 "실행 결과 상태")
     stdout_capture = io.StringIO()    # print() 출력을 화면 대신 메모리로 가로채기 위한 가짜 파일 객체
     plots = []                        # plt.show()를 부를 때마다 캡처된 그래프 이미지(base64 PNG)들이 쌓인다
 
@@ -183,10 +244,45 @@ def run(request):
         # 실행 직전에 현재 작업 폴더(cwd)를 이 워커 파일이 있는 apps/server/ 로 바꾼다.
         os.chdir(WORKING_DIR)
         with contextlib.redirect_stdout(stdout_capture), contextlib.redirect_stderr(stdout_capture):
+            # ① prefix 재사용 시도: 직전에 캐싱해둔 prefix와 이번 요청의 prefix가 완전히 같으면
+            # (해시가 같으면), 그 무거운 재실행 대신 캐시된 namespace를 복제해서 그대로 쓴다.
+            if _PREFIX_CACHE["key"] == prefix_key and _PREFIX_CACHE["namespace"] is not None:
+                try:
+                    # deepcopy: 캐시된 namespace를 "복제"해서 쓴다 — 원본을 그대로 주면 current_code가
+                    # 그 안의 DataFrame 등을 제자리에서(inplace) 바꿀 때 캐시 자체가 오염되어 다음
+                    # 요청이 잘못된 상태를 이어받게 된다. 복제본이라야 안전하게 매번 새로 시작할 수 있다.
+                    namespace = _copy_namespace(_PREFIX_CACHE["namespace"])
+                    stdout_capture.write(_PREFIX_CACHE["stdout"])  # 콘솔 출력도 예전과 똑같이 이어붙여 보이도록
+                    plots.extend(_PREFIX_CACHE["plots"])           # 그래프도 마찬가지
+                except Exception:
+                    # 캐시된 값 중 뭔가 deepcopy가 안 되는 객체가 있었다는 뜻 — 캐시를 포기하고
+                    # 아래에서 처음부터 다시 실행한다. (namespace는 여전히 None이라 아래 분기로 빠짐)
+                    namespace = None
+
+            # ② 캐시를 못 쓴 경우(처음이거나, 캐시 미스거나, 위에서 복제가 실패한 경우): 처음부터 실행.
+            if namespace is None:
+                namespace = {}
+                exec(prefix_code, namespace)
+                # tensorflow가 쓰였다면 캐싱을 아예 시도하지 않는다 — Keras 모델처럼 deepcopy가
+                # "예외 없이 조용히 잘못 복제"될 수 있는 객체가 섞여 있으면, 캐시가 실패로 감지되지
+                # 않고 틀린 상태를 다음 요청에 넘길 위험이 있다. 정확성이 속도보다 항상 우선이다.
+                if "tensorflow" not in sys.modules:
+                    try:
+                        _PREFIX_CACHE["key"] = prefix_key
+                        _PREFIX_CACHE["namespace"] = _copy_namespace(namespace)
+                        _PREFIX_CACHE["stdout"] = stdout_capture.getvalue()
+                        _PREFIX_CACHE["plots"] = list(plots)
+                    except Exception:
+                        # 캐시 저장 자체가 실패해도 지금 이 요청의 결과에는 전혀 영향 없다 —
+                        # 그냥 다음 요청도 캐시 없이(예전처럼) 처음부터 실행될 뿐이다.
+                        _PREFIX_CACHE["key"] = None
+                        _PREFIX_CACHE["namespace"] = None
+
+            # ③ 마지막으로 지금 채점하려는 문제의 코드만 이 namespace 위에 이어서 실행한다.
             # exec(코드문자열, namespace): 문자열로 된 파이썬 코드를 실제로 실행한다.
             # namespace를 globals 자리에 넘기면, 코드 안에서 만들어지는 모든 변수가 이 딕셔너리에 쌓인다
             # (그래서 실행이 끝난 뒤 grade_problem이 namespace를 보고 채점할 수 있는 것).
-            exec(full_code, namespace)
+            exec(current_code, namespace)
     except Exception:
         # 사용자 코드에 문법 오류나 런타임 에러(예: 없는 컬럼 접근)가 있으면 여기서 잡힌다.
         # 서버 프로세스 자체는 죽지 않고, 에러 내용을 문자열로 저장해서 "오답 + 에러 메시지"로 응답한다.

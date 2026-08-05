@@ -198,6 +198,64 @@ def _run_worker(setup_code, code_by_problem, current_code, problem_no, checks, m
         }
 
 
+# ─── 서버 기동 시 워커 미리 예열(warm-up) ───────────────────────────────────
+# 문제: /api/ping은 FastAPI(HTTP 서버) 자체만 깨울 뿐, 실제 채점을 담당하는
+# ProcessPoolExecutor 워커 프로세스는 건드리지 않는다. 그래서 사용자가 "실행"을 처음
+# 누르는 순간에야 워커 프로세스가 새로 뜨고, 그 안에서 pandas/numpy/matplotlib/seaborn을
+# 처음 import하는 비용(Render 무료 티어의 느린 CPU에서는 수십 초까지도 걸릴 수 있다)을
+# 사용자가 그대로 떠안았다 — "페이지 열 때 한 번, 실행 누를 때 또 한 번" 두 번 기다리는
+# 것처럼 느껴지는 이유가 이것이다.
+#
+# 거의 모든 시험/챕터의 첫 문제가 공통으로 요구하는 이 라이브러리들을, 서버가 켜지는
+# 즉시(=아무도 기다리지 않는 시점에) 백그라운드로 미리 import해서 sys.modules에 캐시해둔다.
+# 그러면 실제 사용자가 처음 "실행"을 누를 때는 이미 캐시된 import를 재사용하므로 그만큼
+# 빨라진다.
+#
+# pandas/numpy/matplotlib/seaborn(1교시: 데이터 로딩·EDA)에 더해 scikit-learn 대표 서브모듈도
+# 하나씩 포함시켰다 — sklearn은 어떤 개별 클래스를 import하든 그 순간 sklearn 패키지 전체의
+# 의존 그래프(scipy, joblib 등)가 함께 로드되므로, train_test_split/StandardScaler/
+# RandomForestClassifier 중 아무거나 하나만 import해도 "2~3교시: 전처리·모델링"에서 실제로
+# 쓰는 sklearn 관련 import 비용이 전부 미리 끝나 있다.
+# (딥러닝에 쓰는 tensorflow/xgboost/lightgbm 등 훨씬 무거운 라이브러리는 일부러 제외했다 —
+# 웜업 자체가 오래 걸리면, 그동안 max_workers=1인 워커가 진짜 사용자 요청보다 웜업을
+# 먼저 처리하느라 오히려 첫 요청이 더 늦어질 수 있다.)
+_WARMUP_CODE = (
+    "import pandas as pd\n"
+    "import numpy as np\n"
+    "import matplotlib.pyplot as plt\n"
+    "import seaborn as sns\n"
+    "from sklearn.model_selection import train_test_split\n"
+    "from sklearn.preprocessing import StandardScaler\n"
+    "from sklearn.ensemble import RandomForestClassifier\n"
+)
+
+
+@app.on_event("startup")
+def _warm_up_worker():
+    """서버 프로세스가 뜨자마자 워커 풀을 미리 만들고 무거운 import를 백그라운드로 시작한다.
+
+    pool.submit()만 하고 결과(future)를 기다리지 않는 이유(fire-and-forget): 이 예열 작업이
+    몇 초가 걸리든 서버의 다른 요청 처리를 절대 막아서는 안 되기 때문이다. 실패해도(예: 이
+    시점에 워커 프로세스를 못 띄우는 환경) 서버 기동 자체를 막지 않도록 예외를 전부 삼킨다 —
+    최악의 경우에도 예전처럼 "첫 실행 요청이 직접 워밍업"하는 것으로 자연스럽게 대체될 뿐이다.
+    """
+    try:
+        pool = _get_pool()
+        pool.submit(
+            _worker_task,
+            {
+                "setup_code": "",
+                "code_by_problem": {},
+                "current_code": _WARMUP_CODE,
+                "problem_no": 1,
+                "checks": [],
+                "manual_review": True,
+            },
+        )
+    except Exception:
+        pass
+
+
 def require_api_key(x_api_key: str = Header(default="")):
     """FastAPI의 Depends()로 엔드포인트에 끼워넣는 "인증 검사기".
 
