@@ -247,7 +247,15 @@ def _public_exam(exam: dict) -> dict:
                 "session": p["session"],
                 "prompt_markdown": p["prompt_markdown"],
                 "points": p["points"],
-                "answer_code_b64": base64.b64encode(p["answer_code"].encode("utf-8")).decode("ascii") if "answer_code" in p else ""
+                "answer_code_b64": base64.b64encode(p["answer_code"].encode("utf-8")).decode("ascii") if "answer_code" in p else "",
+                # question_type: "free_code"(기본, 처음부터 작성) | "bug_fix"(버그 있는 starter_code를
+                # 고치는 문제) | "fill_blank"(code_template의 빈칸만 채우는 문제). starter_code와
+                # code_template은 정답이 아니라 "문제 화면에 그대로 보여줄 내용"이라 프론트에 안전하게
+                # 노출해도 된다 — blanks만 expected(정답 문자열)를 빼고 id만 내려서 정답이 새지 않게 한다.
+                "question_type": p.get("question_type", "free_code"),
+                "starter_code": p.get("starter_code", ""),
+                "code_template": p.get("code_template", ""),
+                "blanks": [{"id": b["id"]} for b in p.get("blanks", [])],
             }
             for p in exam["problems"]
         ],
@@ -314,6 +322,48 @@ def run_problem(exam_id: str, body: RunRequest, request: Request, _: None = Depe
     result["points_earned"] = problem["points"] if result["is_correct"] else 0
     return result
     # FastAPI는 함수가 딕셔너리를 return하면 자동으로 JSON 응답으로 변환해준다.
+
+
+class BlankCheckRequest(BaseModel):
+    """빈칸채우기형(fill_blank) 문제의 제출 형태 — blank id -> 사용자가 입력한 텍스트."""
+    answers: dict[str, str]
+
+
+def _check_blanks(problem: dict, answers: dict) -> dict:
+    """빈칸채우기형 채점. 코드를 실행하지 않고, 빈칸마다 정답 문자열과 그대로 비교만 한다.
+
+    실제 AICE 시험도 이런 문제는 "정답 셀에 함수/키워드 한 단어만 입력"하는 형태라
+    (예: get_dummies, columns) 코드를 재구성해서 실행해볼 필요 없이 텍스트 비교로 충분하다.
+    expected는 문자열 하나이거나, RandomForest/randomforest처럼 여러 표기를 다 정답으로
+    인정해야 할 때는 문자열 리스트로 줄 수 있다.
+    """
+    results = {}
+    all_correct = True
+    for b in problem.get("blanks", []):
+        bid = b["id"]
+        expected = b["expected"]
+        expected_list = expected if isinstance(expected, list) else [expected]
+        submitted = (answers.get(bid) or "").strip()
+        correct = any(submitted == e.strip() for e in expected_list)
+        results[bid] = correct
+        if not correct:
+            all_correct = False
+    return {"is_correct": all_correct, "results": results}
+
+
+def _run_check_blanks(exam: dict, no: int, body: "BlankCheckRequest") -> dict:
+    """모의고사/기출동형 공용 — 빈칸채우기 채점 후 배점까지 매긴 최종 응답을 만든다."""
+    problem = _get_problem(exam, no)
+    result = _check_blanks(problem, body.answers)
+    result["points_earned"] = problem["points"] if result["is_correct"] else 0
+    result["detail"] = "✅ 정답입니다." if result["is_correct"] else "❌ 빈칸 중 일부가 틀렸습니다."
+    return result
+
+
+@app.post("/api/exams/{exam_id}/problems/{no}/check-blanks")
+@limiter.limit("30/minute")
+def check_exam_blanks(exam_id: str, no: int, body: BlankCheckRequest, request: Request, _: None = Depends(require_api_key)):
+    return _run_check_blanks(_get_exam(exam_id), no, body)
 
 
 @app.get("/api/ping")
@@ -488,5 +538,14 @@ def run_kichul_problem(exam_id: str, body: RunRequest, request: Request, _: None
         problem.get("manual_review", False),
         timeout,
     )
+    # (버그 수정) run_problem(모의고사)에는 있던 points_earned 계산이 여기엔 빠져있어서
+    # 기출동형 채점 카드에 점수가 undefined로 표시되고 있었다.
+    result["points_earned"] = problem["points"] if result["is_correct"] else 0
     return result
+
+
+@app.post("/api/kichul-exams/{exam_id}/problems/{no}/check-blanks")
+@limiter.limit("30/minute")
+def check_kichul_blanks(exam_id: str, no: int, body: BlankCheckRequest, request: Request, _: None = Depends(require_api_key)):
+    return _run_check_blanks(_get_kichul_exam(exam_id), no, body)
 

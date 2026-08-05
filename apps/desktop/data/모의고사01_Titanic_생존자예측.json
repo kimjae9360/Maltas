@@ -98,7 +98,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "df.groupby('Pclass')['Survived'].mean().plot(kind='{{b1}}')\nplt.title('Survival rate by Pclass')\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "bar"
+        }
+      ]
     },
     {
       "no": 6,
@@ -136,7 +144,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(df.select_dtypes(include=np.number).corr(), annot=True, cmap='coolwarm')\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "heatmap"
+        }
+      ]
     },
     {
       "no": 8,
@@ -172,9 +188,23 @@
             891,
             13
           ]
+        },
+        {
+          "var": "df",
+          "attr": "Age.isnull().sum()",
+          "op": "eq",
+          "expected": 0
+        },
+        {
+          "var": "df",
+          "attr": "Embarked.isnull().sum()",
+          "op": "eq",
+          "expected": 0
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "df['Age'] = df['Age'].fillna(df['Age'].median())\ndf['Embarked'] = df['Embarked'].fillna(df['Embarked'].mode())"
     },
     {
       "no": 10,
@@ -193,7 +223,19 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "df = pd.{{b1}}(df, {{b2}}=['Sex', 'Embarked'], drop_first=True)\ndf.head()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "get_dummies"
+        },
+        {
+          "id": "b2",
+          "expected": "columns"
+        }
+      ]
     },
     {
       "no": 11,
@@ -315,7 +357,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.metrics import accuracy_score, f1_score\nmodel = RandomForestClassifier(n_estimators=100, random_state=42)\nmodel.fit(X_train, y_train)\npred = model.predict(X_test)\nprint(accuracy_score(y_test, pred), f1_score(y_test, pred))"
     },
     {
       "no": 13,
@@ -350,7 +394,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.metric import confusion_matrix\ncm = confusion_matrix(y_test, pred)\nsns.heatmap(cm, annot=True, fmt='d', cmap='Reds')"
     },
     {
       "no": 14,

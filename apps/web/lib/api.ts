@@ -80,12 +80,23 @@ export interface KichulExamSummary extends ExamSummary {
   difficulty: string;  // '중', '중상' 등
 }
 
+/** 실제 AICE Associate 시험에서 확인된 3가지 문제 유형. 서버가 안 주면 "free_code"로 취급한다. */
+export type QuestionType = "free_code" | "bug_fix" | "fill_blank";
+
+export interface BlankSpec {
+  id: string; // 정답 문자열(expected)은 서버가 안 보내준다 — 채점은 서버의 check-blanks 엔드포인트가 담당
+}
+
 export interface ExamProblem {
   no: number;
   session: string;
   prompt_markdown: string;
   points: number;
   answer_code_b64: string;
+  question_type: QuestionType;
+  starter_code: string;      // bug_fix 문제의 "일부러 틀린" 시작 코드 (free_code는 보통 빈 문자열)
+  code_template: string;     // fill_blank 문제의 코드 뼈대. {{blank_id}} 마커를 빈칸으로 렌더링한다
+  blanks: BlankSpec[];       // fill_blank 문제의 빈칸 목록 (순서대로 렌더링)
 }
 
 export interface ExamDetail {
@@ -104,6 +115,13 @@ export interface RunResult {
   detail: string;
   plots: string[];       // base64 PNG 문자열들의 배열 (worker.py의 _mock_show가 만든 것)
   points_earned: number;
+}
+
+export interface BlankCheckResult {
+  is_correct: boolean;
+  results: Record<string, boolean>;  // blank id -> 맞았는지 여부 (정답 문자열 자체는 안 내려줌)
+  points_earned: number;
+  detail: string;
 }
 
 export interface ChapterSummary {
@@ -166,6 +184,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  checkBlanks: (examId: string, no: number, answers: Record<string, string>) =>
+    request<BlankCheckResult>(`/api/exams/${encodeURIComponent(examId)}/problems/${no}/check-blanks`, {
+      method: "POST",
+      body: JSON.stringify({ answers }),
+    }),
 
   listChapters: () => request<ChapterSummary[]>("/api/study"),
   getChapter: (chapterId: string) => request<ChapterDetail>(`/api/study/${encodeURIComponent(chapterId)}`),
@@ -185,6 +208,11 @@ export const api = {
     request<RunResult>(`/api/kichul-exams/${encodeURIComponent(examId)}/run`, {
       method: "POST",
       body: JSON.stringify(body),
+    }),
+  checkKichulBlanks: (examId: string, no: number, answers: Record<string, string>) =>
+    request<BlankCheckResult>(`/api/kichul-exams/${encodeURIComponent(examId)}/problems/${no}/check-blanks`, {
+      method: "POST",
+      body: JSON.stringify({ answers }),
     }),
 };
 

@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { api, ExamDetail, RunResult } from "@/lib/api";
+import { api, ExamDetail, RunResult, BlankCheckResult } from "@/lib/api";
 import { ExamSession, examStorage } from "@/lib/storage";
 import { ExamProblemCard } from "@/components/ExamProblemCard";
+import { FillBlankCard } from "@/components/FillBlankCard";
 import { OpenBookPanel } from "@/components/OpenBookPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
@@ -40,6 +41,11 @@ export default function ExamPage() {
   const [lastRuns, setLastRuns] = useState<Record<number, RunResult>>({}); // 문제별 "가장 최근 실행" 콘솔/그래프 결과
   const [runningNo, setRunningNo] = useState<number | null>(null);      // 지금 채점 중인 문제 번호 (null이면 아무것도 안 돌아가는 중)
   const [answers, setAnswers] = useState<Record<number, string>>({});   // 정답 보기를 누른 문제들의 실제 정답 코드
+  const [blankAnswers, setBlankAnswers] = useState<Record<number, Record<string, string>>>({});
+  // 빈칸채우기(fill_blank) 문제 전용 — 문제 번호 -> {blank id: 입력한 텍스트}
+  const [checkingNo, setCheckingNo] = useState<number | null>(null);   // 지금 채점(빈칸 확인) 중인 문제 번호
+  const [lastBlankChecks, setLastBlankChecks] = useState<Record<number, BlankCheckResult>>({});
+  // 문제별 "가장 최근 빈칸 채점 응답" — 빈칸마다 정오답 색을 칠하는 데 사용
   const [remaining, setRemaining] = useState(0);                        // 남은 시간(초) — 화면에 표시되는 타이머 숫자
   const [report, setReport] = useState<{ earned: number; total: number; pct: number; pass: boolean; wrong: number[] } | null>(null);
   // report가 null이 아니게 되는 순간 = 제출 완료 화면으로 전환된다.
@@ -181,7 +187,13 @@ export default function ExamPage() {
     setResumeCandidate(null);
   };
 
-  const getCode = (no: number) => session?.code_by_problem[String(no)] ?? "";
+  const getCode = (no: number) => {
+    // 아직 손 안 댄 문제는 starter_code를 기본값으로 보여준다 — 오류정정형(bug_fix)은
+    // 일부러 틀린 코드가, 나머지(free_code)는 보통 빈 문자열이 여기 들어있다.
+    const saved = session?.code_by_problem[String(no)];
+    if (saved !== undefined) return saved;
+    return exam?.problems.find((p) => p.no === no)?.starter_code ?? "";
+  };
 
   const setCode = (no: number, code: string) => {
     const s = sessionRef.current;
@@ -283,6 +295,44 @@ export default function ExamPage() {
         [String(no)]: { is_correct: false, points_earned: 0, detail: "정답 확인함", note: "정답 보기 사용" },
       },
     });
+  };
+
+  /** 빈칸채우기 카드에서 입력창 하나를 고칠 때마다 호출 — 세션 저장은 안 하고 화면 상태로만 들고 있다가,
+   * "채점하기"를 눌렀을 때 서버로 한꺼번에 보낸다(코드 채점처럼 결과가 즉시 IndexedDB에 저장될 필요는
+   * 없어서, 빈칸 값 자체는 가벼운 로컬 상태로 충분하다). */
+  const setBlankAnswer = (no: number, blankId: string, value: string) => {
+    setBlankAnswers((prev) => ({ ...prev, [no]: { ...prev[no], [blankId]: value } }));
+  };
+
+  const checkBlanks = async (no: number) => {
+    const s = sessionRef.current;
+    if (!s || !exam || checkingNo !== null) return;
+    setCheckingNo(no);
+    try {
+      const checkFn = isKichul
+        ? api.checkKichulBlanks(exam.exam_id, no, blankAnswers[no] ?? {})
+        : api.checkBlanks(exam.exam_id, no, blankAnswers[no] ?? {});
+      const res = await checkFn;
+      setLastBlankChecks((prev) => ({ ...prev, [no]: res }));
+
+      // runProblem과 동일한 경쟁 상태 방지 패턴 — await 이후 최신 세션을 다시 읽어 병합한다.
+      const latest = sessionRef.current;
+      if (!latest) return;
+      persist({
+        ...latest,
+        graded_results: {
+          ...latest.graded_results,
+          [String(no)]: { is_correct: res.is_correct, points_earned: res.points_earned, detail: res.detail },
+        },
+      });
+    } catch (err: any) {
+      setLastBlankChecks((prev) => ({
+        ...prev,
+        [no]: { is_correct: false, results: {}, points_earned: 0, detail: `❌ 서버 요청 중 오류가 발생했습니다.\n${err.message}` },
+      }));
+    } finally {
+      setCheckingNo(null);
+    }
   };
 
   const scrollTo = (no: number) => {
@@ -467,30 +517,56 @@ export default function ExamPage() {
         </div>
 
         <div className="flex flex-col gap-5">
-          {exam.problems.map((p) => (
-            <ExamProblemCard
-              key={p.no}
-              problem={p}
-              code={getCode(p.no)}
-              onCodeChange={(c) => setCode(p.no, c)}
-              onRun={() => runProblem(p.no)}
-              running={runningNo === p.no}
-              disabled={runningNo !== null}
-              // disabled는 "이 문제가 채점 중"일 때뿐 아니라 "다른 어떤 문제라도 채점 중"이면
-              // 전부 true가 된다(runningNo !== null). 즉 한 번에 한 문제만 채점 요청을 보낼 수
-              // 있다 — 서버의 ProcessPoolExecutor(max_workers=1)와도 자연스럽게 맞물리는 제약이다.
-              result={session.graded_results[String(p.no)]}
-              lastRun={lastRuns[p.no]}
-              flagged={session.flagged_problem_nos.includes(p.no)}
-              onToggleFlag={() => toggleFlag(p.no)}
-              revealed={session.revealed_problem_nos.includes(p.no)}
-              onReveal={() => revealAnswer(p.no)}
-              answerCode={answers[p.no]}
-              cardRef={(el) => {
-                cardRefs.current[p.no] = el;
-              }}
-            />
-          ))}
+          {exam.problems.map((p) => {
+            // 문제마다 question_type이 다르므로, 어떤 카드 컴포넌트를 그릴지 여기서 분기한다.
+            // free_code/bug_fix는 같은 ExamProblemCard를 쓴다 — 둘의 차이는 starter_code(버그
+            // 있는 시작 코드)가 채워져 있는지뿐이라 getCode()가 이미 알아서 처리해준다.
+            const anyBusy = runningNo !== null || checkingNo !== null;
+            // anyBusy: "이 문제든 다른 문제든, 실행이든 빈칸채점이든 뭔가 하나라도 진행 중이면"
+            // 전체 버튼을 잠근다 — 서버가 한 번에 하나씩만 처리하는 구조(ProcessPoolExecutor
+            // max_workers=1)와 자연스럽게 맞물리고, 경쟁 상태가 생길 여지 자체를 줄여준다.
+            if (p.question_type === "fill_blank") {
+              return (
+                <FillBlankCard
+                  key={p.no}
+                  problem={p}
+                  answers={blankAnswers[p.no] ?? {}}
+                  onAnswerChange={(blankId, value) => setBlankAnswer(p.no, blankId, value)}
+                  onCheck={() => checkBlanks(p.no)}
+                  checking={checkingNo === p.no}
+                  disabled={anyBusy}
+                  result={session.graded_results[String(p.no)]}
+                  lastCheck={lastBlankChecks[p.no]}
+                  flagged={session.flagged_problem_nos.includes(p.no)}
+                  onToggleFlag={() => toggleFlag(p.no)}
+                  cardRef={(el) => {
+                    cardRefs.current[p.no] = el;
+                  }}
+                />
+              );
+            }
+            return (
+              <ExamProblemCard
+                key={p.no}
+                problem={p}
+                code={getCode(p.no)}
+                onCodeChange={(c) => setCode(p.no, c)}
+                onRun={() => runProblem(p.no)}
+                running={runningNo === p.no}
+                disabled={anyBusy}
+                result={session.graded_results[String(p.no)]}
+                lastRun={lastRuns[p.no]}
+                flagged={session.flagged_problem_nos.includes(p.no)}
+                onToggleFlag={() => toggleFlag(p.no)}
+                revealed={session.revealed_problem_nos.includes(p.no)}
+                onReveal={() => revealAnswer(p.no)}
+                answerCode={answers[p.no]}
+                cardRef={(el) => {
+                  cardRefs.current[p.no] = el;
+                }}
+              />
+            );
+          })}
         </div>
       </main>
     </div>

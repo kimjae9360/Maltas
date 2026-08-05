@@ -67,6 +67,11 @@ export function ExamProblemCard({
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="pill">문항 {problem.no}</span>
+          {problem.question_type === "bug_fix" && (
+            <span className="rounded-md bg-[var(--warn-tint)] px-2 py-0.5 text-[10px] font-bold text-[var(--warn)]">
+              🐛 오류 정정
+            </span>
+          )}
           <span className="text-xs text-[var(--muted)]">{problem.session}</span>
         </div>
         <div className="flex items-center gap-2">
