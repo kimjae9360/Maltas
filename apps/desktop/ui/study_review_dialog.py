@@ -4,13 +4,14 @@ import html as html_mod
 import markdown
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
                                QTextBrowser, QLabel, QScrollArea, QWidget,
-                               QPlainTextEdit, QFrame)
-from PySide6.QtGui import QFont
+                               QPlainTextEdit, QFrame, QToolTip, QApplication)
+from PySide6.QtGui import QFont, QCursor
 from PySide6.QtCore import Qt, Signal, Slot
 
 from engine.code_executor import CodeExecutor
 from resource_path import get_base_dir
 from ui.highlighter import PythonHighlighter
+from ui.markdown_utils import make_code_copyable, extract_copy_text
 
 
 def _unit_idx(section_no, practice_no=0):
@@ -62,14 +63,10 @@ class StudyReviewDialog(QDialog):
     def _setup_ui(self):
         layout = QVBoxLayout(self)
 
-        header = QLabel()
-        header.setFont(QFont("Malgun Gothic", 13, QFont.Bold))
-        if self.items:
-            header.setText(f"스스로 풀지 못했던 문제 {len(self.items)}개 — 코드를 다시 작성해서 채점해보세요. "
-                            "정답 처리되면 목록에서 사라집니다.")
-        else:
-            header.setText("🎉 복습할 문제가 없습니다! 모든 TODO 문제를 스스로 풀었어요.")
-        layout.addWidget(header)
+        self.header_label = QLabel()
+        self.header_label.setFont(QFont("Malgun Gothic", 13, QFont.Bold))
+        self._refresh_header()
+        layout.addWidget(self.header_label)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -96,6 +93,22 @@ class StudyReviewDialog(QDialog):
             QScrollArea { border: none; }
         """)
 
+    def _on_inline_code_clicked(self, url):
+        text = extract_copy_text(url)
+        if text is None:
+            return
+        QApplication.clipboard().setText(text)
+        QToolTip.showText(QCursor.pos(), f"📋 복사됨: {text}")
+
+    def _refresh_header(self):
+        if self.items:
+            self.header_label.setText(
+                f"스스로 풀지 못했던 문제 {len(self.items)}개 — 코드를 다시 작성해서 채점해보세요. "
+                "정답 처리되거나 직접 삭제하면 목록에서 사라집니다."
+            )
+        else:
+            self.header_label.setText("🎉 복습할 문제가 없습니다! 모든 TODO 문제를 스스로 풀었어요.")
+
     def _build_card(self, item):
         pid = item["pid"]
         section, practice = item["section"], item["practice"]
@@ -115,7 +128,10 @@ class StudyReviewDialog(QDialog):
 
         prompt = QTextBrowser()
         prompt.setMaximumHeight(90)
-        prompt.setHtml(markdown.markdown(f"**문제 {practice['no']}.** {practice['prompt_markdown']}"))
+        prompt.setOpenLinks(False)
+        prompt.anchorClicked.connect(self._on_inline_code_clicked)
+        prompt_body = markdown.markdown(f"**문제 {practice['no']}.** {practice['prompt_markdown']}", extensions=['fenced_code'])
+        prompt.setHtml(make_code_copyable(prompt_body))
         prompt.setStyleSheet("QTextBrowser { background-color: #17212B; color: #E0E0E0; border: none; }")
         v.addWidget(prompt)
 
@@ -142,12 +158,19 @@ class StudyReviewDialog(QDialog):
         btn_answer.setStyleSheet("""
             QPushButton { background-color: #B22222; color: white; padding: 6px 12px; border-radius: 4px; border: none; }
         """)
+        btn_delete = QPushButton("✕ 삭제")
+        btn_delete.setToolTip("이 문제를 복습 목록에서 그냥 지웁니다 (정답 처리와 무관)")
+        btn_delete.setStyleSheet("""
+            QPushButton { background-color: transparent; color: #8A8D92; padding: 6px 12px; border: 1px solid #3A3D42; border-radius: 4px; }
+            QPushButton:hover { color: #FF8A80; border-color: #FF8A80; }
+        """)
         status_label = QLabel("")
         status_label.setWordWrap(True)
 
         btn_row.addWidget(btn_grade)
         btn_row.addWidget(btn_answer)
         btn_row.addStretch()
+        btn_row.addWidget(btn_delete)
         v.addLayout(btn_row)
         v.addWidget(status_label)
 
@@ -163,10 +186,21 @@ class StudyReviewDialog(QDialog):
 
         btn_answer.clicked.connect(lambda: answer_view.setVisible(not answer_view.isVisible()))
         btn_grade.clicked.connect(lambda: self._grade_card(item, code_editor, status_label, btn_grade))
+        btn_delete.clicked.connect(lambda: self._delete_card(item, card))
 
         self._cards[pid] = {"status_label": status_label, "code_editor": code_editor,
                              "card": card, "btn_grade": btn_grade}
         return card
+
+    def _delete_card(self, item, card):
+        pid = item["pid"]
+        self.progress_manager.remove_from_wrong_list(pid)
+        self.progress_manager.save_now()
+        self.items = [i for i in self.items if i["pid"] != pid]
+        self._cards.pop(pid, None)
+        self.card_layout.removeWidget(card)
+        card.deleteLater()
+        self._refresh_header()
 
     def _grade_card(self, item, code_editor, status_label, btn_grade):
         pid = item["pid"]

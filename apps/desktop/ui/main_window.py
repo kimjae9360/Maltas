@@ -3,7 +3,7 @@ import os
 import threading
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                                QLabel, QPushButton, QSplitter, QPlainTextEdit,
-                               QTabWidget, QTextBrowser, QMessageBox)
+                               QTabWidget, QTextBrowser, QMessageBox, QApplication)
 from PySide6.QtCore import Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QFont, QShortcut, QKeySequence
 
@@ -13,8 +13,10 @@ from engine.code_executor import CodeExecutor
 from engine.grader import Grader
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from resource_path import get_base_dir
+from ui import theme
 from ui.review_note_dialog import ReviewNoteDialog
 from ui.highlighter import PythonHighlighter
+from ui.markdown_utils import make_code_copyable, extract_copy_text
 
 
 class MainWindow(QMainWindow):
@@ -102,8 +104,7 @@ class MainWindow(QMainWindow):
         
         self.timer_label = QLabel()
         self.timer_label.setFont(QFont("Consolas", 16, QFont.Bold))
-        self.timer_label.setStyleSheet("color: #E0E0E0;")
-        
+
         # Font size buttons
         self.btn_font_minus = QPushButton("A-")
         self.btn_font_minus.setToolTip("글꼴 크기 줄이기")
@@ -122,6 +123,11 @@ class MainWindow(QMainWindow):
 
         self.btn_reset = QPushButton("↺ 처음부터 다시 풀기")
         self.btn_reset.clicked.connect(self.reset_exam)
+
+        self.btn_theme_toggle = QPushButton()
+        self.btn_theme_toggle.setFixedWidth(40)
+        self.btn_theme_toggle.clicked.connect(self.toggle_theme)
+        self._refresh_theme_toggle_label()
 
         self.btn_submit = QPushButton("최종 제출 (채점하기)")
         self.btn_submit.setStyleSheet("""
@@ -143,6 +149,8 @@ class MainWindow(QMainWindow):
         header_layout.addStretch()
         header_layout.addWidget(self.timer_label)
         header_layout.addSpacing(12)
+        header_layout.addWidget(self.btn_theme_toggle)
+        header_layout.addSpacing(8)
         header_layout.addWidget(self.btn_reset)
         header_layout.addSpacing(8)
         header_layout.addWidget(self.btn_submit)
@@ -164,6 +172,8 @@ class MainWindow(QMainWindow):
         h_splitter = QSplitter(Qt.Horizontal)
         
         self.md_viewer = QTextBrowser()
+        self.md_viewer.setOpenLinks(False)
+        self.md_viewer.anchorClicked.connect(self._on_inline_code_clicked)
         h_splitter.addWidget(self.md_viewer)
         
         v_splitter = QSplitter(Qt.Vertical)
@@ -235,96 +245,122 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(h_splitter)
 
     def apply_theme(self):
+        t = theme.tokens()
+        self.setStyleSheet(f"QMainWindow {{ background-color: {t['window_bg']}; }}")
+
         # 세 영역(문제/코드/콘솔)을 색상 hue 자체가 다르게 줘서 곁눈질로도 구분되게 함.
         # 코드 에디터: 익숙한 VSCode 다크 + 파란색 강조선("여기에 입력")
-        self.code_editor.setStyleSheet("""
-        QPlainTextEdit {
-            background-color: #1E1E1E;
-            color: #D4D4D4;
-            border: 1px solid #333333;
-            border-left: 4px solid #007ACC;
-            border-radius: 4px;
-            padding: 8px;
-            selection-background-color: #264F78;
-        }
-        """)
+        self._style_code_editor(revealed=False)
         self.code_editor.setPlaceholderText("# 여기에 코드를 작성하세요")
 
-        self.lock_banner.setStyleSheet("""
-            QLabel {
-                background-color: #3D1F1F;
-                color: #FF8A80;
+        self.lock_banner.setStyleSheet(f"""
+            QLabel {{
+                background-color: {t['reveal_bg']};
+                color: {t['reveal_text']};
                 font-weight: bold;
                 padding: 6px 10px;
-                border: 1px solid #B22222;
+                border: 1px solid {t['reveal_border']};
                 border-radius: 4px;
                 margin-top: 6px;
-            }
+            }}
         """)
 
         # 콘솔 출력: 따뜻한 톤 다크 + 초록색 강조선("결과 확인")
-        self.console_output.setStyleSheet("""
-        QTextBrowser {
-            background-color: #1B1A17;
-            color: #D4D4D4;
-            border: 1px solid #3A362F;
-            border-left: 4px solid #6A9955;
+        self.console_output.setStyleSheet(f"""
+        QTextBrowser {{
+            background-color: {t['console_bg']};
+            color: {t['editor_text']};
+            border: 1px solid {t['console_border']};
+            border-left: 4px solid {t['accent_green']};
             border-radius: 4px;
             padding: 8px;
-            selection-background-color: #264F78;
-        }
+            selection-background-color: {t['selection_bg']};
+        }}
         """)
         self._reset_console_placeholder()
 
         # 정답 보기 탭: 콘솔과 같은 다크톤 + 골드 강조선("정답" 배지 색과 통일)
-        self.answer_output.setStyleSheet("""
-        QTextBrowser {
-            background-color: #1E1B12;
-            color: #D4D4D4;
-            border: 1px solid #4A3F1F;
-            border-left: 4px solid #C9A227;
+        self.answer_output.setStyleSheet(f"""
+        QTextBrowser {{
+            background-color: {t['answer_bg']};
+            color: {t['editor_text']};
+            border: 1px solid {t['answer_border']};
+            border-left: 4px solid {t['accent_gold']};
             border-radius: 4px;
             padding: 8px;
-            selection-background-color: #264F78;
-        }
+            selection-background-color: {t['selection_bg']};
+        }}
         """)
         self._reset_answer_placeholder()
 
         # 문제 지문: 남색 계열 + 하늘색 강조선("읽는 곳")
-        self.md_viewer.setStyleSheet("""
-        QTextBrowser {
-            background-color: #17212B;
-            color: #E6E6E6;
-            border: 1px solid #2D3E4E;
-            border-left: 4px solid #4FC1FF;
+        self.md_viewer.setStyleSheet(f"""
+        QTextBrowser {{
+            background-color: {t['panel_bg']};
+            color: {t['panel_text']};
+            border: 1px solid {t['panel_border']};
+            border-left: 4px solid {t['accent_blue']};
             border-radius: 4px;
             padding: 15px;
-        }
+        }}
         """)
 
         # 상단 툴바 버튼들을 한 톤으로 통일 (기본 OS 버튼 느낌 제거)
-        toolbar_btn_style = """
-        QPushButton {
-            background-color: #333844;
-            color: #E6E6E6;
-            border: 1px solid #454C5C;
+        toolbar_btn_style = f"""
+        QPushButton {{
+            background-color: {t['btn_bg']};
+            color: {t['btn_text']};
+            border: 1px solid {t['btn_border']};
             border-radius: 5px;
             padding: 6px 12px;
-        }
-        QPushButton:hover { background-color: #414957; }
-        QPushButton:pressed { background-color: #2B303A; }
+        }}
+        QPushButton:hover {{ background-color: {t['btn_hover']}; }}
+        QPushButton:pressed {{ background-color: {t['btn_pressed']}; }}
         """
-        for btn in (self.btn_font_minus, self.btn_font_plus, self.btn_prev, self.btn_next, self.btn_reset):
+        for btn in (self.btn_font_minus, self.btn_font_plus, self.btn_prev, self.btn_next, self.btn_reset,
+                    self.btn_theme_toggle):
             btn.setStyleSheet(toolbar_btn_style)
+
+        self.timer_label.setStyleSheet(f"color: {t['panel_text']};")
+
+        if getattr(self, "problems", None):
+            self.md_viewer.setHtml(self._build_problem_html(self.problems[self.current_idx]))
+
+    def _style_code_editor(self, revealed):
+        t = theme.tokens()
+        border_color = t['reveal_border'] if revealed else t['accent_blue_editor']
+        self.code_editor.setStyleSheet(f"""
+        QPlainTextEdit {{
+            background-color: {t['editor_bg']};
+            color: {t['editor_text']};
+            border: 1px solid {t['editor_border']};
+            border-left: 4px solid {border_color};
+            border-radius: 4px;
+            padding: 8px;
+            selection-background-color: {t['selection_bg']};
+        }}
+        """)
+
+    def _refresh_theme_toggle_label(self):
+        self.btn_theme_toggle.setText("☀️" if theme.get_mode() == "dark" else "🌙")
+        self.btn_theme_toggle.setToolTip("라이트 모드로 전환" if theme.get_mode() == "dark" else "다크 모드로 전환")
+
+    def toggle_theme(self):
+        theme.toggle_mode()
+        self._refresh_theme_toggle_label()
+        self.apply_theme()
+        if getattr(self, "problems", None):
+            self._apply_lock_state(self.problems[self.current_idx])
+            self._refresh_problem_nav()
 
     def _reset_console_placeholder(self):
         self.console_output.setHtml(
-            "<i style='color:#6B6B6B;'>▶ '현재 문제 실행'을 누르면 출력/에러/채점 결과가 여기에 표시됩니다.</i>"
+            f"<i style='color:{theme.tokens()['muted_text']};'>▶ '현재 문제 실행'을 누르면 출력/에러/채점 결과가 여기에 표시됩니다.</i>"
         )
 
     def _reset_answer_placeholder(self):
         self.answer_output.setHtml(
-            "<i style='color:#6B6B6B;'>'정답 보기'를 누르면 이 탭에 정답 코드가 표시됩니다. "
+            f"<i style='color:{theme.tokens()['muted_text']};'>'정답 보기'를 누르면 이 탭에 정답 코드가 표시됩니다. "
             "(코드 에디터에 작성 중인 내 코드는 지워지지 않습니다)</i>"
         )
 
@@ -341,28 +377,18 @@ class MainWindow(QMainWindow):
         locked = self._is_revealed(p)
         self.btn_answer.setEnabled(not locked)
         self.lock_banner.setVisible(locked)
-        border_color = "#B22222" if locked else "#007ACC"
-        self.code_editor.setStyleSheet(f"""
-        QPlainTextEdit {{
-            background-color: #1E1E1E;
-            color: #D4D4D4;
-            border: 1px solid #333333;
-            border-left: 4px solid {border_color};
-            border-radius: 4px;
-            padding: 8px;
-            selection-background-color: #264F78;
-        }}
-        """)
+        self._style_code_editor(revealed=locked)
         if locked:
             self.lock_banner.setText("🔒 정답 확인 완료 — 연습은 자유롭게 하실 수 있지만, 이 문제는 항상 0점으로 처리됩니다.")
             self._render_answer_tab(p["answer_code"])
 
     def _render_answer_tab(self, answer_code):
         import html as html_mod
+        t = theme.tokens()
         escaped = html_mod.escape(answer_code)
         self.answer_output.setHtml(
-            "<div style='font-family:Consolas; font-size:15px; color:#D4D4D4;'>"
-            "<p style='color:#C9A227; font-weight:bold; margin-bottom:10px;'>"
+            f"<div style='font-family:Consolas; font-size:15px; color:{t['editor_text']};'>"
+            f"<p style='color:{t['accent_gold']}; font-weight:bold; margin-bottom:10px;'>"
             "✅ 정답 코드 (참고용 — 내 코드와 비교해보세요)</p>"
             f"<pre style='white-space:pre-wrap; margin:0;'>{escaped}</pre>"
             "</div>"
@@ -389,6 +415,7 @@ class MainWindow(QMainWindow):
 
     def _build_problem_html(self, p):
         # 코드 에디터 글꼴 크기(A+/A-)에 맞춰 문제 지문 크기도 같이 커지고 작아지도록 동기화
+        t = theme.tokens()
         base = self.editor_font_size + 6
         h2_size = base + 6
         badge_size = self.editor_font_size
@@ -398,20 +425,20 @@ class MainWindow(QMainWindow):
                 font-family: 'Malgun Gothic', sans-serif;
                 font-size: {base}px;
                 line-height: 1.6;
-                color: #E0E0E0;
+                color: {t['panel_text']};
             }}
-            h2 {{ color: #4FC1FF; margin-top: 0; font-size: {h2_size}px; }}
+            h2 {{ color: {t['accent_blue']}; margin-top: 0; font-size: {h2_size}px; }}
             code {{
-                background-color: #1E1E1E;
+                background-color: {t['code_inline_bg']};
                 padding: 2px 6px;
                 border-radius: 4px;
                 font-family: Consolas;
-                color: #CE9178;
+                color: {t['code_inline_text']};
                 font-size: {base}px;
             }}
             .points-badge {{
                 display: inline-block;
-                background-color: #C9A227;
+                background-color: {t['accent_gold']};
                 color: #1A1A1A;
                 font-weight: bold;
                 padding: 3px 12px;
@@ -421,7 +448,15 @@ class MainWindow(QMainWindow):
         </style>
         """
         md_text = f"## 문제 {p['no']}\n\n<span class='points-badge'>배점 {p['points']}점</span>\n\n{p['prompt_markdown']}"
-        return css + f"<div style='font-size: {base}px; font-family: Malgun Gothic; color: #E0E0E0;'>" + markdown.markdown(md_text) + "</div>"
+        body = make_code_copyable(markdown.markdown(md_text, extensions=['fenced_code']))
+        return css + f"<div style='font-size: {base}px; font-family: Malgun Gothic; color: {t['panel_text']};'>" + body + "</div>"
+
+    def _on_inline_code_clicked(self, url):
+        text = extract_copy_text(url)
+        if text is None:
+            return
+        QApplication.clipboard().setText(text)
+        self.statusBar().showMessage(f"📋 복사됨: {text}", 1500)
 
     def tick_timer(self):
         self.elapsed += 1
@@ -445,7 +480,7 @@ class MainWindow(QMainWindow):
         elif rem <= 600:
             self.timer_label.setStyleSheet("color: #FFB74D;")
         else:
-            self.timer_label.setStyleSheet("color: #E0E0E0;")
+            self.timer_label.setStyleSheet(f"color: {theme.tokens()['panel_text']};")
 
         curr_prob_no = self.problems[self.current_idx]["no"]
         self.session_manager.update_state(elapsed_seconds=self.elapsed, current_problem_no=curr_prob_no)
@@ -488,24 +523,25 @@ class MainWindow(QMainWindow):
                 return
 
     def _refresh_problem_nav(self):
+        t = theme.tokens()
         graded = self.session_manager.get_data()["graded_results"]
         for p in self.problems:
             btn = self.nav_buttons[p["no"]]
             entry = graded.get(str(p["no"]))
             is_current = (p["no"] == self.problems[self.current_idx]["no"])
             if entry and entry.get("note") == "정답 보기 사용":
-                color = "#C9A227"  # 정답 보기 사용 (골드)
+                color, text_color = "#C9A227", "white"  # 정답 보기 사용 (골드)
             elif entry and entry.get("is_correct"):
-                color = "#4CAF50"  # 정답 (초록)
+                color, text_color = "#4CAF50", "white"  # 정답 (초록)
             elif entry:
-                color = "#B22222"  # 오답 (빨강)
+                color, text_color = "#B22222", "white"  # 오답 (빨강)
             else:
-                color = "#454C5C"  # 미응시 (회색)
-            border = "2px solid #FFFFFF" if is_current else "1px solid #2D3E4E"
+                color, text_color = t['btn_bg'], t['btn_text']  # 미응시
+            border = f"2px solid {t['accent_blue']}" if is_current else f"1px solid {t['panel_border']}"
             btn.setChecked(is_current)
             btn.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {color}; color: white; font-weight: bold;
+                    background-color: {color}; color: {text_color}; font-weight: bold;
                     border: {border}; border-radius: 4px;
                 }}
             """)

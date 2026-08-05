@@ -1,8 +1,10 @@
+import re
 import threading
 
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                                QLabel, QPushButton, QSplitter, QPlainTextEdit,
-                               QTabWidget, QTextBrowser, QMessageBox)
+                               QTabWidget, QTextBrowser, QMessageBox, QScrollArea,
+                               QApplication)
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QFont, QShortcut, QKeySequence
 
@@ -12,7 +14,9 @@ from engine.code_executor import CodeExecutor
 from engine.grader import Grader
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from resource_path import get_base_dir
+from ui import theme
 from ui.highlighter import PythonHighlighter
+from ui.markdown_utils import make_code_copyable, extract_copy_text
 from ui.study_review_dialog import StudyReviewDialog
 
 
@@ -21,6 +25,28 @@ def _unit_idx(section_no, practice_no=0):
     (CodeExecutor.run_problem이 기대하는 '누적 실행 순서' 정수 키를 그대로 재사용하기 위함 —
     섹션당 문제 99개 미만이라는 전제로 section_no*100 + practice_no)"""
     return section_no * 100 + practice_no
+
+
+_EXAMPLE_CELL_MARKER_RE = re.compile(r'^\s*#\s*%%\s*(.*)$')
+
+
+def _split_example_cells(code):
+    """'# %% 라벨' 마커로 example_code를 여러 셀로 나눈다 (웹의 splitExampleCells와 동일 로직).
+    한 코드창에 몰아 보여주면 어려운 예제를, 개념 단위로 잘라 각각 라벨을 붙여 보여주기 위함."""
+    lines = code.split("\n")
+    cells = []
+    current_label = None
+    current_lines = []
+    for line in lines:
+        m = _EXAMPLE_CELL_MARKER_RE.match(line)
+        if m:
+            cells.append((current_label, "\n".join(current_lines).strip()))
+            current_label = m.group(1).strip() or None
+            current_lines = []
+        else:
+            current_lines.append(line)
+    cells.append((current_label, "\n".join(current_lines).strip()))
+    return [(label, c) for label, c in cells if c]
 
 
 class StudyWindow(QMainWindow):
@@ -102,6 +128,11 @@ class StudyWindow(QMainWindow):
         self.btn_review = QPushButton("📝 복습 모드")
         self.btn_review.clicked.connect(self.open_review_mode)
 
+        self.btn_theme_toggle = QPushButton()
+        self.btn_theme_toggle.setFixedWidth(40)
+        self.btn_theme_toggle.clicked.connect(self.toggle_theme)
+        self._refresh_theme_toggle_label()
+
         header_layout.addWidget(self.progress_label)
         header_layout.addStretch()
         header_layout.addWidget(self.btn_font_minus)
@@ -111,6 +142,8 @@ class StudyWindow(QMainWindow):
         header_layout.addSpacing(8)
         header_layout.addWidget(self.btn_next_section)
         header_layout.addStretch()
+        header_layout.addWidget(self.btn_theme_toggle)
+        header_layout.addSpacing(8)
         header_layout.addWidget(self.btn_review)
         main_layout.addLayout(header_layout)
 
@@ -130,6 +163,8 @@ class StudyWindow(QMainWindow):
 
         # 좌측: 이론 + 개념 정리 (섹션 전체에서 공통)
         self.theory_viewer = QTextBrowser()
+        self.theory_viewer.setOpenLinks(False)
+        self.theory_viewer.anchorClicked.connect(self._on_inline_code_clicked)
         h_splitter.addWidget(self.theory_viewer)
 
         v_splitter = QSplitter(Qt.Vertical)
@@ -148,13 +183,20 @@ class StudyWindow(QMainWindow):
         example_header.addStretch()
         example_header.addWidget(self.btn_run_example)
 
-        self.example_editor = QPlainTextEdit()
-        self.example_editor.setReadOnly(True)
-        self.example_highlighter = PythonHighlighter(self.example_editor.document())
-        self.example_editor.setMaximumHeight(160)
+        # 예제 코드는 "# %%" 마커로 여러 개념 단위 셀로 나뉘어 표시된다(_set_example_code).
+        # 셀 개수가 섹션마다 달라 전체 높이가 유동적이므로 스크롤 영역으로 감싼다.
+        self._example_cell_editors = []
+        example_scroll = QScrollArea()
+        example_scroll.setWidgetResizable(True)
+        example_scroll.setMaximumHeight(240)
+        self._example_container = QWidget()
+        self._example_cells_layout = QVBoxLayout(self._example_container)
+        self._example_cells_layout.setContentsMargins(4, 4, 4, 4)
+        self._example_cells_layout.setSpacing(8)
+        example_scroll.setWidget(self._example_container)
 
         example_layout.addLayout(example_header)
-        example_layout.addWidget(self.example_editor)
+        example_layout.addWidget(example_scroll)
         v_splitter.addWidget(example_widget)
 
         # 우측 중단: TODO 문제
@@ -178,6 +220,8 @@ class StudyWindow(QMainWindow):
 
         self.practice_prompt_viewer = QTextBrowser()
         self.practice_prompt_viewer.setMaximumHeight(110)
+        self.practice_prompt_viewer.setOpenLinks(False)
+        self.practice_prompt_viewer.anchorClicked.connect(self._on_inline_code_clicked)
 
         btn_layout = QHBoxLayout()
         self.btn_grade = QPushButton("✅ 채점하기")
@@ -239,79 +283,104 @@ class StudyWindow(QMainWindow):
         main_layout.addWidget(h_splitter)
 
     def apply_theme(self):
-        self.code_editor.setStyleSheet("""
-        QPlainTextEdit {
-            background-color: #1E1E1E; color: #D4D4D4; border: 1px solid #333333;
-            border-left: 4px solid #007ACC; border-radius: 4px; padding: 8px;
-            selection-background-color: #264F78;
-        }
-        """)
+        t = theme.tokens()
+        self.setStyleSheet(f"QMainWindow {{ background-color: {t['window_bg']}; }}")
+
+        self._style_code_editor(revealed=False)
         self.code_editor.setPlaceholderText("# 여기에 코드를 작성하세요")
 
-        self.example_editor.setStyleSheet("""
-        QPlainTextEdit {
-            background-color: #1B1A17; color: #D4D4D4; border: 1px solid #3A362F;
-            border-left: 4px solid #C9A227; border-radius: 4px; padding: 8px;
-        }
+        self.reveal_banner.setStyleSheet(f"""
+            QLabel {{ background-color: {t['reveal_bg']}; color: {t['reveal_text']}; font-weight: bold;
+                     padding: 6px 10px; border: 1px solid {t['reveal_border']}; border-radius: 4px; margin-top: 6px; }}
         """)
 
-        self.reveal_banner.setStyleSheet("""
-            QLabel { background-color: #3D1F1F; color: #FF8A80; font-weight: bold;
-                     padding: 6px 10px; border: 1px solid #B22222; border-radius: 4px; margin-top: 6px; }
-        """)
-
-        self.console_output.setStyleSheet("""
-        QTextBrowser {
-            background-color: #1B1A17; color: #D4D4D4; border: 1px solid #3A362F;
-            border-left: 4px solid #6A9955; border-radius: 4px; padding: 8px;
-            selection-background-color: #264F78;
-        }
+        self.console_output.setStyleSheet(f"""
+        QTextBrowser {{
+            background-color: {t['console_bg']}; color: {t['editor_text']}; border: 1px solid {t['console_border']};
+            border-left: 4px solid {t['accent_green']}; border-radius: 4px; padding: 8px;
+            selection-background-color: {t['selection_bg']};
+        }}
         """)
         self._reset_console_placeholder()
 
-        self.answer_output.setStyleSheet("""
-        QTextBrowser {
-            background-color: #1E1B12; color: #D4D4D4; border: 1px solid #4A3F1F;
-            border-left: 4px solid #C9A227; border-radius: 4px; padding: 8px;
-            selection-background-color: #264F78;
-        }
+        self.answer_output.setStyleSheet(f"""
+        QTextBrowser {{
+            background-color: {t['answer_bg']}; color: {t['editor_text']}; border: 1px solid {t['answer_border']};
+            border-left: 4px solid {t['accent_gold']}; border-radius: 4px; padding: 8px;
+            selection-background-color: {t['selection_bg']};
+        }}
         """)
         self._reset_answer_placeholder()
 
-        self.theory_viewer.setStyleSheet("""
-        QTextBrowser {
-            background-color: #17212B; color: #E6E6E6; border: 1px solid #2D3E4E;
-            border-left: 4px solid #4FC1FF; border-radius: 4px; padding: 15px;
-        }
+        self.theory_viewer.setStyleSheet(f"""
+        QTextBrowser {{
+            background-color: {t['panel_bg']}; color: {t['panel_text']}; border: 1px solid {t['panel_border']};
+            border-left: 4px solid {t['accent_blue']}; border-radius: 4px; padding: 15px;
+        }}
         """)
 
-        self.practice_prompt_viewer.setStyleSheet("""
-        QTextBrowser {
-            background-color: #17212B; color: #E6E6E6; border: 1px solid #2D3E4E;
-            border-left: 4px solid #4FC1FF; border-radius: 4px; padding: 10px;
-        }
+        self.practice_prompt_viewer.setStyleSheet(f"""
+        QTextBrowser {{
+            background-color: {t['panel_bg']}; color: {t['panel_text']}; border: 1px solid {t['panel_border']};
+            border-left: 4px solid {t['accent_blue']}; border-radius: 4px; padding: 10px;
+        }}
         """)
 
-        toolbar_btn_style = """
-        QPushButton {
-            background-color: #333844; color: #E6E6E6; border: 1px solid #454C5C;
+        toolbar_btn_style = f"""
+        QPushButton {{
+            background-color: {t['btn_bg']}; color: {t['btn_text']}; border: 1px solid {t['btn_border']};
             border-radius: 5px; padding: 6px 12px;
-        }
-        QPushButton:hover { background-color: #414957; }
-        QPushButton:pressed { background-color: #2B303A; }
+        }}
+        QPushButton:hover {{ background-color: {t['btn_hover']}; }}
+        QPushButton:pressed {{ background-color: {t['btn_pressed']}; }}
         """
         for btn in (self.btn_font_minus, self.btn_font_plus, self.btn_prev_section, self.btn_next_section,
-                    self.btn_review, self.btn_prev_practice, self.btn_next_practice, self.btn_run_example):
+                    self.btn_review, self.btn_prev_practice, self.btn_next_practice, self.btn_run_example,
+                    self.btn_theme_toggle):
             btn.setStyleSheet(toolbar_btn_style)
+
+        # 예제 코드 셀 스타일도 폰트 크기와 마찬가지로 테마 색을 새로 반영해야 하므로 다시 그린다.
+        s = self.sections[self.current_section_idx] if self.sections else None
+        if s is not None:
+            self._set_example_code(s["example_code"], bool(s["example_code"].strip()))
+        self._refresh_theory_html()
+        self._refresh_practice_html() if s and s["practices"] else None
+
+    def _style_code_editor(self, revealed):
+        t = theme.tokens()
+        border_color = t['reveal_border'] if revealed else t['accent_blue_editor']
+        self.code_editor.setStyleSheet(f"""
+        QPlainTextEdit {{
+            background-color: {t['editor_bg']}; color: {t['editor_text']}; border: 1px solid {t['editor_border']};
+            border-left: 4px solid {border_color}; border-radius: 4px; padding: 8px;
+            selection-background-color: {t['selection_bg']};
+        }}
+        """)
+
+    def _refresh_theme_toggle_label(self):
+        self.btn_theme_toggle.setText("☀️" if theme.get_mode() == "dark" else "🌙")
+        self.btn_theme_toggle.setToolTip("라이트 모드로 전환" if theme.get_mode() == "dark" else "다크 모드로 전환")
+
+    def toggle_theme(self):
+        theme.toggle_mode()
+        self._refresh_theme_toggle_label()
+        self.apply_theme()
+        self._refresh_section_nav()
+        pid = None
+        if self.sections and self.sections[self.current_section_idx]["practices"]:
+            s = self.sections[self.current_section_idx]
+            p = s["practices"][self.current_practice_idx]
+            pid = self._practice_id(s, p)
+        self._style_code_editor(revealed=bool(pid and self.progress_manager.is_revealed(pid)))
 
     def _reset_console_placeholder(self):
         self.console_output.setHtml(
-            "<i style='color:#6B6B6B;'>▶ 예제를 실행하거나 '채점하기'를 누르면 결과가 여기에 표시됩니다.</i>"
+            f"<i style='color:{theme.tokens()['muted_text']};'>▶ 예제를 실행하거나 '채점하기'를 누르면 결과가 여기에 표시됩니다.</i>"
         )
 
     def _reset_answer_placeholder(self):
         self.answer_output.setHtml(
-            "<i style='color:#6B6B6B;'>'정답 보기'를 누르면 이 탭에 정답 코드가 표시됩니다.</i>"
+            f"<i style='color:{theme.tokens()['muted_text']};'>'정답 보기'를 누르면 이 탭에 정답 코드가 표시됩니다.</i>"
         )
 
     # ------------------------------------------------------ 렌더링 헬퍼 ----
@@ -333,40 +402,52 @@ class StudyWindow(QMainWindow):
     def update_font_sizes(self):
         font = QFont("Consolas", self.editor_font_size)
         self.code_editor.setFont(font)
-        self.example_editor.setFont(font)
+        for editor in self._example_cell_editors:
+            editor.setFont(font)
 
     def _theory_css(self):
+        t = theme.tokens()
         base = self.editor_font_size + 4
         h2_size = base + 8
         return f"""
         <style>
-            p, li, b, strong, td, th {{ font-family: 'Malgun Gothic', sans-serif; font-size: {base}px; line-height: 1.6; color: #E0E0E0; }}
-            h2, h3 {{ color: #4FC1FF; margin-top: 4px; font-size: {h2_size}px; }}
-            code {{ background-color: #1E1E1E; padding: 2px 6px; border-radius: 4px; font-family: Consolas; color: #CE9178; font-size: {base}px; }}
+            p, li, b, strong, td, th {{ font-family: 'Malgun Gothic', sans-serif; font-size: {base}px; line-height: 1.6; color: {t['panel_text']}; }}
+            h2, h3 {{ color: {t['accent_blue']}; margin-top: 4px; font-size: {h2_size}px; }}
+            code {{ background-color: {t['code_inline_bg']}; padding: 2px 6px; border-radius: 4px; font-family: Consolas; color: {t['code_inline_text']}; font-size: {base}px; }}
             table {{ border-collapse: collapse; margin: 10px 0; }}
-            td, th {{ border: 1px solid #2D3E4E; padding: 6px 10px; }}
+            td, th {{ border: 1px solid {t['panel_border']}; padding: 6px 10px; }}
         </style>
         """
 
     def _refresh_theory_html(self):
         s = self.sections[self.current_section_idx]
         md_text = f"## {s['no']}. {s['title']}\n\n{s['theory_markdown']}\n\n{s['concept_table_markdown']}"
-        html = self._theory_css() + f"<div>{markdown.markdown(md_text, extensions=['tables'])}</div>"
+        body = markdown.markdown(md_text, extensions=['tables', 'fenced_code'])
+        html = self._theory_css() + f"<div>{make_code_copyable(body)}</div>"
         self.theory_viewer.setHtml(html)
 
     def _refresh_practice_html(self):
         s = self.sections[self.current_section_idx]
         p = s["practices"][self.current_practice_idx]
         md_text = f"**문제 {p['no']}.** {p['prompt_markdown']}"
-        html = self._theory_css() + f"<div>{markdown.markdown(md_text)}</div>"
+        body = markdown.markdown(md_text, extensions=['fenced_code'])
+        html = self._theory_css() + f"<div>{make_code_copyable(body)}</div>"
         self.practice_prompt_viewer.setHtml(html)
+
+    def _on_inline_code_clicked(self, url):
+        text = extract_copy_text(url)
+        if text is None:
+            return
+        QApplication.clipboard().setText(text)
+        self.statusBar().showMessage(f"📋 복사됨: {text}", 1500)
 
     def _render_answer_tab(self, answer_code):
         import html as html_mod
+        t = theme.tokens()
         escaped = html_mod.escape(answer_code)
         self.answer_output.setHtml(
-            "<div style='font-family:Consolas; font-size:14px; color:#D4D4D4;'>"
-            "<p style='color:#C9A227; font-weight:bold; margin-bottom:10px;'>✅ 정답 코드 (참고용 — 내 코드와 비교해보세요)</p>"
+            f"<div style='font-family:Consolas; font-size:14px; color:{t['editor_text']};'>"
+            f"<p style='color:{t['accent_gold']}; font-weight:bold; margin-bottom:10px;'>✅ 정답 코드 (참고용 — 내 코드와 비교해보세요)</p>"
             f"<pre style='white-space:pre-wrap; margin:0;'>{escaped}</pre></div>"
         )
 
@@ -385,7 +466,7 @@ class StudyWindow(QMainWindow):
         self._refresh_theory_html()
 
         has_example = bool(s["example_code"].strip())
-        self.example_editor.setPlainText(s["example_code"] if has_example else "(이 섹션에는 별도 예제 코드가 없습니다 — 왼쪽 이론을 참고하세요)")
+        self._set_example_code(s["example_code"], has_example)
         self.btn_run_example.setEnabled(has_example)
 
         self.clear_plot()
@@ -402,10 +483,48 @@ class StudyWindow(QMainWindow):
             return
         self.load_practice(min(practice_idx, len(s["practices"]) - 1))
 
+    def _set_example_code(self, code, has_example):
+        """예제 코드를 '# %%' 마커 기준으로 여러 셀로 나눠 각각 읽기전용 에디터로 보여준다."""
+        while self._example_cells_layout.count():
+            item = self._example_cells_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        self._example_cell_editors = []
+
+        t = theme.tokens()
+        if not has_example:
+            placeholder = QLabel("(이 섹션에는 별도 예제 코드가 없습니다 — 왼쪽 이론을 참고하세요)")
+            placeholder.setStyleSheet(f"color: {t['muted_text']}; font-style: italic;")
+            self._example_cells_layout.addWidget(placeholder)
+            return
+
+        cell_style = f"""
+        QPlainTextEdit {{
+            background-color: {t['example_bg']}; color: {t['editor_text']}; border: 1px solid {t['example_border']};
+            border-left: 4px solid {t['accent_gold']}; border-radius: 4px; padding: 8px;
+        }}
+        """
+        for label, cell_code in _split_example_cells(code):
+            if label:
+                header = QLabel(label)
+                header.setStyleSheet(f"color: {t['accent_gold']}; font-weight: bold; font-size: 11px;")
+                self._example_cells_layout.addWidget(header)
+            editor = QPlainTextEdit()
+            editor.setReadOnly(True)
+            editor.setPlainText(cell_code)
+            PythonHighlighter(editor.document())
+            editor.setFont(QFont("Consolas", self.editor_font_size))
+            editor.setStyleSheet(cell_style)
+            line_count = cell_code.count("\n") + 1
+            editor.setFixedHeight(min(max(editor.fontMetrics().lineSpacing() * (line_count + 1) + 12, 60), 300))
+            self._example_cells_layout.addWidget(editor)
+            self._example_cell_editors.append(editor)
+
     def _load_empty_practice_state(self):
         self.practice_label.setText("이 섹션에는 TODO 실습문제가 없습니다 (이론 위주 섹션)")
         self.practice_prompt_viewer.setHtml(
-            "<i style='color:#6B6B6B;'>이 섹션은 개념 설명 위주라 별도 실습문제가 없습니다. "
+            f"<i style='color:{theme.tokens()['muted_text']};'>이 섹션은 개념 설명 위주라 별도 실습문제가 없습니다. "
             "왼쪽 이론을 확인한 뒤 '다음 섹션'으로 넘어가세요.</i>"
         )
         self.code_editor.blockSignals(True)
@@ -448,14 +567,7 @@ class StudyWindow(QMainWindow):
 
         revealed = self.progress_manager.is_revealed(pid)
         self.reveal_banner.setVisible(revealed)
-        border_color = "#B22222" if revealed else "#007ACC"
-        self.code_editor.setStyleSheet(f"""
-        QPlainTextEdit {{
-            background-color: #1E1E1E; color: #D4D4D4; border: 1px solid #333333;
-            border-left: 4px solid {border_color}; border-radius: 4px; padding: 8px;
-            selection-background-color: #264F78;
-        }}
-        """)
+        self._style_code_editor(revealed)
         if revealed:
             self.reveal_banner.setText("🔒 정답을 확인한 문제입니다 — 이 문제는 복습 리스트에 남습니다. 자유롭게 연습해보세요.")
             self._render_answer_tab(p["answer_code"])
@@ -474,19 +586,20 @@ class StudyWindow(QMainWindow):
         self.practice_label.setText(f"✍️ TODO 문제 {self.current_practice_idx + 1} / {len(s['practices'])}  (섹션 내 정답 {done}개)")
 
     def _refresh_section_nav(self):
+        t = theme.tokens()
         session_data = self.progress_manager.get_data()
         completed = set(session_data.get("completed_sections", []))
         for s in self.sections:
             btn = self.section_nav_buttons[s["no"]]
             is_current = (s["no"] == self.sections[self.current_section_idx]["no"])
             if s["no"] in completed:
-                color = "#4CAF50"
+                bg, text_color = "#4CAF50", "white"
             else:
-                color = "#454C5C"
-            border = "2px solid #FFFFFF" if is_current else "1px solid #2D3E4E"
+                bg, text_color = t['btn_bg'], t['btn_text']
+            border = f"2px solid {t['accent_blue']}" if is_current else f"1px solid {t['panel_border']}"
             btn.setChecked(is_current)
             btn.setStyleSheet(f"""
-                QPushButton {{ background-color: {color}; color: white; font-weight: bold;
+                QPushButton {{ background-color: {bg}; color: {text_color}; font-weight: bold;
                                 border: {border}; border-radius: 4px; }}
             """)
 
@@ -499,7 +612,23 @@ class StudyWindow(QMainWindow):
     def prev_section(self):
         self.load_section(self.current_section_idx - 1)
 
+    def _has_real_attempt(self, section, practice):
+        """힌트/정답만 보고 직접 채점(채점하기)은 안 한 문제를 걸러낸다.
+        show_answer()는 attempts를 올리지 않으므로, attempts>0은 곧 '직접 코드를 제출해봤다'는 뜻이다."""
+        pid = self._practice_id(section, practice)
+        result = self.progress_manager.get_data()["practice_results_by_id"].get(pid)
+        return bool(result) and result.get("attempts", 0) > 0
+
+    def _section_complete(self, section):
+        return all(self._has_real_attempt(section, p) for p in section["practices"])
+
     def next_section(self, user_triggered=False):
+        if user_triggered and not self._section_complete(self.sections[self.current_section_idx]):
+            QMessageBox.information(
+                self, "아직 완료되지 않은 문제가 있어요",
+                "힌트나 정답을 봤더라도, 직접 코드를 입력하고 '채점하기'를 눌러야 다음 섹션으로 넘어갈 수 있어요."
+            )
+            return
         self.progress_manager.mark_section_completed(self.sections[self.current_section_idx]["no"])
         if self.current_section_idx + 1 < len(self.sections):
             self.load_section(self.current_section_idx + 1)
@@ -511,6 +640,12 @@ class StudyWindow(QMainWindow):
 
     def next_practice(self, user_triggered=False):
         s = self.sections[self.current_section_idx]
+        if user_triggered and s["practices"] and not self._has_real_attempt(s, s["practices"][self.current_practice_idx]):
+            QMessageBox.information(
+                self, "아직 채점하지 않았어요",
+                "힌트나 정답을 봤더라도, 직접 코드를 입력하고 '채점하기'를 눌러야 다음 문제로 넘어갈 수 있어요."
+            )
+            return
         if self.current_practice_idx + 1 < len(s["practices"]):
             self.load_practice(self.current_practice_idx + 1)
         else:
@@ -668,20 +803,15 @@ class StudyWindow(QMainWindow):
                                       QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             self.progress_manager.mark_revealed(pid)
-            self.progress_manager.record_result(pid, is_correct=False, revealed_answer=True)
+            # attempts는 여기서 올리지 않는다 — 정답을 "봤다"는 사실만 기록하고, 직접
+            # 코드를 입력해 채점하기 전까지는 다음 문제/섹션으로 못 넘어가게 하려는 의도.
+            self.progress_manager.ensure_in_wrong_list(pid)
             self.progress_manager.save_now()
             self.reveal_banner.setVisible(True)
             self.reveal_banner.setText("🔒 정답을 확인한 문제입니다 — 이 문제는 복습 리스트에 남습니다. 자유롭게 연습해보세요.")
             self._render_answer_tab(p["answer_code"])
             self.tabs.setCurrentIndex(2)
-            border_color = "#B22222"
-            self.code_editor.setStyleSheet(f"""
-            QPlainTextEdit {{
-                background-color: #1E1E1E; color: #D4D4D4; border: 1px solid #333333;
-                border-left: 4px solid {border_color}; border-radius: 4px; padding: 8px;
-                selection-background-color: #264F78;
-            }}
-            """)
+            self._style_code_editor(revealed=True)
 
     def closeEvent(self, event):
         reply = QMessageBox.question(
