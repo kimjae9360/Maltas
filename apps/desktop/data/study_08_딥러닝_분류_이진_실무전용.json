@@ -190,7 +190,7 @@
         {
           "no": 6,
           "prompt_markdown": "`model`의 예측 결과(`pred_label`)로 precision과 f1-score까지 추가로 구하세요.",
-          "answer_code": "from sklearn.metrics import precision_score, f1_score\nprint(precision_score(y_test, pred_label), f1_score(y_test, pred_label))",
+          "answer_code": "from sklearn.metrics import precision_score, f1_score\nprint(precision_score(y_test, pred))\nprint(f1_score(y_test, pred))",
           "checks": [
             {
               "var": "pred_label",
@@ -238,7 +238,7 @@
         {
           "no": 8,
           "prompt_markdown": "`classification_report`로 `model`의 성능을 종합적으로 출력하세요.",
-          "answer_code": "from sklearn.metrics import classification_report\nprint(classification_report(y_test, pred_label))",
+          "answer_code": "from sklearn.metrics import classification_report\nprint(classification_report(y_test, pred))  # 옵션 없이도 precision/recall/f1을 한 번에 보여줌",
           "checks": [
             {
               "var": "pred_label",

@@ -64,7 +64,7 @@
         {
           "no": 4,
           "prompt_markdown": "`data/multi_sheet_sample.xlsx`에서 `'매장정보'` 시트만 `shops_practice_df`로 읽어 컬럼 목록을 확인하세요.",
-          "answer_code": "shops_practice_df = pd.read_excel('data/multi_sheet_sample.xlsx', sheet_name='매장정보')\nprint(shops_practice_df.columns.tolist())",
+          "answer_code": "shops_practice_df = pd.read_excel('data/multi_sheet_sample.xlsx', sheet_name='매장정보')  # sheet_name으로 여러 시트 중 원하는 하나만 골라 읽음\nprint(shops_practice_df.columns.tolist())",
           "checks": [
             {
               "var": "shops_practice_df",
@@ -81,7 +81,7 @@
         {
           "no": 5,
           "prompt_markdown": "`data/nested_customers.json`을 불러와 `pd.json_normalize()`로 평탄화한 `customers_practice_df`를 만들고 shape을 확인하세요.",
-          "answer_code": "import json\nwith open('data/nested_customers.json', encoding='utf-8') as f:\n    nested_data = json.load(f)\ncustomers_practice_df = pd.json_normalize(nested_data)\nprint(customers_practice_df.shape)",
+          "answer_code": "import json\nwith open('data/nested_customers.json', encoding='utf-8') as f:\n    nested_data = json.load(f)\ncustomers_practice_df = pd.json_normalize(nested_data)  # 중첩된 딕셔너리를 점(.)으로 이어진 컬럼명으로 평탄화\nprint(customers_practice_df.shape)",
           "checks": [
             {
               "var": "customers_practice_df",

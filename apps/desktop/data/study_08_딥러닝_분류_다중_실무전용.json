@@ -140,7 +140,7 @@
         {
           "no": 4,
           "prompt_markdown": "`pred_label`을 사용해 macro 평균 f1-score와 precision을 구하세요. (다중분류에서는 클래스별 결과를 `average='macro'`로 평균 내는 것이 표준입니다)",
-          "answer_code": "from sklearn.metrics import f1_score, precision_score\nprint(f1_score(y_test, pred_label, average='macro'))\nprint(precision_score(y_test, pred_label, average='macro'))",
+          "answer_code": "from sklearn.metrics import f1_score, precision_score\nprint(f1_score(y_test, pred, average='macro'))  # 다중분류는 average 옵션을 꼭 지정해야 계산됨\nprint(precision_score(y_test, pred, average='macro'))",
           "checks": [
             {
               "var": "pred_label",
@@ -222,7 +222,7 @@
         {
           "no": 6,
           "prompt_markdown": "`model`에 대해 `classification_report`로 클래스별 precision/recall/f1을 한 번에 출력하세요.",
-          "answer_code": "from sklearn.metrics import classification_report\nprint(classification_report(y_test, pred_label))",
+          "answer_code": "from sklearn.metrics import classification_report\nprint(classification_report(y_test, pred))  # 옵션 없이도 클래스별 precision/recall/f1을 한 번에 보여줌",
           "checks": [
             {
               "var": "pred_label",

@@ -147,7 +147,7 @@
         {
           "no": 5,
           "prompt_markdown": "은닉층을 하나 더 쌓은(64→32→16→1) `model2`를 새로 만들어 같은 방식으로 컴파일하세요.",
-          "answer_code": "model2 = Sequential()\nmodel2.add(Dense(64, activation='relu', input_shape=(X_train_s.shape[1],)))\nmodel2.add(Dense(32, activation='relu'))\nmodel2.add(Dense(16, activation='relu'))\nmodel2.add(Dense(1))\nmodel2.compile(optimizer='adam', loss='mse', metrics=['mae'])\nmodel2.summary()",
+          "answer_code": "model2 = Sequential()\nmodel2.add(Dense(64, activation='relu', input_shape=(X_train.shape[1],)))\nmodel2.add(Dense(32, activation='relu'))\nmodel2.add(Dense(1))  # 회귀 출력층: activation 없음\nmodel2.compile(optimizer='adam', loss='mse', metrics=['mae'])",
           "checks": [
             {
               "var": "X_train_s",

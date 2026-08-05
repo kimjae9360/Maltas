@@ -766,7 +766,7 @@
         {
           "no": 25,
           "prompt_markdown": "`wine`의 `target`(0,1,2)을 각각 `'A등급'`, `'B등급'`, `'C등급'` 문자열로 매핑한 `grade` 컬럼을 만들고, `grade`에서 `'A'`가 포함된 값의 개수를 `str.contains`로 구하세요.",
-          "answer_code": "grade_map = {0: 'A등급', 1: 'B등급', 2: 'C등급'}\nwine['grade'] = wine['target'].map(grade_map)\nprint(wine['grade'].str.contains('A').sum())",
+          "answer_code": "grade_map = {0: 'A등급', 1: 'B등급', 2: 'C등급'}\nwine['grade'] = wine['target'].map(grade_map)  # map()으로 정수 target을 사람이 읽기 쉬운 등급 문자열로 변환",
           "checks": [
             {
               "var": "wine",
@@ -783,7 +783,7 @@
         {
           "no": 26,
           "prompt_markdown": "`wine['grade']`에서 `'등급'`이라는 글자를 빈 문자열로 바꾼 `grade_short` 컬럼을 `str.replace`로 만드세요.",
-          "answer_code": "wine['grade_short'] = wine['grade'].str.replace('등급', '')\nprint(wine['grade_short'].unique())",
+          "answer_code": "wine['grade_short'] = wine['grade'].str.replace('등급', '')  # str.replace로 문자열 컬럼 전체에서 '등급' 글자만 제거\nprint(wine['grade_short'].value_counts())",
           "checks": [
             {
               "var": "wine",
@@ -800,7 +800,7 @@
         {
           "no": 27,
           "prompt_markdown": "`wine`에서 `alcohol`이 13 이상인 행을 `query()`로 필터링해 `alcohol`, `grade` 컬럼만 출력하세요.",
-          "answer_code": "print(wine.query('alcohol >= 13')[['alcohol', 'grade']])",
+          "answer_code": "print(wine.query('alcohol >= 13')[['alcohol', 'grade']])  # query()로 조건식을 문자열로 간결하게 표현",
           "checks": [
             {
               "var": "wine",
@@ -817,7 +817,7 @@
         {
           "no": 28,
           "prompt_markdown": "메서드 체이닝으로, `wine`에서 `grade == 'A등급'`인 행만 필터링한 뒤 바로 이어서 `alcohol` 평균을 구하는 코드를 한 줄로 작성하세요.",
-          "answer_code": "print(wine.query(\"grade == 'A등급'\")['alcohol'].mean())",
+          "answer_code": "print(wine.query(\"grade == 'A등급'\")['alcohol'].mean())  # A등급 와인들만 골라 alcohol 평균을 구함",
           "checks": [
             {
               "var": "wine",
