@@ -135,7 +135,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(x='target', data=digits)  # 범주형 변수의 항목별 개수를 막대 그래프로 시각화\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "countplot"
+        }
+      ]
     },
     {
       "no": 7,
@@ -322,7 +330,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.metrics import accuracy_score, f1_score\nrf = RandomForestClassifier(n_estimators=200, random_state=42)  # 여러 개의 의사결정 나무를 묶어 예측하는 랜덤 포레스트 분류 모델 생성\nrf.fit(X_train_s, y_train)\npred = rf.predict(X_test_s)\nprint(accuracy_score(y_test, pred))  # 전체 예측 중 올바르게 맞춘 비율(정확도) 계산\nprint(f1_score(y_test, pred, average='macro'))  # 정밀도와 재현율의 조화 평균, 데이터가 불균형할 때 중요한 평가지표"
     },
     {
       "no": 11,
@@ -357,7 +367,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "cv_scores = cross_val_score(rf, X_train_s, y_train, cv=5)\nprint(cv_scores)\nprint('평균 교차검증 정확도:', cv_scores.mean())  # 단일 test set 결과가 우연이 아닌지, 데이터를 5등분해 반복 검증"
     },
     {
       "no": 12,
@@ -392,7 +404,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "from sklearn.metrics import confusion_matrix\ncm = confusion_matrix(y_test, pred)  # 실제 정답과 예측 결과를 교차 표(오차 행렬)로 확인\nsns.{{b1}}(cm, annot=True, fmt='d', cmap='Blues')  # 상관계수 등을 색상으로 표현하여 한눈에 파악\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "heatmap"
+        }
+      ]
     },
     {
       "no": 13,

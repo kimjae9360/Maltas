@@ -98,7 +98,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(x='Churn', data=df)  # 범주형 변수의 항목별 개수를 막대 그래프로 시각화\nplt.title('Churn (imbalanced)')\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "countplot"
+        }
+      ]
     },
     {
       "no": 6,
@@ -117,7 +125,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(x='Contract', y='tenure', data=df)  # 이상치와 사분위수를 확인하기 위해 상자 수염 그림 시각화\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "boxplot"
+        }
+      ]
     },
     {
       "no": 7,
@@ -295,7 +311,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.preprocessing import StandardScaler\nfrom sklearn.metrics import recall_score, precision_score\nscaler = StandardScaler()  # 데이터를 평균 0, 표준편차 1이 되도록 스케일링 (거리 기반, 딥러닝 알고리즘에 필수)\nX_train_s = scaler.fit_transform(X_train)  # 훈련 데이터로 스케일링 기준을 학습(fit)하고 변환(transform)까지 수행\nX_test_s = scaler.transform(X_test)  # 훈련 데이터에서 학습된 기준을 그대로 적용하여 평가 데이터를 변환 (데이터 누수 방지)\nrf = RandomForestClassifier(class_weight='balanced', random_state=42)  # 여러 개의 의사결정 나무를 묶어 예측하는 랜덤 포레스트 분류 모델 생성\nrf.fit(X_train_s, y_train)\npred = rf.predict(X_test_s)\nprint(recall_score(y_test, pred))\nprint(precision_score(y_test, pred))"
     },
     {
       "no": 11,
@@ -356,7 +374,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "smote = SMOTE(random_state=42)\nX_over, y_over = smote.fit_resample(X_train_s, y_train)\nrf2 = RandomForestClassifier(random_state=42)  # 여러 개의 의사결정 나무를 묶어 예측하는 랜덤 포레스트 분류 모델 생성\nrf2.fit(X_over, y_over)\nprint(recall_score(y_test, rf2.predict(X_test_s)))"
     },
     {
       "no": 12,

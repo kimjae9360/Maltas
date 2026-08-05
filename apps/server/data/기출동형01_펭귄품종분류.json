@@ -100,7 +100,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "df = pd.{{b1}}(df, columns=['island'], drop_first=True)\nprint(df.shape)\ndf.head(2)",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "get_dummies"
+        }
+      ]
     },
     {
       "no": 6,
@@ -142,7 +150,7 @@
           "attr": "shape",
           "op": "eq",
           "expected": [
-            266,
+            380,
             7
           ]
         },
@@ -151,12 +159,14 @@
           "attr": "shape",
           "op": "eq",
           "expected": [
-            67,
+            95,
             7
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "\nscaler = StandardScaler()\nX_train = scaler.fit_transform(X_train)\nX_test = scaler.transform(X_test)\n\nmodel = RandomForestClassifier(n_estimators=100, random_state=42)\nmodel.fit(X_train, y_train)\ny_pred = model.predict(X_test)\nprint('예측 완료:', y_pred[:5])"
     },
     {
       "no": 8,
@@ -172,7 +182,9 @@
           "expected": 0.93
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "\nacc = accuracy_score(y_test, y_pred)\nprint(f'Accuracy: {acc:.4f}')\nprint(classification_report(y_test, y_pred, target_names=le.classes_))"
     },
     {
       "no": 9,

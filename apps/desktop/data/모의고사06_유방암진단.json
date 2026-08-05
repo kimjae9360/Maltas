@@ -106,7 +106,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(data=df, x='mean radius', hue='target', kde=True)  # hue로 악성/양성 그룹을 나눠 분포가 얼마나 겹치는지 비교\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "histplot"
+        }
+      ]
     },
     {
       "no": 6,
@@ -133,7 +141,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "cols = ['mean radius', 'mean texture', 'mean area', 'target']\nsns.{{b1}}(df[cols].corr(), annot=True, cmap='coolwarm')  # 수치형 변수 간의 상관계수를 계산하여 서로의 연관성 파악\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "heatmap"
+        }
+      ]
     },
     {
       "no": 7,
@@ -328,7 +344,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.metrics import accuracy_score, recall_score, roc_auc_score\nlogi = LogisticRegression(max_iter=5000)  # 주로 이진 분류에 쓰이는 로지스틱 회귀 모델 생성\nlogi.fit(X_train_s, y_train)\npred = logi.predict(X_test_s)\nproba = logi.predict_proba(X_test_s)[:, 1]\nprint(accuracy_score(y_test, pred))  # 전체 예측 중 올바르게 맞춘 비율(정확도) 계산\nprint(recall_score(y_test, pred))\nprint(roc_auc_score(y_test, proba))"
     },
     {
       "no": 11,
@@ -378,7 +396,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "fpr, tpr, _ = roc_curve(y_test, proba)  # thresholds는 여기서 쓰지 않으므로 _로 무시\nplt.plot(fpr, tpr)\nplt.plot([0,1],[0,1],'k--')  # 대각선(랜덤 추측 수준)과 비교해 곡선이 왼쪽 위로 많이 벗어날수록 좋은 모델\nplt.xlabel('FPR'); plt.ylabel('TPR')\nplt.show()"
     },
     {
       "no": 12,

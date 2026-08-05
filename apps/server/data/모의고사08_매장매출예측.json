@@ -98,7 +98,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sales.groupby('지역')['매출_만원'].mean().plot(kind='{{b1}}')  # groupby+mean으로 만든 Series에 바로 .plot()을 연결해 빠르게 시각화\nplt.title('지역별 평균 매출')\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "bar"
+        }
+      ]
     },
     {
       "no": 6,
@@ -117,7 +125,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(data=sales, x='매장크기_m2', y='매출_만원')  # 두 변수 간의 관계를 산점도로 시각화\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "scatterplot"
+        }
+      ]
     },
     {
       "no": 7,
@@ -284,7 +300,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.metrics import r2_score\nlr = LinearRegression()  # 선형 회귀 모델 생성\nlr.fit(X_train, y_train)\nlr_r2 = r2_score(y_test, lr.predict(X_test))  # 회귀 모델의 설명력(R-squared) 계산 (1에 가까울수록 우수)\nprint('Linear R2:', lr_r2)"
     },
     {
       "no": 11,
@@ -334,7 +352,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.metrics import r2_score\nrf = RandomForestRegressor(random_state=42)  # 랜덤 포레스트 회귀 모델 생성\nrf.fit(X_train, y_train)\nrf_r2 = r2_score(y_test, rf.predict(X_test))  # 회귀 모델의 설명력(R-squared) 계산 (1에 가까울수록 우수)\nprint('RF R2:', rf_r2)"
     },
     {
       "no": 12,

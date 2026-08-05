@@ -137,7 +137,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "from sklearn.linear_model import {{b1}}\n\nmodel_lr = LinearRegression()\nmodel_lr.fit(X_train, y_train)\ny_pred_lr = model_lr.predict(X_test)\nprint('예측 첫 5개:', y_pred_lr[:5].round(2))",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "LinearRegression"
+        }
+      ]
     },
     {
       "no": 7,
@@ -156,7 +164,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "\nmodel_rf = RandomForestRegressor(n_estimators=100, random_state=42)\nmodel_rf.fit(X_train, y_train)\ny_pred_rf = model_rf.predict(X_test)\nprint('예측 첫 5개:', y_pred_rf[:5].round(2))"
     },
     {
       "no": 8,
@@ -172,7 +182,9 @@
           "expected": 0.45
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "import numpy as np\n\nr2_lr = r2_score(y_test, y_pred_lr)\nr2_rf = r2_score(y_test, y_pred_rf)\nrmse_lr = np.sqrt(mean_squared_error(y_test, y_pred_lr))\nrmse_rf = np.sqrt(mean_squared_error(y_test, y_pred_rf))\n\nprint(f'LinearRegression  R²: {r2_lr:.4f}, RMSE: {rmse_lr:.2f}')\nprint(f'RandomForest      R²: {r2_rf:.4f}, RMSE: {rmse_rf:.2f}')\n\nbest_model_name = 'LinearRegression' if r2_lr >= r2_rf else 'RandomForest'\nprint('더 좋은 모델:', best_model_name)"
     },
     {
       "no": 9,

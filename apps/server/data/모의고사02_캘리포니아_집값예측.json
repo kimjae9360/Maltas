@@ -98,7 +98,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(housing['MedHouseVal'], kde=True)  # kde=True로 히스토그램 위에 부드러운 분포 곡선을 함께 표시\nplt.title('MedHouseVal distribution')\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "histplot"
+        }
+      ]
     },
     {
       "no": 6,
@@ -136,7 +144,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(housing.corr(), annot=True, fmt='.2f', cmap='coolwarm')  # fmt='.2f'로 소수점 둘째 자리까지만 표시해 칸이 지저분해지지 않게 함\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "heatmap"
+        }
+      ]
     },
     {
       "no": 8,
@@ -304,7 +320,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.metrics import r2_score, mean_absolute_error\nrf = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)  # n_jobs=-1: 가용 CPU를 모두 사용해 학습 속도를 높임\nrf.fit(X_train_s, y_train)\npred = rf.predict(X_test_s)\nprint(r2_score(y_test, pred))  # R2는 1에 가까울수록 좋음\nprint(mean_absolute_error(y_test, pred))  # MAE는 오차 절댓값의 평균(단위가 원래 값과 동일해 해석이 쉬움)"
     },
     {
       "no": 11,
@@ -401,7 +419,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from tensorflow.keras.layers import Dense\nmodel = Sequential()\nmodel.add(Dense(32, activation='relu', input_shape=(X_train_s.shape[1],)))\nmodel.add(Dense(16, activation='relu'))\nmodel.add(Dense(1))  # 회귀 출력층: 노드 1개, activation 없음\nmodel.compile(optimizer='adam', loss='mse', metrics=['mae'])  # 회귀는 loss='mse'가 기본"
     },
     {
       "no": 14,

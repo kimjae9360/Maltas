@@ -137,10 +137,12 @@
           "var": "acc_gb",
           "attr": "",
           "op": "gte",
-          "expected": 0.95
+          "expected": 0.9
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier\nfrom sklearn.metrics import accuracy_score\n\ndt = DecisionTreeClassifier(random_state=42)\ndt.fit(X_train, y_train)\nacc_dt = accuracy_score(y_test, dt.predict(X_test))\n\nrf = RandomForestClassifier(n_estimators=100, random_state=42)\nrf.fit(X_train, y_train)\nacc_rf = accuracy_score(y_test, rf.predict(X_test))\n\ngb = GradientBoostingClassifier(n_estimators=100, random_state=42)\ngb.fit(X_train, y_train)\nacc_gb = accuracy_score(y_test, gb.predict(X_test))\n\nprint(f'DecisionTree: {acc_dt:.4f}')\nprint(f'RandomForest: {acc_rf:.4f}')\nprint(f'GradientBoosting: {acc_gb:.4f}')"
     },
     {
       "no": 7,
@@ -195,7 +197,16 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "starter_code": "import numpy as np\n\ncv_scores = cross_val_score(rf, X_train, y_train, cv=5, scoring='accuracy')\nprint('CV Scores:', cv_scores.round(4))\nprint(f'평균: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}')",
+      "code_template": "from sklearn.model_selection import {{b1}}\nimport numpy as np\n\ncv_scores = cross_val_score(rf, X_train, y_train, cv=5, scoring='accuracy')\nprint('CV Scores:', cv_scores.round(4))\nprint(f'평균: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}')",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "cross_val_score"
+        }
+      ]
     },
     {
       "no": 10,

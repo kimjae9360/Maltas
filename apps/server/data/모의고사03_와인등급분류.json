@@ -106,7 +106,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(x='target', data=wine)  # 클래스별 빈도를 막대로 확인\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "countplot"
+        }
+      ]
     },
     {
       "no": 6,
@@ -125,7 +133,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(x='target', y='alcohol', data=wine)  # 품종(target)별로 alcohol 분포가 어떻게 다른지 비교\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "boxplot"
+        }
+      ]
     },
     {
       "no": 7,
@@ -304,7 +320,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.metrics import classification_report\nrf = RandomForestClassifier(n_estimators=100, random_state=42)\nrf.fit(X_train_s, y_train)\nprint(classification_report(y_test, rf.predict(X_test_s)))  # average 옵션 없이도 클래스별 precision/recall/f1을 모두 보여줘 다중분류에서 가장 먼저 찍어보기 좋음"
     },
     {
       "no": 11,
@@ -393,7 +411,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from tensorflow.keras.layers import Dense\nmodel = Sequential()\nmodel.add(Dense(16, activation='relu', input_shape=(X_train_s.shape[1],)))\nmodel.add(Dense(8, activation='relu'))\nmodel.add(Dense(3, activation='softmax'))  # 다중분류 출력층: 노드 수=클래스 수(3), softmax\nmodel.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])  # y가 정수 레이블이므로 sparse_categorical_crossentropy 사용"
     },
     {
       "no": 14,

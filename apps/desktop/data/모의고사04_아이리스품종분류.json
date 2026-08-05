@@ -98,7 +98,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(data=iris, x='sepal length (cm)', y='sepal width (cm)', hue='target', palette='Set1')  # 두 변수 간의 관계를 산점도로 시각화\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "scatterplot"
+        }
+      ]
     },
     {
       "no": 6,
@@ -117,7 +125,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(x='target', y='petal length (cm)', data=iris)  # 값의 분포와 밀도를 바이올린 형태로 시각화\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "violinplot"
+        }
+      ]
     },
     {
       "no": 7,
@@ -296,7 +312,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.metrics import accuracy_score\nknn = KNeighborsClassifier(n_neighbors=5)  # K-최근접 이웃 알고리즘(KNN) 모델 생성\nknn.fit(X_train_s, y_train)\nprint(accuracy_score(y_test, knn.predict(X_test_s)))  # 전체 예측 중 올바르게 맞춘 비율(정확도) 계산"
     },
     {
       "no": 11,
@@ -340,7 +358,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.metrics import classification_report\nsvc = SVC(kernel='rbf', random_state=42)  # 서포트 벡터 머신(SVM) 분류 모델 생성\nsvc.fit(X_train_s, y_train)\nprint(classification_report(y_test, svc.predict(X_test_s)))"
     },
     {
       "no": 12,

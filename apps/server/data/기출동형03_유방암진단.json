@@ -118,7 +118,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "\nmodel = LogisticRegression(max_iter=1000, random_state=42)\nmodel.fit(X_train, y_train)\ny_pred = model.predict(X_test)\ny_prob = model.predict_proba(X_test)[:, 1]  # 양성(1) 클래스 확률\nprint('예측 완료. 첫 5개:', y_pred[:5])"
     },
     {
       "no": 6,
@@ -153,7 +155,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "from sklearn.metrics import {{b1}}\n\ncm = confusion_matrix(y_test, y_pred)\nprint('혼동행렬:\\n', cm)\nTN, FP, FN, TP = cm.ravel()\nprint(f'FP(거짓 양성): {FP}  FN(거짓 음성): {FN}')",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "confusion_matrix"
+        }
+      ]
     },
     {
       "no": 8,
@@ -169,7 +179,15 @@
           "expected": 0.97
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "from sklearn.metrics import {{b1}}\n\nroc_auc = roc_auc_score(y_test, y_prob)\nprint(f'ROC-AUC: {roc_auc:.4f}')",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "roc_auc_score"
+        }
+      ]
     },
     {
       "no": 9,
@@ -185,7 +203,9 @@
           "expected": 0.93
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "\nmodel_rf = RandomForestClassifier(n_estimators=100, random_state=42)\nmodel_rf.fit(X_train, y_train)\ny_pred_rf = model_rf.predict(X_test)\nacc_rf = accuracy_score(y_test, y_pred_rf)\nprint(f'RandomForest Accuracy: {acc_rf:.4f}')\nprint(f'LogisticRegression:    {acc:.4f}')\nprint('더 나은 모델:', 'RandomForest' if acc_rf > acc else 'LogisticRegression')"
     },
     {
       "no": 10,

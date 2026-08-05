@@ -116,7 +116,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(x='기기종류', hue='구매여부', data=df)  # 범주형 변수의 항목별 개수를 막대 그래프로 시각화\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "countplot"
+        }
+      ]
     },
     {
       "no": 6,
@@ -135,7 +143,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(data=df, x='이전구매금액', hue='구매여부')  # 데이터의 분포를 부드러운 곡선(밀도 함수)으로 시각화\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "kdeplot"
+        }
+      ]
     },
     {
       "no": 7,
@@ -322,7 +338,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.metrics import recall_score, precision_score, f1_score\nlogi = LogisticRegression(class_weight='balanced', max_iter=1000)  # 주로 이진 분류에 쓰이는 로지스틱 회귀 모델 생성\nlogi.fit(X_train_s, y_train)\npred = logi.predict(X_test_s)\nprint(recall_score(y_test, pred))\nprint(precision_score(y_test, pred))\nprint(f1_score(y_test, pred))  # 정밀도와 재현율의 조화 평균, 데이터가 불균형할 때 중요한 평가지표"
     },
     {
       "no": 11,
@@ -366,7 +384,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "rf = RandomForestClassifier(class_weight='balanced', random_state=42)  # 여러 개의 의사결정 나무를 묶어 예측하는 랜덤 포레스트 분류 모델 생성\nrf.fit(X_train_s, y_train)\nprint(recall_score(y_test, rf.predict(X_test_s)))"
     },
     {
       "no": 12,

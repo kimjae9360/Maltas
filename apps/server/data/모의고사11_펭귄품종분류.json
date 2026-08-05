@@ -79,7 +79,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(data=penguin, x='species')\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "countplot"
+        }
+      ]
     },
     {
       "no": 5,
@@ -117,7 +125,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(data=penguin, x='species', y='body_mass_g')\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "boxplot"
+        }
+      ]
     },
     {
       "no": 7,
@@ -365,7 +381,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.metrics import accuracy_score\n\nrf = RandomForestClassifier(n_estimators=100, random_state=42)\nrf.fit(X_train_s, y_train)\nrf_pred = rf.predict(X_test_s)\nrf_acc = accuracy_score(y_test, rf_pred)\nprint(rf_acc)"
     },
     {
       "no": 13,
@@ -423,7 +441,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.metrics import accuracy_score\n\nxgb = XGBClassifier(n_estimators=100, random_state=42)\nxgb.fit(X_train_s, y_train)\nxgb_pred = xgb.predict(X_test_s)\nxgb_acc = accuracy_score(y_test, xgb_pred)\nprint(xgb_acc)"
     },
     {
       "no": 14,

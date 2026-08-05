@@ -79,7 +79,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(data=semi, x='yield_pct', kde=True)\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "histplot"
+        }
+      ]
     },
     {
       "no": 5,
@@ -117,7 +125,15 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "fill_blank",
+      "code_template": "sns.{{b1}}(data=semi, x='shift', y='yield_pct')\nplt.show()",
+      "blanks": [
+        {
+          "id": "b1",
+          "expected": "boxplot"
+        }
+      ]
     },
     {
       "no": 7,
@@ -357,7 +373,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.metrics import r2_score\n\nrf = RandomForestRegressor(n_estimators=100, random_state=42)\nrf.fit(X_train_s, y_train)\nrf_pred = rf.predict(X_test_s)\nrf_r2 = r2_score(y_test, rf_pred)\nprint(rf_r2)"
     },
     {
       "no": 13,
@@ -415,7 +433,9 @@
           ]
         }
       ],
-      "manual_review": false
+      "manual_review": false,
+      "question_type": "bug_fix",
+      "starter_code": "from sklearn.metrics import r2_score\n\nxgb = XGBRegressor(n_estimators=100, random_state=42)\nxgb.fit(X_train_s, y_train)\nxgb_pred = xgb.predict(X_test_s)\nxgb_r2 = r2_score(y_test, xgb_pred)\nprint(xgb_r2)"
     },
     {
       "no": 14,
