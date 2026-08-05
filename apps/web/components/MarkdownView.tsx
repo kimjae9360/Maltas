@@ -1,11 +1,17 @@
 // 문제 지문(prompt_markdown), 이론 설명(theory_markdown) 등 서버가 마크다운 "문자열"로
 // 내려주는 텍스트를 실제 HTML(제목, 목록, 표, 굵은 글씨 등)로 바꿔서 보여주는 공용 컴포넌트.
+import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 // remark-gfm: GitHub Flavored Markdown 확장 — 표(table), 취소선 같은 기본 마크다운에
 // 없는 문법을 지원하게 해준다. 개념표(concept_table_markdown)를 표로 렌더링하려면 필수.
 
-export function MarkdownView({ children }: { children: string }) {
+// memo()로 감싼 이유: ReactMarkdown은 렌더링될 때마다 마크다운 문자열을 처음부터 다시
+// 파싱한다(캐싱을 자체적으로 하지 않음). study/[chapterId]/page.tsx의 이론 설명·개념표처럼
+// memo 카드 "밖"에 직접 놓인 MarkdownView는, 같은 화면의 TODO 카드에 글자 하나만 쳐도
+// (부모 페이지 전체가 리렌더되므로) 매번 다시 파싱되고 있었다. children(문자열) 값이
+// 그대로면 건너뛰도록 이 컴포넌트 자체를 memo로 감쌌다.
+export const MarkdownView = memo(function MarkdownView({ children }: { children: string }) {
   // children으로 마크다운 "문자열"을 받는다. 보통 <MarkdownView>텍스트</MarkdownView> 처럼
   // 태그 사이에 내용을 적으면 React가 자동으로 children prop에 그 내용을 넣어준다.
   return (
@@ -23,4 +29,4 @@ export function MarkdownView({ children }: { children: string }) {
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
     </div>
   );
-}
+});
