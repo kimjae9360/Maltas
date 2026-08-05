@@ -30,7 +30,11 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm font-semibold text-[var(--muted)] transition hover:text-[var(--foreground)]"
+      className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm font-semibold text-[var(--muted)] transition hover:text-[var(--foreground)]"
+      // whitespace-nowrap + shrink-0: 좁은 화면에서 이 버튼이 들어있는 flex 줄이 비좁아지면,
+      // 브라우저가 이 버튼 "안의 글자"를 줄바꿈해서 억지로 욱여넣으려는 경우가 있었다
+      // ("🌙"과 "다크"가 따로 줄바뀜) — 대신 버튼은 항상 한 줄을 유지하게 강제하고,
+      // 자리가 부족하면 (부모의 flex-wrap이 있는 경우) 버튼째로 다음 줄로 넘어가게 한다.
       title="테마 변경"
     >
       {theme === "dark" ? "🌞 라이트" : "🌙 다크"}

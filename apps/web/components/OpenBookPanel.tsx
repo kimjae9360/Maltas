@@ -29,7 +29,9 @@ export function OpenBookPanel() {
         // setOpen((v) => !v) : 함수형 업데이트 — 현재 값(v)을 받아서 반대로 뒤집는다.
         // setOpen(!open)이라고 써도 결과는 같지만, 함수형으로 쓰면 React가 상태 업데이트를
         // 여러 개 몰아서 처리(batching)해도 항상 "가장 최신 값" 기준으로 안전하게 계산된다.
-        className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm font-semibold text-[var(--muted)] transition hover:text-[var(--foreground)]"
+        className="shrink-0 whitespace-nowrap rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm font-semibold text-[var(--muted)] transition hover:text-[var(--foreground)]"
+        // ThemeToggle과 같은 이유로 whitespace-nowrap 추가 — 좁은 화면에서 "📚"와 "오픈북"이
+        // 버튼 안에서 따로 줄바꿈되던 문제를 막는다.
       >
         📚 오픈북
       </button>

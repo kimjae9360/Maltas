@@ -489,15 +489,22 @@ export default function ExamPage() {
           })}
         </div>
 
-        {/* 상단 고정 헤더: 시험 제목, 테마/오픈북, 작성 현황, 타이머 */}
-        <div className="sticky top-0 z-10 mb-6 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)]/90 px-4 py-3 backdrop-blur">
-          <div className="flex items-center gap-3">
-            <Link href="/exams" className="text-sm font-semibold text-[var(--muted)] hover:text-[var(--brand)]">
+        {/* 상단 고정 헤더: 시험 제목, 테마/오픈북, 작성 현황, 타이머
+            flex-wrap을 준 이유: 좁은 화면(375px 등)에서 "← 제목"과 "테마/오픈북/작성현황/타이머/제출"을
+            한 줄에 억지로 다 넣으면 개별 요소들이 제각각 줄바꿈되면서 높이가 들쭉날쭉해지고 글자가
+            서로 겹쳐 보이는 문제가 있었다. 왼쪽 그룹과 오른쪽 그룹을 각각 하나의 flex 아이템으로
+            묶어두면, 안 들어갈 때 "그룹 전체가" 다음 줄로 깔끔하게 넘어가서 always 2줄 이하로 정리된다. */}
+        <div className="sticky top-0 z-10 mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)]/90 px-4 py-3 backdrop-blur">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link href="/exams" className="shrink-0 text-sm font-semibold text-[var(--muted)] hover:text-[var(--brand)]">
               ←
             </Link>
-            <div className="font-bold">{exam.title}</div>
+            {/* truncate: 시험 제목이 길어도 "..."으로 잘려서 오른쪽 그룹(테마/오픈북/타이머)의
+                자리를 침범하지 않게 한다. min-w-0은 flex 아이템에서 truncate가 실제로 작동하려면
+                필요한 CSS 트릭 — flex 아이템은 기본적으로 자기 콘텐츠보다 작아질 수 없기 때문. */}
+            <div className="truncate font-bold">{exam.title}</div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <ThemeToggle />
             <OpenBookPanel />
             <span className="text-sm text-[var(--muted)]">{answeredCount}/{exam.problems.length} 작성</span>
