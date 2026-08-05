@@ -33,9 +33,11 @@ export function CodeEditor({ value, onChange, readOnly = false, minHeight = "220
         extensions={[python(), EditorView.lineWrapping]}
         // extensions = CodeMirror의 기능을 조립하는 방식. python()은 파이썬 문법 하이라이팅/들여쓰기
         // 규칙을 추가하는 확장이고, EditorView.lineWrapping은 긴 줄을 가로 스크롤 대신 자동 줄바꿈하게 한다.
-        basicSetup={{ lineNumbers: true, foldGutter: false }}
+        basicSetup={{ lineNumbers: true, foldGutter: false, autocompletion: false }}
         // foldGutter: false — 코드 블록을 접었다 펼 수 있는 화살표 UI를 꺼둔다(짧은 문제 코드에는
         // 불필요한 기능이라 화면을 더 단순하게 유지하려는 선택).
+        // autocompletion: false — 실제 AICE 시험 환경에는 이런 자동완성 목록이 안 뜬다. 켜져
+        // 있으면 실전과 다른 감각으로 연습하게 되므로, 실전 연습이라는 이 앱의 목적에 맞춰 끈다.
         style={{ fontSize: "15px" }}
         minHeight={minHeight}
       />
