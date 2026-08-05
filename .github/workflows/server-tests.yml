@@ -1,0 +1,39 @@
+name: 서버 채점 회귀 테스트
+
+# apps/server/data(문제 콘텐츠)나 apps/server 코드가 바뀔 때마다 자동으로 돈다.
+# 오늘 세션에서 실제로 "주석만 고치려다 변수명을 실수로 바꾼" 버그를 이 스위트가 잡아냈다 —
+# 그런 실수가 사람이 매번 로컬에서 pytest를 기억해서 돌려야만 잡히는 상태로 남지 않도록,
+# push/PR마다 자동으로 검증되게 만든 것이 이 워크플로의 목적이다.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/server/**"
+  pull_request:
+    paths:
+      - "apps/server/**"
+  workflow_dispatch: {} # 필요할 때 수동으로도 실행 가능
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # 전체 스위트(모의고사 13 + 기출동형 4 + 학습챕터 30개, 문제마다 서브프로세스로 실제 실행)가
+    # 로컬에서 40~45분 정도 걸린다 — CI도 비슷하거나 조금 더 걸릴 수 있어 넉넉히 잡아둔다.
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: apps/server/requirements.txt
+
+      - name: 의존성 설치
+        run: pip install -r requirements.txt pytest
+        working-directory: apps/server
+
+      - name: 채점 정합성 회귀 테스트 (모든 모의고사·기출동형·학습챕터)
+        run: pytest tests/ -q
+        working-directory: apps/server
