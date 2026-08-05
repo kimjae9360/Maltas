@@ -213,4 +213,23 @@ export const studyStorage = {
     const db = await getDb();
     return db.getAll("studySessions");
   },
+
+  /** "다시 풀기" 버튼에서 호출 — sessionId/chapter_id/title/started_at은 그대로 두고
+   * 진행 상태(코드, 채점 결과, 오답노트, 완료 여부)만 createSession 직후 상태로 되돌린다.
+   * 재진입 시 저장된 코드를 조용히 복원하는 기본 동작은 그대로 두되, 명시적으로 원할 때만
+   * 이걸 호출해서 전부 초기화하는 구조다. */
+  async resetProgress(session: StudySession): Promise<StudySession> {
+    const reset: StudySession = {
+      ...session,
+      current_section_no: 1,
+      practice_code_by_unit: {},
+      practice_results_by_unit: {},
+      wrong_units: [],
+      completed_sections: [],
+      is_completed: false,
+    };
+    const db = await getDb();
+    await db.put("studySessions", reset);
+    return reset;
+  },
 };

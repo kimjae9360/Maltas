@@ -140,6 +140,19 @@ class StudyProgressManager:
         with self._lock:
             self.session_data["is_completed"] = True
 
+    def reset_progress(self):
+        """챕터를 처음부터 다시 풀 때 호출 — 세션 파일은 그대로 재사용하고 진행 상태만
+        create_new_session 직후 상태로 되돌린다. chapter_id/started_at은 그대로 둔다."""
+        with self._lock:
+            self.session_data["current_section_no"] = 1
+            self.session_data["practice_code_by_id"] = {}
+            self.session_data["practice_results_by_id"] = {}
+            self.session_data["wrong_practice_ids"] = []
+            self.session_data["revealed_practice_ids"] = []
+            self.session_data["completed_sections"] = []
+            self.session_data["is_completed"] = False
+            self._save_to_disk()
+
     def _save_to_disk(self):
         if not self.session_file:
             return

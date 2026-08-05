@@ -129,6 +129,9 @@ class StudyWindow(QMainWindow):
         self.btn_review = QPushButton("📝 복습 모드")
         self.btn_review.clicked.connect(self.open_review_mode)
 
+        self.btn_reset_chapter = QPushButton("↺ 처음부터 다시 풀기")
+        self.btn_reset_chapter.clicked.connect(self.reset_chapter)
+
         self.btn_theme_toggle = QPushButton()
         self.btn_theme_toggle.setFixedWidth(40)
         self.btn_theme_toggle.clicked.connect(self.toggle_theme)
@@ -140,6 +143,8 @@ class StudyWindow(QMainWindow):
         top_bar_layout.addWidget(self.btn_font_plus)
         top_bar_layout.addSpacing(16)
         top_bar_layout.addWidget(self.btn_theme_toggle)
+        top_bar_layout.addSpacing(8)
+        top_bar_layout.addWidget(self.btn_reset_chapter)
         top_bar_layout.addSpacing(8)
         top_bar_layout.addWidget(self.btn_review)
         root_layout.addWidget(self.top_bar)
@@ -184,6 +189,8 @@ class StudyWindow(QMainWindow):
         body_layout.addWidget(self.sidebar)
 
         h_splitter = QSplitter(Qt.Horizontal)
+        h_splitter.setHandleWidth(14)
+        self.h_splitter = h_splitter
 
         # 좌측: 이론 + 개념 정리 (섹션 전체에서 공통)
         self.theory_viewer = QTextBrowser()
@@ -192,11 +199,16 @@ class StudyWindow(QMainWindow):
         h_splitter.addWidget(self.theory_viewer)
 
         v_splitter = QSplitter(Qt.Vertical)
+        # 스플리터 핸들 자체를 넓게 잡고 배경색과 같게 칠해서, 예제/TODO/콘솔 세 카드 사이에
+        # 확실한 여백처럼 보이게 한다 — 예제와 문제가 경계 없이 붙어 보인다는 피드백을 반영.
+        v_splitter.setHandleWidth(14)
+        self.v_splitter = v_splitter
 
-        # 우측 상단: 예제 코드
-        example_widget = QWidget()
-        example_layout = QVBoxLayout(example_widget)
-        example_layout.setContentsMargins(0, 0, 0, 0)
+        # 우측 상단: 예제 코드 (카드로 감싸서 TODO 카드와 뚜렷하게 분리)
+        self.example_card = QWidget()
+        example_layout = QVBoxLayout(self.example_card)
+        example_layout.setContentsMargins(16, 14, 16, 14)
+        example_layout.setSpacing(10)
 
         example_header = QHBoxLayout()
         self.example_label = QLabel("💻 예제 코드 (직접 실행해서 결과를 확인해보세요)")
@@ -213,6 +225,7 @@ class StudyWindow(QMainWindow):
         example_scroll = QScrollArea()
         example_scroll.setWidgetResizable(True)
         example_scroll.setMaximumHeight(240)
+        example_scroll.setFrameShape(QFrame.NoFrame)
         self._example_container = QWidget()
         self._example_cells_layout = QVBoxLayout(self._example_container)
         self._example_cells_layout.setContentsMargins(4, 4, 4, 4)
@@ -221,12 +234,13 @@ class StudyWindow(QMainWindow):
 
         example_layout.addLayout(example_header)
         example_layout.addWidget(example_scroll)
-        v_splitter.addWidget(example_widget)
+        v_splitter.addWidget(self.example_card)
 
-        # 우측 중단: TODO 문제
-        practice_widget = QWidget()
-        practice_layout = QVBoxLayout(practice_widget)
-        practice_layout.setContentsMargins(0, 0, 0, 0)
+        # 우측 중단: TODO 문제 (마찬가지로 카드로 감싼다)
+        self.practice_card = QWidget()
+        practice_layout = QVBoxLayout(self.practice_card)
+        practice_layout.setContentsMargins(16, 14, 16, 14)
+        practice_layout.setSpacing(10)
 
         self.practice_nav_layout = QHBoxLayout()
         self.practice_label = QLabel()
@@ -280,7 +294,7 @@ class StudyWindow(QMainWindow):
         practice_layout.addLayout(btn_layout)
         practice_layout.addWidget(self.reveal_banner)
         practice_layout.addWidget(self.code_editor)
-        v_splitter.addWidget(practice_widget)
+        v_splitter.addWidget(self.practice_card)
 
         # 우측 하단: 콘솔/시각화/정답 탭 (예제 실행과 TODO 채점이 공유)
         self.tabs = QTabWidget()
@@ -304,7 +318,14 @@ class StudyWindow(QMainWindow):
 
         h_splitter.addWidget(v_splitter)
         h_splitter.setSizes([480, 720])
-        body_layout.addWidget(h_splitter, 1)
+
+        # h_splitter를 여백 있는 컨테이너로 한 번 더 감싼다 — 안 그러면 카드들이 창 가장자리에
+        # 딱 붙어서, 둥근 모서리가 잘려 보이는 것처럼 어색해진다.
+        content_wrap = QWidget()
+        content_wrap_layout = QVBoxLayout(content_wrap)
+        content_wrap_layout.setContentsMargins(16, 16, 16, 16)
+        content_wrap_layout.addWidget(h_splitter)
+        body_layout.addWidget(content_wrap, 1)
         root_layout.addWidget(body_widget, 1)
 
         # 하단 바: 이전/다음 섹션 이동 + 진행 상황을, 재생바 형태로 화면 맨 아래 고정.
@@ -346,6 +367,15 @@ class StudyWindow(QMainWindow):
         self.sidebar.setStyleSheet(f"background-color: {t['sidebar_bg']};")
         self.chapter_title_label.setStyleSheet(f"color: {t['panel_text']};")
         self.sidebar_title.setStyleSheet(f"color: {t['muted_text']}; letter-spacing: 1px;")
+
+        # 예제/TODO 카드: 뚜렷한 배경+둥근 모서리로 서로 분리되어 보이게 하고, 스플리터 핸들은
+        # 창 배경색과 같게 칠해서 카드 사이 "여백"처럼 보이게 한다(실제 드래그 바는 그대로 동작).
+        card_style = f"background-color: {t['panel_bg']}; border: 1px solid {t['panel_border']}; border-radius: 12px;"
+        self.example_card.setStyleSheet(card_style)
+        self.practice_card.setStyleSheet(card_style)
+        splitter_handle_style = f"QSplitter::handle {{ background-color: {t['window_bg']}; }}"
+        self.h_splitter.setStyleSheet(splitter_handle_style)
+        self.v_splitter.setStyleSheet(splitter_handle_style)
         self.progress_label.setStyleSheet(f"color: {t['muted_text']};")
         self.example_label.setStyleSheet(f"color: {t['panel_text']};")
         self.practice_label.setStyleSheet(f"color: {t['panel_text']};")
@@ -398,8 +428,8 @@ class StudyWindow(QMainWindow):
         QPushButton:hover {{ background-color: {t['btn_hover']}; }}
         QPushButton:pressed {{ background-color: {t['btn_pressed']}; }}
         """
-        for btn in (self.btn_font_minus, self.btn_font_plus, self.btn_review, self.btn_prev_practice,
-                    self.btn_next_practice, self.btn_run_example, self.btn_theme_toggle):
+        for btn in (self.btn_font_minus, self.btn_font_plus, self.btn_review, self.btn_reset_chapter,
+                    self.btn_prev_practice, self.btn_next_practice, self.btn_run_example, self.btn_theme_toggle):
             btn.setStyleSheet(toolbar_btn_style)
 
         # 하단 재생바의 이전/다음 섹션 버튼은 스포티파이 트랜스포트 버튼처럼 알약형으로 도드라지게.
@@ -756,6 +786,21 @@ class StudyWindow(QMainWindow):
         dialog.exec()
         self._refresh_section_nav()
 
+    def reset_chapter(self):
+        """완료 여부와 무관하게 챕터를 처음부터 다시 풀고 싶을 때 쓰는 버튼.
+        재진입 시 저장된 코드/정답을 조용히 복원하는 기본 동작은 그대로 두고, 명시적으로
+        원할 때만 여기서 전부 초기화한다 — 알림창으로 매번 물어보지 않는 대신 되돌릴 수 없는
+        작업이라 확인 한 번은 거친다."""
+        reply = QMessageBox.question(
+            self, "처음부터 다시 풀기",
+            "이 챕터의 진행 상황(코드, 채점 결과, 오답노트)이 모두 초기화됩니다. 계속하시겠습니까?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+        self.progress_manager.reset_progress()
+        self.load_section(0)
+
     # -------------------------------------------------------------- 실행 ----
 
     def _build_units_dict(self):
@@ -836,6 +881,10 @@ class StudyWindow(QMainWindow):
                 ns, out, err = self.executor.run_problem(idx, s["example_code"], units, timeout=30.0)
                 if err:
                     self.console_signal.emit("\n[예제 실행 중 에러가 발생했습니다. 위 내용을 확인하세요]")
+                elif not out:
+                    # run_problem은 stdout이 비어있으면(예: import만 있고 print가 없는 예제)
+                    # 콜백 자체를 안 부르므로, "실행 중..."이 그대로 남아있지 않게 여기서 채워준다.
+                    self.console_signal.emit("(출력 없음 — 에러 없이 실행되었습니다)")
             finally:
                 self.run_finished_signal.emit()
 

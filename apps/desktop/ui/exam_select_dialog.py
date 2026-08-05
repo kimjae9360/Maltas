@@ -1,10 +1,12 @@
 import json
 from pathlib import Path
 
-from PySide6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QListWidget,
-                               QListWidgetItem, QPushButton, QHBoxLayout)
+from PySide6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QFrame,
+                               QScrollArea, QWidget, QGridLayout)
 from PySide6.QtGui import QFont
-from PySide6.QtCore import Qt
+
+from ui import theme
+from ui.selectable_card import SelectableCard
 
 
 class ExamSelectDialog(QDialog):
@@ -13,7 +15,7 @@ class ExamSelectDialog(QDialog):
     def __init__(self, data_dir: Path, parent=None):
         super().__init__(parent)
         self.setWindowTitle("모의고사 선택")
-        self.resize(520, 480)
+        self.resize(640, 560)
         self.selected_exam_id = None
 
         self.exams = []  # [(exam_id, title, total_points_v1, num_problems)]
@@ -27,47 +29,39 @@ class ExamSelectDialog(QDialog):
                 continue
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(12)
 
-        title_label = QLabel("풀어볼 모의고사를 선택하세요")
-        title_label.setFont(QFont("Malgun Gothic", 16, QFont.Bold))
-        layout.addWidget(title_label)
+        self.title_label = QLabel("📝 풀어볼 모의고사를 선택하세요")
+        self.title_label.setFont(QFont("Malgun Gothic", 16, QFont.Bold))
+        layout.addWidget(self.title_label)
 
-        self.list_widget = QListWidget()
-        self.list_widget.setFont(QFont("Malgun Gothic", 13))
-        for exam_id, title, points, n in self.exams:
-            item = QListWidgetItem(f"{title}   ({n}문제 · {points}점 만점)")
-            item.setData(Qt.UserRole, exam_id)
-            self.list_widget.addItem(item)
-        if self.list_widget.count() > 0:
-            self.list_widget.setCurrentRow(0)
-        self.list_widget.itemDoubleClicked.connect(self._on_confirm)
-        layout.addWidget(self.list_widget)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        grid_widget = QWidget()
+        grid = QGridLayout(grid_widget)
+        grid.setSpacing(12)
 
-        btn_layout = QHBoxLayout()
-        btn_start = QPushButton("선택한 모의고사 시작")
-        btn_start.setStyleSheet("""
-            QPushButton { background-color: #007ACC; color: white; font-weight: bold; padding: 8px 16px; border-radius: 5px; border: none; }
-            QPushButton:hover { background-color: #1B8FE0; }
-        """)
-        btn_start.clicked.connect(self._on_confirm)
-        btn_layout.addStretch()
-        btn_layout.addWidget(btn_start)
-        layout.addLayout(btn_layout)
+        self.cards = []
+        cols = 2
+        for i, (exam_id, title, points, n) in enumerate(self.exams):
+            card = SelectableCard(exam_id, title, [f"{n}문제", f"{points}점 만점"])
+            card.clicked.connect(self._on_card_clicked)
+            grid.addWidget(card, i // cols, i % cols)
+            self.cards.append(card)
+        scroll.setWidget(grid_widget)
+        layout.addWidget(scroll)
 
-        self.setStyleSheet("""
-            QDialog { background-color: #1E1E1E; }
-            QLabel { color: #E6E6E6; }
-            QListWidget {
-                background-color: #17212B; color: #E6E6E6;
-                border: 1px solid #2D3E4E; border-radius: 4px; padding: 4px;
-            }
-            QListWidget::item { padding: 8px; border-radius: 3px; }
-            QListWidget::item:selected { background-color: #264F78; }
-        """)
+        self._apply_dialog_theme()
 
-    def _on_confirm(self):
-        item = self.list_widget.currentItem()
-        if item is None:
-            return
-        self.selected_exam_id = item.data(Qt.UserRole)
+    def _apply_dialog_theme(self):
+        t = theme.tokens()
+        self.setStyleSheet(f"QDialog {{ background-color: {t['window_bg']}; }}")
+        self.title_label.setStyleSheet(f"color: {t['panel_text']};")
+        for card in self.cards:
+            card.apply_theme(t)
+
+    def _on_card_clicked(self, exam_id):
+        self.selected_exam_id = exam_id
         self.accept()

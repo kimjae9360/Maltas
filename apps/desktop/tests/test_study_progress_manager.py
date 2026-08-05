@@ -73,6 +73,36 @@ def test_review_mode_helpers(temp_sessions_dir):
     assert "3-2" not in pm.get_data()["wrong_practice_ids"]
 
 
+def test_reset_progress(temp_sessions_dir):
+    pm = StudyProgressManager(sessions_dir=temp_sessions_dir)
+    pm.create_new_session("02_numpy_pandas")
+
+    pm.update_state(current_section_no=4, code_updates={"1-1": "x = 1"})
+    pm.mark_section_completed(1)
+    pm.mark_section_completed(2)
+    pm.record_result("1-1", is_correct=False, revealed_answer=False)
+    pm.mark_revealed("1-2")
+    pm.mark_chapter_completed()
+
+    session_file_before = pm.session_file
+    chapter_id_before = pm.get_data()["chapter_id"]
+
+    pm.reset_progress()
+    data = pm.get_data()
+
+    # 세션 파일/챕터 아이디는 그대로 재사용된다 (새 세션을 만드는 게 아니라 기존 걸 초기화)
+    assert pm.session_file == session_file_before
+    assert data["chapter_id"] == chapter_id_before
+
+    assert data["current_section_no"] == 1
+    assert data["practice_code_by_id"] == {}
+    assert data["practice_results_by_id"] == {}
+    assert data["wrong_practice_ids"] == []
+    assert data["revealed_practice_ids"] == []
+    assert data["completed_sections"] == []
+    assert data["is_completed"] is False
+
+
 def test_find_unfinished_filters_by_chapter_and_completion(temp_sessions_dir):
     # 서로 다른 챕터 id를 써서, 같은 초(second)에 두 세션이 생성되어 타임스탬프 파일명이
     # 충돌하는 상황(SessionManager와 동일한 기존 설계상 한계)을 피합니다.

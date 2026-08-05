@@ -102,6 +102,20 @@ export default function StudyChapterPage() {
     studyStorage.save(s);
   }, []);
 
+  // 완료 여부와 무관하게 챕터를 처음부터 다시 풀고 싶을 때. 재진입 시 저장된 코드를 조용히
+  // 복원하는 기본 동작은 그대로 두고, 명시적으로 원할 때만 여기서 전부 초기화한다 — 알림창으로
+  // 매번 물어보지 않는 대신, 되돌릴 수 없는 작업이라 확인 한 번은 거친다.
+  const resetChapter = useCallback(() => {
+    const current = sessionRef.current;
+    if (!current) return;
+    if (!window.confirm("이 챕터의 진행 상황(코드, 채점 결과, 오답노트)이 모두 초기화됩니다. 계속하시겠습니까?")) return;
+    studyStorage.resetProgress(current).then((reset) => {
+      setSession(reset);
+      setCurrentSectionNo(1);
+      setReviewMode(false);
+    });
+  }, []);
+
   /**
    * 지금까지 "재현 가능한 모든 코드"를 unit -> 코드 문자열 맵으로 만든다. 채점 요청을 보낼 때
    * 서버에 code_by_unit으로 그대로 넘기면, 서버(worker.py의 build_full_code)가 "지금 채점할
@@ -410,6 +424,12 @@ export default function StudyChapterPage() {
         >
           📝 복습 모드 ({session.wrong_units.length})
         </button>
+        <button
+          onClick={resetChapter}
+          className="rounded-lg border border-[var(--border)] py-2 text-xs font-bold text-[var(--muted)] hover:border-[var(--bad)] hover:text-[var(--bad)] transition"
+        >
+          ↺ 처음부터 다시 풀기
+        </button>
       </aside>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
@@ -449,6 +469,12 @@ export default function StudyChapterPage() {
             } disabled:cursor-not-allowed disabled:opacity-40`}
           >
             📝 {session.wrong_units.length}
+          </button>
+          <button
+            onClick={resetChapter}
+            className="shrink-0 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-bold text-[var(--muted)]"
+          >
+            ↺
           </button>
         </div>
 
