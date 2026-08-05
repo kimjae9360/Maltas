@@ -3,7 +3,8 @@ import os
 import threading
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                                QLabel, QPushButton, QSplitter, QPlainTextEdit,
-                               QTabWidget, QTextBrowser, QMessageBox, QApplication)
+                               QTabWidget, QTextBrowser, QMessageBox, QApplication,
+                               QScrollArea, QFrame)
 from PySide6.QtCore import Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QFont, QShortcut, QKeySequence
 
@@ -92,20 +93,24 @@ class MainWindow(QMainWindow):
 
     def setup_ui(self):
         self.setWindowTitle(f"AICE Simulator - {self.exam_data['title']}")
-        
+
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
-        main_layout = QVBoxLayout(main_widget)
-        
-        header_layout = QHBoxLayout()
-        self.progress_label = QLabel()
-        prog_font = QFont("Malgun Gothic", 14, QFont.Bold)
-        self.progress_label.setFont(prog_font)
-        
+        root_layout = QVBoxLayout(main_widget)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
+
+        # 상단 바: 시험 제목 + 타이머(가장 눈에 잘 띄어야 하는 정보라 여기 유지) + 세션 단위 액션들.
+        self.top_bar = QWidget()
+        top_bar_layout = QHBoxLayout(self.top_bar)
+        top_bar_layout.setContentsMargins(24, 14, 24, 14)
+
+        self.exam_title_label = QLabel(self.exam_data.get("title", ""))
+        self.exam_title_label.setFont(QFont("Malgun Gothic", 15, QFont.Bold))
+
         self.timer_label = QLabel()
         self.timer_label.setFont(QFont("Consolas", 16, QFont.Bold))
 
-        # Font size buttons
         self.btn_font_minus = QPushButton("A-")
         self.btn_font_minus.setToolTip("글꼴 크기 줄이기")
         self.btn_font_minus.clicked.connect(lambda: self.change_font_size(-2))
@@ -115,11 +120,6 @@ class MainWindow(QMainWindow):
         self.btn_font_plus.setToolTip("글꼴 크기 키우기")
         self.btn_font_plus.clicked.connect(lambda: self.change_font_size(2))
         self.btn_font_plus.setFixedWidth(40)
-
-        self.btn_prev = QPushButton("◀ 이전 문제")
-        self.btn_prev.clicked.connect(self.prev_problem)
-        self.btn_next = QPushButton("다음 문제 ▶")
-        self.btn_next.clicked.connect(self.next_problem)
 
         self.btn_reset = QPushButton("↺ 처음부터 다시 풀기")
         self.btn_reset.clicked.connect(self.reset_exam)
@@ -138,39 +138,59 @@ class MainWindow(QMainWindow):
         """)
         self.btn_submit.clicked.connect(self.submit_exam)
 
-        header_layout.addWidget(self.progress_label)
-        header_layout.addStretch()
-        header_layout.addWidget(self.btn_font_minus)
-        header_layout.addWidget(self.btn_font_plus)
-        header_layout.addSpacing(20)
-        header_layout.addWidget(self.btn_prev)
-        header_layout.addSpacing(8)
-        header_layout.addWidget(self.btn_next)
-        header_layout.addStretch()
-        header_layout.addWidget(self.timer_label)
-        header_layout.addSpacing(12)
-        header_layout.addWidget(self.btn_theme_toggle)
-        header_layout.addSpacing(8)
-        header_layout.addWidget(self.btn_reset)
-        header_layout.addSpacing(8)
-        header_layout.addWidget(self.btn_submit)
+        top_bar_layout.addWidget(self.exam_title_label)
+        top_bar_layout.addStretch()
+        top_bar_layout.addWidget(self.timer_label)
+        top_bar_layout.addSpacing(16)
+        top_bar_layout.addWidget(self.btn_font_minus)
+        top_bar_layout.addWidget(self.btn_font_plus)
+        top_bar_layout.addSpacing(12)
+        top_bar_layout.addWidget(self.btn_theme_toggle)
+        top_bar_layout.addSpacing(8)
+        top_bar_layout.addWidget(self.btn_reset)
+        top_bar_layout.addSpacing(8)
+        top_bar_layout.addWidget(self.btn_submit)
+        root_layout.addWidget(self.top_bar)
 
-        main_layout.addLayout(header_layout)
+        # 본문: 좌측에 문제 번호 목록을 상시 노출하는 사이드바 + 우측에 문제/코드/콘솔.
+        body_widget = QWidget()
+        body_layout = QHBoxLayout(body_widget)
+        body_layout.setContentsMargins(0, 0, 0, 0)
+        body_layout.setSpacing(0)
 
-        self.nav_layout = QHBoxLayout()
+        self.sidebar = QWidget()
+        self.sidebar.setFixedWidth(200)
+        sidebar_layout = QVBoxLayout(self.sidebar)
+        sidebar_layout.setContentsMargins(12, 18, 12, 12)
+        sidebar_layout.setSpacing(8)
+
+        self.sidebar_title = QLabel("문제 목록")
+        self.sidebar_title.setFont(QFont("Malgun Gothic", 10, QFont.Bold))
+        sidebar_layout.addWidget(self.sidebar_title)
+
+        sidebar_scroll = QScrollArea()
+        sidebar_scroll.setWidgetResizable(True)
+        sidebar_scroll.setFrameShape(QFrame.NoFrame)
+        sidebar_list_widget = QWidget()
+        self._sidebar_list_layout = QVBoxLayout(sidebar_list_widget)
+        self._sidebar_list_layout.setContentsMargins(0, 0, 0, 0)
+        self._sidebar_list_layout.setSpacing(3)
         self.nav_buttons = {}
         for p in self.problems:
-            btn = QPushButton(str(p["no"]))
-            btn.setFixedSize(34, 28)
+            btn = QPushButton(f"문제 {p['no']}")
             btn.setCheckable(True)
+            btn.setFixedHeight(36)
+            btn.setCursor(Qt.PointingHandCursor)
             btn.clicked.connect(lambda checked, no=p["no"]: self._jump_to_problem(no))
-            self.nav_layout.addWidget(btn)
+            self._sidebar_list_layout.addWidget(btn)
             self.nav_buttons[p["no"]] = btn
-        self.nav_layout.addStretch()
-        main_layout.addLayout(self.nav_layout)
+        self._sidebar_list_layout.addStretch()
+        sidebar_scroll.setWidget(sidebar_list_widget)
+        sidebar_layout.addWidget(sidebar_scroll)
+        body_layout.addWidget(self.sidebar)
 
         h_splitter = QSplitter(Qt.Horizontal)
-        
+
         self.md_viewer = QTextBrowser()
         self.md_viewer.setOpenLinks(False)
         self.md_viewer.anchorClicked.connect(self._on_inline_code_clicked)
@@ -238,15 +258,43 @@ class MainWindow(QMainWindow):
         self.tabs.setFont(QFont("Malgun Gothic", 12))
         
         v_splitter.addWidget(self.tabs)
-        
+
         h_splitter.addWidget(v_splitter)
         h_splitter.setSizes([500, 700])
-        
-        main_layout.addWidget(h_splitter)
+        body_layout.addWidget(h_splitter, 1)
+        root_layout.addWidget(body_widget, 1)
+
+        # 하단 바: 이전/다음 문제 이동 + 진행 상황.
+        self.bottom_bar = QWidget()
+        bottom_bar_layout = QHBoxLayout(self.bottom_bar)
+        bottom_bar_layout.setContentsMargins(24, 12, 24, 12)
+
+        self.btn_prev = QPushButton("◀ 이전 문제")
+        self.btn_prev.clicked.connect(self.prev_problem)
+
+        self.progress_label = QLabel()
+        self.progress_label.setFont(QFont("Malgun Gothic", 12, QFont.Bold))
+        self.progress_label.setAlignment(Qt.AlignCenter)
+
+        self.btn_next = QPushButton("다음 문제 ▶")
+        self.btn_next.clicked.connect(self.next_problem)
+
+        bottom_bar_layout.addWidget(self.btn_prev)
+        bottom_bar_layout.addStretch()
+        bottom_bar_layout.addWidget(self.progress_label)
+        bottom_bar_layout.addStretch()
+        bottom_bar_layout.addWidget(self.btn_next)
+        root_layout.addWidget(self.bottom_bar)
 
     def apply_theme(self):
         t = theme.tokens()
         self.setStyleSheet(f"QMainWindow {{ background-color: {t['window_bg']}; }}")
+        self.progress_label.setStyleSheet(f"color: {t['muted_text']};")
+        self.top_bar.setStyleSheet(f"background-color: {t['window_bg']}; border-bottom: 1px solid {t['panel_border']};")
+        self.bottom_bar.setStyleSheet(f"background-color: {t['bottombar_bg']}; border-top: 1px solid {t['panel_border']};")
+        self.sidebar.setStyleSheet(f"background-color: {t['sidebar_bg']};")
+        self.exam_title_label.setStyleSheet(f"color: {t['panel_text']};")
+        self.sidebar_title.setStyleSheet(f"color: {t['muted_text']}; letter-spacing: 1px;")
 
         # 세 영역(문제/코드/콘솔)을 색상 hue 자체가 다르게 줘서 곁눈질로도 구분되게 함.
         # 코드 에디터: 익숙한 VSCode 다크 + 파란색 강조선("여기에 입력")
@@ -311,15 +359,26 @@ class MainWindow(QMainWindow):
             background-color: {t['btn_bg']};
             color: {t['btn_text']};
             border: 1px solid {t['btn_border']};
-            border-radius: 5px;
+            border-radius: 8px;
             padding: 6px 12px;
         }}
         QPushButton:hover {{ background-color: {t['btn_hover']}; }}
         QPushButton:pressed {{ background-color: {t['btn_pressed']}; }}
         """
-        for btn in (self.btn_font_minus, self.btn_font_plus, self.btn_prev, self.btn_next, self.btn_reset,
-                    self.btn_theme_toggle):
+        for btn in (self.btn_font_minus, self.btn_font_plus, self.btn_reset, self.btn_theme_toggle):
             btn.setStyleSheet(toolbar_btn_style)
+
+        # 하단 재생바의 이전/다음 문제 버튼은 알약형으로.
+        pill_btn_style = f"""
+        QPushButton {{
+            background-color: transparent; color: {t['panel_text']}; border: 1px solid {t['btn_border']};
+            border-radius: 18px; padding: 8px 20px; font-weight: bold;
+        }}
+        QPushButton:hover {{ background-color: {t['btn_hover']}; border-color: {t['brand']}; }}
+        QPushButton:pressed {{ background-color: {t['btn_pressed']}; }}
+        """
+        for btn in (self.btn_prev, self.btn_next):
+            btn.setStyleSheet(pill_btn_style)
 
         self.timer_label.setStyleSheet(f"color: {t['panel_text']};")
 
@@ -523,6 +582,8 @@ class MainWindow(QMainWindow):
                 return
 
     def _refresh_problem_nav(self):
+        """좌측 사이드바의 문제 행 스타일을 다시 그린다. 채점 상태는 글자색으로,
+        지금 보고 있는 문제는 브랜드 컬러 알약형 배경으로 구분한다."""
         t = theme.tokens()
         graded = self.session_manager.get_data()["graded_results"]
         for p in self.problems:
@@ -530,20 +591,21 @@ class MainWindow(QMainWindow):
             entry = graded.get(str(p["no"]))
             is_current = (p["no"] == self.problems[self.current_idx]["no"])
             if entry and entry.get("note") == "정답 보기 사용":
-                color, text_color = "#C9A227", "white"  # 정답 보기 사용 (골드)
+                text_color = t['accent_gold']
             elif entry and entry.get("is_correct"):
-                color, text_color = "#4CAF50", "white"  # 정답 (초록)
+                text_color = "#4CAF50"
             elif entry:
-                color, text_color = "#B22222", "white"  # 오답 (빨강)
+                text_color = "#E24B4A"
             else:
-                color, text_color = t['btn_bg'], t['btn_text']  # 미응시
-            border = f"2px solid {t['accent_blue']}" if is_current else f"1px solid {t['panel_border']}"
+                text_color = t['panel_text']
+            bg = t['sidebar_active_bg'] if is_current else "transparent"
             btn.setChecked(is_current)
             btn.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {color}; color: {text_color}; font-weight: bold;
-                    border: {border}; border-radius: 4px;
+                    background-color: {bg}; color: {text_color}; font-weight: bold;
+                    border: none; border-radius: 8px; text-align: left; padding: 0 12px; font-size: 13px;
                 }}
+                QPushButton:hover {{ background-color: {t['sidebar_hover'] if not is_current else bg}; }}
             """)
 
     def prev_problem(self):

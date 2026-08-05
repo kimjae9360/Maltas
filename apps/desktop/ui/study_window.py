@@ -4,7 +4,7 @@ import threading
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                                QLabel, QPushButton, QSplitter, QPlainTextEdit,
                                QTabWidget, QTextBrowser, QMessageBox, QScrollArea,
-                               QApplication)
+                               QApplication, QFrame)
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QFont, QShortcut, QKeySequence
 
@@ -107,11 +107,17 @@ class StudyWindow(QMainWindow):
 
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
-        main_layout = QVBoxLayout(main_widget)
+        root_layout = QVBoxLayout(main_widget)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
 
-        header_layout = QHBoxLayout()
-        self.progress_label = QLabel()
-        self.progress_label.setFont(QFont("Malgun Gothic", 14, QFont.Bold))
+        # 상단 바: 챕터 제목 + 글꼴/테마/복습 버튼만 두는 얇은 바 (섹션 이동은 좌측 사이드바가 담당)
+        self.top_bar = QWidget()
+        top_bar_layout = QHBoxLayout(self.top_bar)
+        top_bar_layout.setContentsMargins(24, 14, 24, 14)
+
+        self.chapter_title_label = QLabel(self.chapter_data.get("title", ""))
+        self.chapter_title_label.setFont(QFont("Malgun Gothic", 15, QFont.Bold))
 
         self.btn_font_minus = QPushButton("A-")
         self.btn_font_minus.setFixedWidth(40)
@@ -119,11 +125,6 @@ class StudyWindow(QMainWindow):
         self.btn_font_plus = QPushButton("A+")
         self.btn_font_plus.setFixedWidth(40)
         self.btn_font_plus.clicked.connect(lambda: self.change_font_size(2))
-
-        self.btn_prev_section = QPushButton("◀ 이전 섹션")
-        self.btn_prev_section.clicked.connect(self.prev_section)
-        self.btn_next_section = QPushButton("다음 섹션 ▶")
-        self.btn_next_section.clicked.connect(lambda: self.next_section(user_triggered=True))
 
         self.btn_review = QPushButton("📝 복습 모드")
         self.btn_review.clicked.connect(self.open_review_mode)
@@ -133,31 +134,54 @@ class StudyWindow(QMainWindow):
         self.btn_theme_toggle.clicked.connect(self.toggle_theme)
         self._refresh_theme_toggle_label()
 
-        header_layout.addWidget(self.progress_label)
-        header_layout.addStretch()
-        header_layout.addWidget(self.btn_font_minus)
-        header_layout.addWidget(self.btn_font_plus)
-        header_layout.addSpacing(20)
-        header_layout.addWidget(self.btn_prev_section)
-        header_layout.addSpacing(8)
-        header_layout.addWidget(self.btn_next_section)
-        header_layout.addStretch()
-        header_layout.addWidget(self.btn_theme_toggle)
-        header_layout.addSpacing(8)
-        header_layout.addWidget(self.btn_review)
-        main_layout.addLayout(header_layout)
+        top_bar_layout.addWidget(self.chapter_title_label)
+        top_bar_layout.addStretch()
+        top_bar_layout.addWidget(self.btn_font_minus)
+        top_bar_layout.addWidget(self.btn_font_plus)
+        top_bar_layout.addSpacing(16)
+        top_bar_layout.addWidget(self.btn_theme_toggle)
+        top_bar_layout.addSpacing(8)
+        top_bar_layout.addWidget(self.btn_review)
+        root_layout.addWidget(self.top_bar)
 
-        self.section_nav_layout = QHBoxLayout()
+        # 본문: 좌측에 섹션 목록을 상시 노출하는 사이드바(스포티파이의 플레이리스트 목록과 같은 역할) +
+        # 우측에 기존 이론/예제/TODO 콘텐츠. 예전엔 섹션 번호만 작은 버튼으로 한 줄에 눌러담았는데,
+        # 지금은 제목까지 보이는 카드형 목록으로 바꿔서 지금 몇 번 섹션에 뭐가 있는지 한눈에 훑을 수 있다.
+        body_widget = QWidget()
+        body_layout = QHBoxLayout(body_widget)
+        body_layout.setContentsMargins(0, 0, 0, 0)
+        body_layout.setSpacing(0)
+
+        self.sidebar = QWidget()
+        self.sidebar.setFixedWidth(232)
+        sidebar_layout = QVBoxLayout(self.sidebar)
+        sidebar_layout.setContentsMargins(12, 18, 12, 12)
+        sidebar_layout.setSpacing(8)
+
+        self.sidebar_title = QLabel("섹션 목록")
+        self.sidebar_title.setFont(QFont("Malgun Gothic", 10, QFont.Bold))
+        sidebar_layout.addWidget(self.sidebar_title)
+
+        sidebar_scroll = QScrollArea()
+        sidebar_scroll.setWidgetResizable(True)
+        sidebar_scroll.setFrameShape(QFrame.NoFrame)
+        sidebar_list_widget = QWidget()
+        self._sidebar_list_layout = QVBoxLayout(sidebar_list_widget)
+        self._sidebar_list_layout.setContentsMargins(0, 0, 0, 0)
+        self._sidebar_list_layout.setSpacing(3)
         self.section_nav_buttons = {}
         for s in self.sections:
-            btn = QPushButton(str(s["no"]))
-            btn.setFixedSize(30, 26)
+            btn = QPushButton(self._sidebar_item_text(s))
             btn.setCheckable(True)
+            btn.setFixedHeight(40)
+            btn.setCursor(Qt.PointingHandCursor)
             btn.clicked.connect(lambda checked, no=s["no"]: self._jump_to_section(no))
-            self.section_nav_layout.addWidget(btn)
+            self._sidebar_list_layout.addWidget(btn)
             self.section_nav_buttons[s["no"]] = btn
-        self.section_nav_layout.addStretch()
-        main_layout.addLayout(self.section_nav_layout)
+        self._sidebar_list_layout.addStretch()
+        sidebar_scroll.setWidget(sidebar_list_widget)
+        sidebar_layout.addWidget(sidebar_scroll)
+        body_layout.addWidget(self.sidebar)
 
         h_splitter = QSplitter(Qt.Horizontal)
 
@@ -175,11 +199,11 @@ class StudyWindow(QMainWindow):
         example_layout.setContentsMargins(0, 0, 0, 0)
 
         example_header = QHBoxLayout()
-        example_label = QLabel("💻 예제 코드 (직접 실행해서 결과를 확인해보세요)")
-        example_label.setFont(QFont("Malgun Gothic", 11, QFont.Bold))
+        self.example_label = QLabel("💻 예제 코드 (직접 실행해서 결과를 확인해보세요)")
+        self.example_label.setFont(QFont("Malgun Gothic", 11, QFont.Bold))
         self.btn_run_example = QPushButton("▶ 예제 실행해보기")
         self.btn_run_example.clicked.connect(self.run_current_example)
-        example_header.addWidget(example_label)
+        example_header.addWidget(self.example_label)
         example_header.addStretch()
         example_header.addWidget(self.btn_run_example)
 
@@ -280,11 +304,51 @@ class StudyWindow(QMainWindow):
 
         h_splitter.addWidget(v_splitter)
         h_splitter.setSizes([480, 720])
-        main_layout.addWidget(h_splitter)
+        body_layout.addWidget(h_splitter, 1)
+        root_layout.addWidget(body_widget, 1)
+
+        # 하단 바: 이전/다음 섹션 이동 + 진행 상황을, 재생바 형태로 화면 맨 아래 고정.
+        # 사이드바가 "어디로 갈지 고르는 곳"이라면, 여기는 "순서대로 진행하는" 주 동선이라
+        # 둘의 역할을 분리했다(막힌 섹션이면 next_section 내부에서 그대로 안내 메시지가 뜬다).
+        self.bottom_bar = QWidget()
+        bottom_bar_layout = QHBoxLayout(self.bottom_bar)
+        bottom_bar_layout.setContentsMargins(24, 12, 24, 12)
+
+        self.btn_prev_section = QPushButton("◀ 이전 섹션")
+        self.btn_prev_section.clicked.connect(self.prev_section)
+
+        self.progress_label = QLabel()
+        self.progress_label.setFont(QFont("Malgun Gothic", 12, QFont.Bold))
+        self.progress_label.setAlignment(Qt.AlignCenter)
+
+        self.btn_next_section = QPushButton("다음 섹션 ▶")
+        self.btn_next_section.clicked.connect(lambda: self.next_section(user_triggered=True))
+
+        bottom_bar_layout.addWidget(self.btn_prev_section)
+        bottom_bar_layout.addStretch()
+        bottom_bar_layout.addWidget(self.progress_label)
+        bottom_bar_layout.addStretch()
+        bottom_bar_layout.addWidget(self.btn_next_section)
+        root_layout.addWidget(self.bottom_bar)
+
+    def _sidebar_item_text(self, section):
+        title = section["title"]
+        if len(title) > 16:
+            title = title[:16] + "…"
+        return f"{section['no']}. {title}"
 
     def apply_theme(self):
         t = theme.tokens()
         self.setStyleSheet(f"QMainWindow {{ background-color: {t['window_bg']}; }}")
+
+        self.top_bar.setStyleSheet(f"background-color: {t['window_bg']}; border-bottom: 1px solid {t['panel_border']};")
+        self.bottom_bar.setStyleSheet(f"background-color: {t['bottombar_bg']}; border-top: 1px solid {t['panel_border']};")
+        self.sidebar.setStyleSheet(f"background-color: {t['sidebar_bg']};")
+        self.chapter_title_label.setStyleSheet(f"color: {t['panel_text']};")
+        self.sidebar_title.setStyleSheet(f"color: {t['muted_text']}; letter-spacing: 1px;")
+        self.progress_label.setStyleSheet(f"color: {t['muted_text']};")
+        self.example_label.setStyleSheet(f"color: {t['panel_text']};")
+        self.practice_label.setStyleSheet(f"color: {t['panel_text']};")
 
         self._style_code_editor(revealed=False)
         self.code_editor.setPlaceholderText("# 여기에 코드를 작성하세요")
@@ -329,15 +393,26 @@ class StudyWindow(QMainWindow):
         toolbar_btn_style = f"""
         QPushButton {{
             background-color: {t['btn_bg']}; color: {t['btn_text']}; border: 1px solid {t['btn_border']};
-            border-radius: 5px; padding: 6px 12px;
+            border-radius: 8px; padding: 6px 12px;
         }}
         QPushButton:hover {{ background-color: {t['btn_hover']}; }}
         QPushButton:pressed {{ background-color: {t['btn_pressed']}; }}
         """
-        for btn in (self.btn_font_minus, self.btn_font_plus, self.btn_prev_section, self.btn_next_section,
-                    self.btn_review, self.btn_prev_practice, self.btn_next_practice, self.btn_run_example,
-                    self.btn_theme_toggle):
+        for btn in (self.btn_font_minus, self.btn_font_plus, self.btn_review, self.btn_prev_practice,
+                    self.btn_next_practice, self.btn_run_example, self.btn_theme_toggle):
             btn.setStyleSheet(toolbar_btn_style)
+
+        # 하단 재생바의 이전/다음 섹션 버튼은 스포티파이 트랜스포트 버튼처럼 알약형으로 도드라지게.
+        pill_btn_style = f"""
+        QPushButton {{
+            background-color: transparent; color: {t['panel_text']}; border: 1px solid {t['btn_border']};
+            border-radius: 18px; padding: 8px 20px; font-weight: bold;
+        }}
+        QPushButton:hover {{ background-color: {t['btn_hover']}; border-color: {t['brand']}; }}
+        QPushButton:pressed {{ background-color: {t['btn_pressed']}; }}
+        """
+        for btn in (self.btn_prev_section, self.btn_next_section):
+            btn.setStyleSheet(pill_btn_style)
 
         # 예제 코드 셀 스타일도 폰트 크기와 마찬가지로 테마 색을 새로 반영해야 하므로 다시 그린다.
         s = self.sections[self.current_section_idx] if self.sections else None
@@ -586,21 +661,32 @@ class StudyWindow(QMainWindow):
         self.practice_label.setText(f"✍️ TODO 문제 {self.current_practice_idx + 1} / {len(s['practices'])}  (섹션 내 정답 {done}개)")
 
     def _refresh_section_nav(self):
+        """좌측 사이드바의 섹션 행 스타일을 다시 그린다. 완료된 섹션은 체크 표시 + 초록,
+        지금 보고 있는 섹션은 브랜드 컬러로 채운 알약형(pill) 배경으로 강조한다
+        (스포티파이의 "현재 재생 중인 곡" 하이라이트와 같은 역할)."""
         t = theme.tokens()
         session_data = self.progress_manager.get_data()
         completed = set(session_data.get("completed_sections", []))
         for s in self.sections:
             btn = self.section_nav_buttons[s["no"]]
             is_current = (s["no"] == self.sections[self.current_section_idx]["no"])
-            if s["no"] in completed:
-                bg, text_color = "#4CAF50", "white"
-            else:
-                bg, text_color = t['btn_bg'], t['btn_text']
-            border = f"2px solid {t['accent_blue']}" if is_current else f"1px solid {t['panel_border']}"
+            is_done = s["no"] in completed
+            btn.setText(("✓ " if is_done else "") + self._sidebar_item_text(s))
             btn.setChecked(is_current)
+
+            if is_current:
+                bg, hover_bg, text_color, weight = t['sidebar_active_bg'], t['sidebar_active_bg'], t['brand_text'], "bold"
+            elif is_done:
+                bg, hover_bg, text_color, weight = "transparent", t['sidebar_hover'], t['accent_green'], "normal"
+            else:
+                bg, hover_bg, text_color, weight = "transparent", t['sidebar_hover'], t['panel_text'], "normal"
+
             btn.setStyleSheet(f"""
-                QPushButton {{ background-color: {bg}; color: {text_color}; font-weight: bold;
-                                border: {border}; border-radius: 4px; }}
+                QPushButton {{
+                    background-color: {bg}; color: {text_color}; font-weight: {weight};
+                    border: none; border-radius: 8px; text-align: left; padding: 0 12px; font-size: 13px;
+                }}
+                QPushButton:hover {{ background-color: {hover_bg}; }}
             """)
 
     def _jump_to_section(self, section_no):
