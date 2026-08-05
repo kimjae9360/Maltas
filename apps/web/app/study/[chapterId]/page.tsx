@@ -22,6 +22,34 @@ function unitIdx(sectionNo: number, practiceNo = 0) {
   return sectionNo * 100 + practiceNo;
 }
 
+/** example_code 문자열 하나를 "# %%" 마커 기준으로 여러 개의 작은 코드 셀로 쪼갠다.
+ *
+ * 왜 문자열 안에 마커를 심는 방식을 택했나: 서버는 이 예제 코드를 여전히 "한 덩어리 문자열"로
+ * 취급해서 다른 문제들 코드와 이어붙여 실행한다(채점 로직은 전혀 안 건드림). `# %%`는 VSCode/
+ * Jupyter에서 실제로 쓰이는 "코드 셀 구분" 표준 표기라 — 그냥 파이썬 주석 한 줄일 뿐이라
+ * 실행 결과에는 아무 영향이 없으면서, 화면에서는 이 지점마다 새 코드창으로 나눠 보여줄 수 있다.
+ * `# %% 라벨명`처럼 마커 뒤에 글자를 붙이면 그 코드 블록 위에 작은 제목으로 표시된다.
+ * 마커가 하나도 없는 예제(아직 안 나눈 예전 콘텐츠)는 그냥 통째로 셀 1개가 된다 — 항상 안전.
+ */
+function splitExampleCells(code: string): { label: string | null; code: string }[] {
+  const lines = code.split("\n");
+  const cells: { label: string | null; code: string }[] = [];
+  let currentLabel: string | null = null;
+  let currentLines: string[] = [];
+  for (const line of lines) {
+    const marker = line.match(/^\s*#\s*%%\s*(.*)$/);
+    if (marker) {
+      cells.push({ label: currentLabel, code: currentLines.join("\n").trim() });
+      currentLabel = marker[1].trim() || null;
+      currentLines = [];
+    } else {
+      currentLines.push(line);
+    }
+  }
+  cells.push({ label: currentLabel, code: currentLines.join("\n").trim() });
+  return cells.filter((c) => c.code.length > 0);
+}
+
 export default function StudyChapterPage() {
   const { chapterId: rawChapterId } = useParams<{ chapterId: string }>();
   const chapterId = decodeURIComponent(rawChapterId);
@@ -500,10 +528,19 @@ export default function StudyChapterPage() {
                   {runningUnit === unitIdx(section.no) ? "실행 중..." : "▶ 예제 실행해보기"}
                 </button>
               </div>
-              <CodeEditor value={section.example_code} onChange={() => {}} readOnly minHeight="120px" />
-              {/* onChange={() => {}} : readOnly라 실제로 값이 안 바뀌지만, CodeEditor 컴포넌트가
-                  onChange을 필수(required) prop으로 요구하기 때문에 "아무것도 안 하는 함수"라도
-                  넘겨줘야 한다. */}
+              <div className="flex flex-col gap-3">
+                {splitExampleCells(section.example_code).map((cell, i) => (
+                  <div key={i}>
+                    {cell.label && (
+                      <div className="mb-1 text-xs font-bold text-[var(--brand)]">{cell.label}</div>
+                    )}
+                    <CodeEditor value={cell.code} onChange={() => {}} readOnly minHeight="60px" />
+                    {/* onChange={() => {}} : readOnly라 실제로 값이 안 바뀌지만, CodeEditor 컴포넌트가
+                        onChange을 필수(required) prop으로 요구하기 때문에 "아무것도 안 하는 함수"라도
+                        넘겨줘야 한다. */}
+                  </div>
+                ))}
+              </div>
               <div className="mt-3 rounded-lg border border-[var(--border)]">
                 <div className="flex border-b border-[var(--border)] text-xs font-semibold">
                   {(["console", "plot"] as const).map((t) => (
