@@ -344,7 +344,7 @@
         },
         {
           "no": 4,
-          "prompt_markdown": "`tax` 컬럼을 삭제하고 `fruits_df`를 `../data/fruits_saved.csv`로 저장하세요. (인덱스는 저장하지 않기)",
+          "prompt_markdown": "`tax` 컬럼을 삭제하고 `fruits_df`를 `data/fruits_saved.csv`로 저장하세요. (인덱스는 저장하지 않기)",
           "answer_code": "fruits_df = fruits_df.drop('tax', axis=1)  # axis=1: 행이 아니라 '열'을 삭제\nfruits_df.to_csv('data/fruits_saved.csv', index=False)  # index=False: 인덱스를 별도 컬럼으로 저장하지 않음(안 주면 Unnamed: 0 컬럼이 생김)",
           "checks": [
             {

@@ -8,7 +8,7 @@
     {
       "no": 1,
       "session": "1교시: 데이터 로딩 & EDA",
-      "prompt_markdown": "`pandas`, `numpy`, `matplotlib.pyplot`, `seaborn`을 각각 `pd`, `np`, `plt`, `sns`로 불러오고, `../data/diabetes.csv`을 `diabetes`로 불러와 shape을 확인하세요.",
+      "prompt_markdown": "`pandas`, `numpy`, `matplotlib.pyplot`, `seaborn`을 각각 `pd`, `np`, `plt`, `sns`로 불러오고, `data/diabetes.csv`을 `diabetes`로 불러와 shape을 확인하세요.",
       "answer_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\n\ndiabetes = pd.read_csv('data/diabetes.csv')\nprint(diabetes.shape)",
       "points": 5,
       "checks": [

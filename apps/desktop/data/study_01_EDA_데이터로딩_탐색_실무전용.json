@@ -12,7 +12,7 @@
       "practices": [
         {
           "no": 1,
-          "prompt_markdown": "`../data/data.json`을 읽어 `shop_df`에 저장하고 shape을 확인하세요.",
+          "prompt_markdown": "`data/data.json`을 읽어 `shop_df`에 저장하고 shape을 확인하세요.",
           "answer_code": "shop_df = pd.read_json('data/data.json')  # JSON 파일은 read_json으로 바로 DataFrame으로 변환됨\nprint(shop_df.shape)\nshop_df",
           "checks": [
             {
@@ -29,7 +29,7 @@
         },
         {
           "no": 2,
-          "prompt_markdown": "`../data/sample.xlsx`를 읽어 `sales_df`에 저장하세요.",
+          "prompt_markdown": "`data/sample.xlsx`를 읽어 `sales_df`에 저장하세요.",
           "answer_code": "sales_df = pd.read_excel('data/sample.xlsx')  # xlsx 확장자는 read_excel 사용\nsales_df",
           "checks": [
             {
@@ -46,7 +46,7 @@
         },
         {
           "no": 3,
-          "prompt_markdown": "`../data/wine.csv`를 읽되 `alcohol`, `target` 두 컬럼만 골라 `wine_partial`에 저장하세요.",
+          "prompt_markdown": "`data/wine.csv`를 읽되 `alcohol`, `target` 두 컬럼만 골라 `wine_partial`에 저장하세요.",
           "answer_code": "wine_partial = pd.read_csv('data/wine.csv', usecols=['alcohol', 'target'])  # usecols로 필요한 컬럼만 선택해 불필요한 로딩을 줄임\nwine_partial.head()",
           "checks": [
             {
@@ -63,7 +63,7 @@
         },
         {
           "no": 4,
-          "prompt_markdown": "`../data/multi_sheet_sample.xlsx`에서 `'매장정보'` 시트만 `shops_practice_df`로 읽어 컬럼 목록을 확인하세요.",
+          "prompt_markdown": "`data/multi_sheet_sample.xlsx`에서 `'매장정보'` 시트만 `shops_practice_df`로 읽어 컬럼 목록을 확인하세요.",
           "answer_code": "shops_practice_df = pd.read_excel('data/multi_sheet_sample.xlsx', sheet_name='매장정보')\nprint(shops_practice_df.columns.tolist())",
           "checks": [
             {
@@ -80,7 +80,7 @@
         },
         {
           "no": 5,
-          "prompt_markdown": "`../data/nested_customers.json`을 불러와 `pd.json_normalize()`로 평탄화한 `customers_practice_df`를 만들고 shape을 확인하세요.",
+          "prompt_markdown": "`data/nested_customers.json`을 불러와 `pd.json_normalize()`로 평탄화한 `customers_practice_df`를 만들고 shape을 확인하세요.",
           "answer_code": "import json\nwith open('data/nested_customers.json', encoding='utf-8') as f:\n    nested_data = json.load(f)\ncustomers_practice_df = pd.json_normalize(nested_data)\nprint(customers_practice_df.shape)",
           "checks": [
             {
@@ -106,7 +106,7 @@
       "practices": [
         {
           "no": 4,
-          "prompt_markdown": "`../data/train.csv`와 `../data/test.csv`를 `PassengerId` 기준 `outer`로 병합해 shape을 확인하세요.",
+          "prompt_markdown": "`data/train.csv`와 `data/test.csv`를 `PassengerId` 기준 `outer`로 병합해 shape을 확인하세요.",
           "answer_code": "train = pd.read_csv('data/train.csv')\ntest = pd.read_csv('data/test.csv')\nmerged = pd.merge(train, test, on='PassengerId', how='outer')  # how='outer': 한쪽에만 있는 행도 버리지 않고 포함(없는 값은 NaN)\nprint(merged.shape)",
           "checks": [
             {
