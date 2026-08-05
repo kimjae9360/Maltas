@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import Link from "next/link";
 import { ServerPinger } from "@/components/ServerPinger";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import "./globals.css";
 // 이 파일은 Next.js App Router의 "루트 레이아웃" — app/ 폴더 아래 모든 페이지가 공통으로
 // 이 안에 감싸져서 렌더링된다. 여기 적어둔 <header>(상단 네비게이션 바)는 페이지를 이동해도
@@ -66,13 +67,21 @@ export default function RootLayout({
             >
               🏠 AICE Simulator
             </Link>
-            <nav className="flex items-center gap-4 text-xs font-semibold text-[var(--muted)]">
-              {/* next/link의 <Link>는 일반 <a> 태그와 달리 페이지 전체를 새로고침하지 않고
-                  필요한 부분만 다시 그리는 클라이언트 사이드 네비게이션을 해준다(SPA처럼 빠른 전환). */}
-              <Link href="/study" className="hover:text-[var(--brand)]">📖 학습</Link>
-              <Link href="/exams" className="hover:text-[var(--brand)]">📝 모의고사</Link>
-              <Link href="/history" className="hover:text-[var(--brand)]">📊 히스토리</Link>
-            </nav>
+            {/* nav와 ThemeToggle을 한 flex 그룹으로 묶어서 header 전체는 여전히 "로고 | 나머지 전부"
+                두 덩어리만 justify-between으로 양 끝에 배치한다 (셋으로 쪼개면 가운데에도 여백이
+                생겨버림). 예전엔 ThemeToggle이 시험 응시/학습 화면에만 있어서, 홈·모의고사목록·
+                히스토리 화면에서는 테마를 바꿀 방법이 아예 없었다 — 늘 같은 자리(전역 헤더)에
+                두면 어느 화면에서든 예측 가능한 위치가 된다. */}
+            <div className="flex items-center gap-4">
+              <nav className="flex items-center gap-4 text-xs font-semibold text-[var(--muted)]">
+                {/* next/link의 <Link>는 일반 <a> 태그와 달리 페이지 전체를 새로고침하지 않고
+                    필요한 부분만 다시 그리는 클라이언트 사이드 네비게이션을 해준다(SPA처럼 빠른 전환). */}
+                <Link href="/study" className="hover:text-[var(--brand)]">📖 학습</Link>
+                <Link href="/exams" className="hover:text-[var(--brand)]">📝 모의고사</Link>
+                <Link href="/history" className="hover:text-[var(--brand)]">📊 히스토리</Link>
+              </nav>
+              <ThemeToggle />
+            </div>
           </header>
           <div className="flex flex-1 flex-col">
             {children}

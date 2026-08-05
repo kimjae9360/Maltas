@@ -9,7 +9,6 @@ import { MarkdownView } from "@/components/MarkdownView";
 import { PlotViewer } from "@/components/PlotViewer";
 import { StudyPracticeCard } from "@/components/StudyPracticeCard";
 import { OpenBookPanel } from "@/components/OpenBookPanel";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
 
 // 학습 챕터 화면 — exam/[examId]/page.tsx와 형제뻘 구조지만, "시험"이 아니라 "챕터를 순서대로
@@ -135,14 +134,23 @@ export default function StudyChapterPage() {
     return map;
   };
 
-  const setPracticeCode = useCallback(
-    (unit: number, code: string) => {
-      const s = sessionRef.current;
-      if (!s) return;
-      persist({ ...s, practice_code_by_unit: { ...s.practice_code_by_unit, [String(unit)]: code } });
-    },
-    [persist]
-  );
+  // exam/[examId]/page.tsx의 setCode와 동일한 이유로 persist()를 그대로 쓰지 않는다 —
+  // 키 입력마다 IndexedDB에 세션 전체를 즉시 쓰면(특히 TODO 코드가 여러 개 쌓인 세션은
+  // 객체가 꽤 크다) 그 뒤에 이어지는 "채점하기"/"정답 보기" 클릭이 밀려있는 저장 요청들
+  // 때문에 버벅이는 것처럼 느껴질 수 있다. 화면은 즉시 갱신하고, 디스크 쓰기만 400ms 디바운스.
+  const practiceSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setPracticeCode = useCallback((unit: number, code: string) => {
+    const s = sessionRef.current;
+    if (!s) return;
+    const updated = { ...s, practice_code_by_unit: { ...s.practice_code_by_unit, [String(unit)]: code } };
+    setSession(updated);
+    if (practiceSaveTimerRef.current) clearTimeout(practiceSaveTimerRef.current);
+    practiceSaveTimerRef.current = setTimeout(() => {
+      practiceSaveTimerRef.current = null;
+      const latest = sessionRef.current;
+      if (latest) studyStorage.save(latest);
+    }, 400);
+  }, []);
 
   /** "채점하기" 버튼 — 서버에 실제로 실행/채점을 요청하고, 성공/실패 이력을 세션에 기록한다. */
   const runPractice = useCallback(async (unit: number) => {
@@ -445,7 +453,7 @@ export default function StudyChapterPage() {
                 </Link>
               </div>
               <div className="flex items-center gap-3">
-                <ThemeToggle />
+                {/* ThemeToggle은 전역 헤더로 옮겼다 — exam 페이지와 같은 이유. */}
                 <OpenBookPanel />
               </div>
             </div>

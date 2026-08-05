@@ -7,7 +7,6 @@ import { ExamSession, examStorage } from "@/lib/storage";
 import { ExamProblemCard } from "@/components/ExamProblemCard";
 import { FillBlankCard } from "@/components/FillBlankCard";
 import { OpenBookPanel } from "@/components/OpenBookPanel";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
 
 // 이 파일은 이 프로젝트에서 가장 복잡한 화면이다 — 모의고사를 실제로 "응시"하는 화면이라
@@ -210,14 +209,29 @@ export default function ExamPage() {
   // 붙어있어도 "함수 참조가 매번 다르다"는 이유만으로 모든 카드가 매 렌더링마다 다시 그려진다 —
   // 특히 코드 에디터 하나에 타이핑할 때마다 세션 상태 전체가 바뀌므로, 이 함수들이 안정적이지
   // 않으면 17개 문제의 CodeMirror 에디터+마크다운이 글자 하나 칠 때마다 전부 다시 렌더링된다.
-  const setCode = useCallback(
-    (no: number, code: string) => {
-      const s = sessionRef.current;
-      if (!s) return;
-      persist({ ...s, code_by_problem: { ...s.code_by_problem, [String(no)]: code } });
-    },
-    [persist]
-  );
+  // setCode만 persist()를 그대로 쓰지 않고 따로 만든 이유: persist()는 IndexedDB 쓰기
+  // (examStorage.save)를 매번 즉시 실행하는데, setCode는 "키 입력마다" 호출되는 유일한
+  // 경로라서 다른 액션(채점, 정답 보기, 제출 등 클릭 한 번당 한 번 호출되는 것들)과 빈도
+  // 자체가 다르다. IndexedDB의 db.put()은 내부적으로 값을 구조적으로 복제(clone)하는 과정이
+  // 호출 즉시 메인 스레드에서 동기적으로 일어나는데, 문제 17개치 코드가 들어있는 세션 객체
+  // 전체를 글자 하나 칠 때마다 통째로 복제+쓰기 요청을 큐에 쌓다 보면, 그 뒤에 "정답 보기"나
+  // "제출"을 눌러도 밀려 있는 저장 요청들 때문에 버벅이는 것처럼 느껴질 수 있다.
+  // 그래서 화면(session state)은 매 키 입력마다 즉시 갱신하되, 실제 디스크 쓰기는 타이핑이
+  // 400ms간 멈췄을 때 한 번만 하도록 디바운스한다 — 5초마다 도는 자동저장(줄 168 근처)이
+  // 이미 있어서, 이 사이 브라우저가 꺼지는 최악의 경우에도 잃는 건 몇백 ms치 타이핑뿐이다.
+  const codeSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setCode = useCallback((no: number, code: string) => {
+    const s = sessionRef.current;
+    if (!s) return;
+    const updated = { ...s, code_by_problem: { ...s.code_by_problem, [String(no)]: code } };
+    setSession(updated); // 화면 반영(재렌더)은 항상 즉시
+    if (codeSaveTimerRef.current) clearTimeout(codeSaveTimerRef.current);
+    codeSaveTimerRef.current = setTimeout(() => {
+      codeSaveTimerRef.current = null;
+      const latest = sessionRef.current;
+      if (latest) examStorage.save(latest);
+    }, 400);
+  }, []);
 
   const toggleFlag = useCallback(
     (no: number) => {
@@ -537,7 +551,9 @@ export default function ExamPage() {
             <div className="truncate font-bold">{exam.title}</div>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <ThemeToggle />
+            {/* ThemeToggle(다크/라이트)은 전역 헤더(app/layout.tsx)로 옮겨서 모든 화면에서
+                항상 같은 자리에 있게 했다 — 오픈북은 시험 문제를 풀 때만 의미가 있는 기능이라
+                여기 그대로 둔다. */}
             <OpenBookPanel />
             <span className="text-sm text-[var(--muted)]">{answeredCount}/{exam.problems.length} 작성</span>
             <span className={`font-mono text-lg font-bold ${remaining < 300 ? "text-[var(--bad)]" : ""}`}>
