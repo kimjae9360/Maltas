@@ -115,7 +115,11 @@ export const ExamProblemCard = memo(function ExamProblemCard({
             setTab("answer");
             onReveal(problem.no);
           }}
-          disabled={disabled || revealed}
+          disabled={revealed}
+          // 정답 보기는 서버(채점 워커)를 전혀 거치지 않는 순수 클라이언트 동작(base64로 이미
+          // 받아둔 정답을 그 자리에서 디코딩)이라, "실행" 중이라는 이유로(disabled prop) 같이
+          // 잠글 필요가 없다 — 채점 요청이 서버 응답을 기다리는 동안에도 정답 보기는 항상
+          // 즉시 눌려야 한다. 이미 정답을 본 문제(revealed)만 다시 못 누르게 막는다.
           className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--muted)] transition hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           정답 보기
