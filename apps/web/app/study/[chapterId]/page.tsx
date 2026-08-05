@@ -124,19 +124,38 @@ export default function StudyChapterPage() {
   const getPracticeCode = (unit: number, starter: string) => session?.practice_code_by_unit[String(unit)] ?? starter;
   // 아직 한 번도 손 안 댄 TODO는 starter_code(문제에 딸려오는 기본 뼈대 코드)를 보여준다.
 
-  const setPracticeCode = (unit: number, code: string) => {
-    const s = sessionRef.current;
-    if (!s) return;
-    persist({ ...s, practice_code_by_unit: { ...s.practice_code_by_unit, [String(unit)]: code } });
+  /** unit -> 코드 맵을 만든다. codeByUnit(useMemo)과 로직은 같지만, session state가 아니라
+   * 인자로 받은 최신 세션(sessionRef.current)을 기준으로 계산한다 — runPractice가 useCallback으로
+   * 안정된 함수여야 하는데, codeByUnit(session이 바뀔 때마다 새로 계산됨)에 의존하면 타이핑할
+   * 때마다 runPractice까지 새로 만들어져서 memo()가 무력화되기 때문. */
+  const buildCodeByUnit = (chapterArg: ChapterDetail, sessionArg: StudySession) => {
+    const map: Record<string, string> = {};
+    for (const s of chapterArg.sections) map[String(unitIdx(s.no))] = s.example_code;
+    Object.assign(map, sessionArg.practice_code_by_unit);
+    return map;
   };
 
+  const setPracticeCode = useCallback(
+    (unit: number, code: string) => {
+      const s = sessionRef.current;
+      if (!s) return;
+      persist({ ...s, practice_code_by_unit: { ...s.practice_code_by_unit, [String(unit)]: code } });
+    },
+    [persist]
+  );
+
   /** "채점하기" 버튼 — 서버에 실제로 실행/채점을 요청하고, 성공/실패 이력을 세션에 기록한다. */
-  const runPractice = async (unit: number, code: string) => {
+  const runPractice = useCallback(async (unit: number) => {
     const s = sessionRef.current;
     if (!s || !chapter || runningUnit !== null) return;
+    const sectionNo = Math.floor(unit / 100);
+    const practiceNo = unit % 100;
+    const unitSection = chapter.sections.find((sec) => sec.no === sectionNo);
+    const starter = practiceNo === 0 ? (unitSection?.example_code ?? "") : (unitSection?.practices.find((p) => p.no === practiceNo)?.starter_code ?? "");
+    const code = s.practice_code_by_unit[String(unit)] ?? starter;
     setRunningUnit(unit);
     try {
-      const res = await api.runStudyUnit(chapter.chapter_id, { unit, current_code: code, code_by_unit: codeByUnit });
+      const res = await api.runStudyUnit(chapter.chapter_id, { unit, current_code: code, code_by_unit: buildCodeByUnit(chapter, s) });
       setLastRuns((prev) => ({ ...prev, [unit]: res }));
 
       // ⚠️ 경쟁 상태(race condition) 방지: exam/[examId]/page.tsx의 runProblem과 같은 이유로,
@@ -178,9 +197,9 @@ export default function StudyChapterPage() {
     } finally {
       setRunningUnit(null);
     }
-  };
+  }, [chapter, runningUnit, persist]);
 
-  const revealAnswer = async (unit: number) => {
+  const revealAnswer = useCallback(async (unit: number) => {
     const s = sessionRef.current;
     if (!s || !chapter) return;
 
@@ -227,7 +246,7 @@ export default function StudyChapterPage() {
       // sectionIncomplete 가드는 "채점했거나 정답을 본" 것만 확인하지, 정답 유무는 안 따진다.
       wrong_units: latest.wrong_units.includes(unit) ? latest.wrong_units : [...latest.wrong_units, unit],
     });
-  };
+  }, [chapter, persist]);
 
   /** 섹션 이동(이전/다음/완료) — 지금 섹션을 "완료됨"으로 표시하고 목표 섹션으로 넘어간다. */
   const goToSection = (no: number) => {
@@ -397,16 +416,17 @@ export default function StudyChapterPage() {
               return (
                 <StudyPracticeCard
                   key={unit}
+                  unit={unit}
                   practice={practice}
                   code={getPracticeCode(unit, practice.starter_code)}
-                  onCodeChange={(c) => setPracticeCode(unit, c)}
-                  onRun={() => runPractice(unit, getPracticeCode(unit, practice.starter_code))}
+                  onCodeChange={setPracticeCode}
+                  onRun={runPractice}
                   running={runningUnit === unit}
                   disabled={runningUnit !== null}
                   result={session.practice_results_by_unit[String(unit)]}
                   lastRun={lastRuns[unit]}
                   revealed={isRevealedNow}
-                  onReveal={() => revealAnswer(unit)}
+                  onReveal={revealAnswer}
                   answerCode={answers[unit]}
                 />
               );
@@ -491,16 +511,17 @@ export default function StudyChapterPage() {
               return (
                 <StudyPracticeCard
                   key={unit}
+                  unit={unit}
                   practice={p}
                   code={getPracticeCode(unit, p.starter_code)}
-                  onCodeChange={(c) => setPracticeCode(unit, c)}
-                  onRun={() => runPractice(unit, getPracticeCode(unit, p.starter_code))}
+                  onCodeChange={setPracticeCode}
+                  onRun={runPractice}
                   running={runningUnit === unit}
                   disabled={runningUnit !== null}
                   result={session.practice_results_by_unit[String(unit)]}
                   lastRun={lastRuns[unit]}
                   revealed={session.practice_results_by_unit[String(unit)]?.revealed_answer ?? false}
-                  onReveal={() => revealAnswer(unit)}
+                  onReveal={revealAnswer}
                   answerCode={answers[unit]}
                 />
               );

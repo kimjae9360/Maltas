@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { StudyPractice, StudyRunResult } from "@/lib/api";
 import { PracticeResult } from "@/lib/storage";
 import { CodeEditor } from "./CodeEditor";
@@ -10,22 +10,28 @@ import { PlotViewer } from "./PlotViewer";
 // ExamProblemCard와 구조가 거의 같은 형제 컴포넌트지만, "시험"이 아니라 "연습"이라는 성격
 // 차이가 세부 동작에 그대로 드러난다: 오답이어도 감점 개념이 없고(그냥 다시 시도), 정답
 // 보기를 여러 번 눌러도 페널티가 없다(💡 힌트/정답 보기라는 이름 자체가 그 톤을 반영).
+//
+// memo()로 감싸고 콜백에 unit을 먼저 붙여 부모에 넘기는 이유는 ExamProblemCard와 동일 —
+// 한 챕터 섹션(또는 복습 모드)에 TODO 카드가 여러 개 동시에 떠 있을 때, 하나에 타이핑해도
+// 나머지 카드가 리렌더되지 않게 하기 위함.
 interface Props {
+  unit: number;                                          // section.no*100 + practice.no — 이 TODO를 서버/세션에서 식별하는 번호
   practice: StudyPractice;
   code: string;
-  onCodeChange: (code: string) => void;
-  onRun: () => Promise<void>;
+  onCodeChange: (unit: number, code: string) => void;
+  onRun: (unit: number) => void;
   running: boolean;
   disabled: boolean;
   result?: PracticeResult;
   lastRun?: StudyRunResult;
   revealed: boolean;
-  onReveal: () => void | Promise<void>;
+  onReveal: (unit: number) => void;
   answerCode?: string;
-  cardRef?: (el: HTMLDivElement | null) => void;
+  cardRef?: (unit: number, el: HTMLDivElement | null) => void;
 }
 
-export function StudyPracticeCard({
+export const StudyPracticeCard = memo(function StudyPracticeCard({
+  unit,
   practice,
   code,
   onCodeChange,
@@ -86,7 +92,7 @@ export function StudyPracticeCard({
     : "border-l-4 border-l-transparent";
 
   return (
-    <div ref={cardRef} className={`card ${statusColor} p-5`}>
+    <div ref={(el) => cardRef?.(unit, el)} className={`card ${statusColor} p-5`}>
       <div className="mb-2 flex items-center justify-between">
         <span className="pill">TODO {practice.no}</span>
         {result && (
@@ -100,11 +106,11 @@ export function StudyPracticeCard({
         <MarkdownView>{practice.prompt_markdown}</MarkdownView>
       </div>
 
-      <CodeEditor value={code} onChange={onCodeChange} minHeight="140px" />
+      <CodeEditor value={code} onChange={(c) => onCodeChange(unit, c)} minHeight="140px" />
 
       <div className="mt-3 flex items-center gap-2">
         <button
-          onClick={onRun}
+          onClick={() => onRun(unit)}
           disabled={disabled}
           className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-bold text-white transition hover:bg-[var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -113,7 +119,7 @@ export function StudyPracticeCard({
         <button
           onClick={() => {
             setTab("answer");
-            onReveal();
+            onReveal(unit);
           }}
           disabled={disabled}
           className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--muted)] transition hover:text-[var(--foreground)] disabled:opacity-50"
@@ -150,4 +156,4 @@ export function StudyPracticeCard({
       </div>
     </div>
   );
-}
+});
