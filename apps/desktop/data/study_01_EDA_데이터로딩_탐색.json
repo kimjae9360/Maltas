@@ -42,7 +42,7 @@
       "practices": [
         {
           "no": 1,
-          "prompt_markdown": "`train.csv`를 읽어 `df_train`으로 저장하세요.",
+          "prompt_markdown": "`data/train.csv`를 읽어 `df_train`으로 저장하세요.",
           "answer_code": "df_train = pd.read_csv('data/train.csv')  # '../'는 현재 노트북 파일 기준 한 단계 상위 폴더를 의미",
           "checks": [
             {
@@ -59,7 +59,7 @@
         },
         {
           "no": 2,
-          "prompt_markdown": "`data.json`을 읽어 `df_json`으로 저장하고 shape을 확인하세요.",
+          "prompt_markdown": "`data/data.json`을 읽어 `df_json`으로 저장하고 shape을 확인하세요.",
           "answer_code": "df_json = pd.read_json('data/data.json')  # JSON은 read_csv가 아니라 read_json으로 읽음\nprint(df_json.shape)  # shape으로 (행 개수, 열 개수)를 바로 확인",
           "checks": [
             {
@@ -76,7 +76,7 @@
         },
         {
           "no": 3,
-          "prompt_markdown": "`sample.xlsx`를 읽어 `df_excel`으로 저장하세요.",
+          "prompt_markdown": "`data/sample.xlsx`를 읽어 `df_excel`으로 저장하세요.",
           "answer_code": "df_excel = pd.read_excel('data/sample.xlsx')  # 엑셀 파일은 read_excel 사용(openpyxl 패키지가 내부적으로 필요)",
           "checks": [
             {
@@ -93,7 +93,7 @@
         },
         {
           "no": 4,
-          "prompt_markdown": "`train.csv`에서 `Name`, `Sex`, `Embarked` 컬럼만 골라 불러오세요.",
+          "prompt_markdown": "`data/train.csv`에서 `Name`, `Sex`, `Embarked` 컬럼만 골라 불러오세요.",
           "answer_code": "df_partial = pd.read_csv('data/train.csv', usecols=['Name', 'Sex', 'Embarked'])  # usecols로 필요한 컬럼만 골라 읽으면 메모리도 아끼고 다루기도 편함\ndf_partial.head()",
           "checks": [
             {
@@ -110,7 +110,7 @@
         },
         {
           "no": 5,
-          "prompt_markdown": "`multi_sheet_sample.xlsx`에서 `'매출정보'` 시트만 `sales_df`로 읽어 shape을 확인하세요.",
+          "prompt_markdown": "`data/multi_sheet_sample.xlsx`에서 `'매출정보'` 시트만 `sales_df`로 읽어 shape을 확인하세요.",
           "answer_code": "sales_df = pd.read_excel('data/multi_sheet_sample.xlsx', sheet_name='매출정보')\nprint(sales_df.shape)",
           "checks": [
             {
@@ -127,7 +127,7 @@
         },
         {
           "no": 6,
-          "prompt_markdown": "`nested_customers.json`을 불러온 뒤 `pd.json_normalize()`로 평탄화한 `df_customers`를 만들고, `address.city` 컬럼이 잘 생겼는지 컬럼 목록으로 확인하세요.",
+          "prompt_markdown": "`data/nested_customers.json`을 불러온 뒤 `pd.json_normalize()`로 평탄화한 `df_customers`를 만들고, `address.city` 컬럼이 잘 생겼는지 컬럼 목록으로 확인하세요.",
           "answer_code": "import json\nwith open('data/nested_customers.json', encoding='utf-8') as f:\n    customer_data = json.load(f)\ndf_customers = pd.json_normalize(customer_data)\nprint(df_customers.columns.tolist())  # 'address.city', 'address.zipcode'처럼 점(.)으로 이어진 컬럼명이 생김",
           "checks": [
             {
@@ -283,7 +283,7 @@
       "practices": [
         {
           "no": 1,
-          "prompt_markdown": "`train.csv`를 `encoding='utf-8'`로 읽어 `df`에 저장하고, 결측치가 가장 많은 컬럼 이름을 `most_null_col`에 저장하세요.",
+          "prompt_markdown": "`data/train.csv`를 `encoding='utf-8'`로 읽어 `df`에 저장하고, 결측치가 가장 많은 컬럼 이름을 `most_null_col`에 저장하세요.",
           "answer_code": "df = pd.read_csv('data/train.csv', encoding='utf-8')\nmost_null_col = df.isnull().sum().idxmax()  # idxmax(): 값이 가장 큰 '위치(컬럼명)'를 반환(값 자체가 아님)\nprint(most_null_col)",
           "checks": [
             {
@@ -325,7 +325,7 @@
         },
         {
           "no": 3,
-          "prompt_markdown": "`df`와 `test.csv`를 `PassengerId` 기준 `inner`로 병합해 `df_merged`에 저장하고 shape을 출력하세요.",
+          "prompt_markdown": "`df`와 `data/test.csv`를 `PassengerId` 기준 `inner`로 병합해 `df_merged`에 저장하고 shape을 출력하세요.",
           "answer_code": "df_test = pd.read_csv('data/test.csv')\ndf_merged = pd.merge(df, df_test, on='PassengerId', how='inner')  # how='inner': 양쪽 모두에 키가 존재하는 행만 남김\nprint(df_merged.shape)",
           "checks": [
             {

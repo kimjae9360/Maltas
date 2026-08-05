@@ -12,7 +12,7 @@
       "practices": [
         {
           "no": 1,
-          "prompt_markdown": "이번에는 `Age` 컬럼 기준으로 위와 같은 순서(이상치 제거 → 인덱스 재정렬)를 원본 `train.csv`에 적용해 `df2`에 저장하세요.",
+          "prompt_markdown": "이번에는 `Age` 컬럼 기준으로 위와 같은 순서(이상치 제거 → 인덱스 재정렬)를 원본 `data/train.csv`에 적용해 `df2`에 저장하세요.",
           "answer_code": "df2 = pd.read_csv('data/train.csv')\n\nq1, q3 = df2['Age'].quantile([0.25, 0.75])  # Age는 결측치가 있어 quantile 계산 시 자동으로 제외됨\niqr = q3 - q1\nlower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr\ndf2 = df2[(df2['Age'] >= lower) & (df2['Age'] <= upper) | df2['Age'].isnull()]  # 결측치 행은 이상치 판단 대상이 아니므로 남겨둔다\n\ndf2 = df2.reset_index(drop=True)  # 행을 걸러낸 직후에는 반드시 인덱스를 재정렬",
           "checks": [
             {

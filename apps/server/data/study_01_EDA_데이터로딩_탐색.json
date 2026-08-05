@@ -8,7 +8,7 @@
       "title": "필요한 라이브러리 설치 및 불러오기",
       "theory_markdown": "### 📖 이론 설명\nAICE Associate의 1~2번 문항은 거의 항상 '라이브러리를 정확한 별칭으로 불러오세요' 형태로 나옵니다. 채점기는 문자 그대로 `pd`, `np` 같은 alias를 확인하므로, 문제에 적힌 이름을 그대로 써야 합니다. 오픈북 허용 라이브러리는 numpy, pandas, matplotlib, seaborn, scikit-learn, tensorflow, XGBoost 7종입니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 라이브러리 | 표준 alias |\n|---|---|\n| pandas | pd |\n| numpy | np |\n| matplotlib.pyplot | plt |\n| seaborn | sns |\n| sklearn.model_selection.train_test_split | (개별 함수 import) |",
-      "example_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nfrom sklearn.model_selection import train_test_split",
+      "example_code": "# AICE 오픈북 허용 라이브러리(numpy/pandas/matplotlib/seaborn/scikit-learn/tensorflow/xgboost)\n# 중 실제로 매 문제에서 거의 항상 쓰는 핵심 4개 + 자주 쓰는 함수 하나를 미리 불러온다.\n# 채점기는 정확한 alias(pd, np, plt, sns)를 그대로 요구하므로 관례를 그대로 따른다.\nimport pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nfrom sklearn.model_selection import train_test_split  # 학습용/테스트용 데이터 분리 함수",
       "practices": [
         {
           "no": 1,
@@ -149,7 +149,7 @@
       "title": "데이터 병합",
       "theory_markdown": "### 📖 이론 설명\n여러 개의 파일을 하나로 합쳐서 분석해야 하는 경우가 많습니다. `merge`는 공통 키를 기준으로 조인하고, `concat`은 단순히 이어붙입니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| pd.merge(a, b, on=, how=) | 키 기준 조인 |\n| pd.concat([a, b]) | 이어붙이기 |",
-      "example_code": "df_test = pd.read_csv('data/test.csv')  # PassengerId, LuggageCount, HasPet\ndf_all = pd.merge(df_train, df_test, on='PassengerId', how='inner')\nprint(df_all.shape)\ndf_all.head()",
+      "example_code": "# %% 공통 키로 두 데이터를 이어붙이기\n# pd.merge(a, b, on='공통컬럼', how='조인방식') — SQL의 JOIN과 같은 개념이다.\ndf_test = pd.read_csv('data/test.csv')  # PassengerId, LuggageCount, HasPet\ndf_all = pd.merge(df_train, df_test, on='PassengerId', how='inner')  # inner: 양쪽에 다 있는 행만 남김\nprint(df_all.shape)\ndf_all.head()",
       "practices": [
         {
           "no": 1,
@@ -193,7 +193,7 @@
       "title": "데이터 기본 탐색",
       "theory_markdown": "### 📖 이론 설명\n본격적인 전처리에 들어가기 전에는 항상 데이터의 '뼈대'를 먼저 확인합니다. `info()`로 컬럼별 타입과 결측치 유무를, `describe()`로 수치형 통계를, `select_dtypes()`로 타입별 컬럼만 골라내는 방법을 익혀두면 다음 단계인 전처리(04번 노트북)로 바로 넘어갈 준비가 됩니다. `pd.crosstab`은 두 범주형 컬럼의 관계를 빠르게 보고 싶을 때 유용합니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| df.info() | 타입, 결측치, 메모리 |\n| df.describe() / describe(include='all') | 수치형 / 전체 통계 |\n| df.select_dtypes(include='number'/'object') | 타입별 컬럼 추출 |\n| pd.crosstab(a, b) | 두 범주형 변수의 교차표 |",
-      "example_code": "df_train.info()\nprint(df_train.describe())\n\nobject_cols = df_train.select_dtypes(include='object').columns.tolist()\nprint('문자형 컬럼:', object_cols)\n\nprint(pd.crosstab(df_train['Sex'], df_train['Survived']))",
+      "example_code": "# %% 데이터 뼈대 확인 — info() / describe()\n# 본격적인 전처리에 들어가기 전, 컬럼 타입·결측치·기초 통계부터 훑어보는 게 첫 단계다.\ndf_train.info()          # 컬럼별 타입, 결측치 여부, 메모리 사용량을 한눈에 보여준다\nprint(df_train.describe())  # 수치형 컬럼들의 개수/평균/표준편차/사분위수 등 기초 통계\n\n# %% 타입별 컬럼만 골라내기\nobject_cols = df_train.select_dtypes(include='object').columns.tolist()  # 문자열(범주형) 컬럼만 추출\nprint('문자형 컬럼:', object_cols)\n\n# %% 두 범주형 컬럼의 관계 보기 — crosstab\n# Sex(성별)별로 Survived(생존여부)가 몇 명씩인지 조합별 빈도표로 바로 볼 수 있다.\nprint(pd.crosstab(df_train['Sex'], df_train['Survived']))",
       "practices": [
         {
           "no": 1,

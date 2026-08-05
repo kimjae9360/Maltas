@@ -98,7 +98,7 @@
         {
           "no": 6,
           "prompt_markdown": "아래 `toy`처럼 한 행이 통째로 결측치인 경우가 있을 때, `dropna(how='all')`로 '모든 값이 결측인 행'만 제거해보세요.",
-          "answer_code": "toy_clean = toy.dropna(how='all')  # how='any'(기본값)는 하나라도 결측이면 삭제, how='all'은 전부 결측일 때만 삭제\ntoy_clean",
+          "answer_code": "toy = pd.DataFrame({'a': [1, None, 3], 'b': [2, None, 4]})  # 이 문제 전용 예시 데이터(starter_code와 동일)\ntoy_clean = toy.dropna(how='all')  # how='any'(기본값)는 하나라도 결측이면 삭제, how='all'은 전부 결측일 때만 삭제\ntoy_clean",
           "checks": [
             {
               "var": "toy",
@@ -125,7 +125,7 @@
         {
           "no": 7,
           "prompt_markdown": "아래 `raw`처럼 결측치 대신 물음표(`'?'`)로 표시된 값이 섞여 있을 때, `replace()`로 먼저 `NaN`으로 바꾸고 실수형으로 변환한 뒤, `dropna()`로 결측 행을 제거해보세요.",
-          "answer_code": "raw['점수'] = raw['점수'].replace('?', np.nan).astype(float)  # isnull()로는 안 잡히는 '?' 같은 숨은 결측치를 먼저 NaN으로 바꿔야 dropna/fillna를 쓸 수 있음\nraw_clean = raw.dropna()\nraw_clean",
+          "answer_code": "raw = pd.DataFrame({'점수': ['85', '?', '92', '78']})  # 이 문제 전용 예시 데이터(starter_code와 동일)\nraw['점수'] = raw['점수'].replace('?', np.nan).astype(float)  # isnull()로는 안 잡히는 '?' 같은 숨은 결측치를 먼저 NaN으로 바꿔야 dropna/fillna를 쓸 수 있음\nraw_clean = raw.dropna()\nraw_clean",
           "checks": [
             {
               "var": "raw",
