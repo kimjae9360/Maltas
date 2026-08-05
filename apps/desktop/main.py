@@ -24,6 +24,7 @@ from ui.main_window import MainWindow
 from ui.exam_select_dialog import ExamSelectDialog
 from ui.study_select_dialog import StudySelectDialog
 from ui.study_window import StudyWindow
+from ui.mode_select_dialog import ModeSelectDialog
 from engine.session_manager import SessionManager
 from engine.study_progress_manager import StudyProgressManager
 from resource_path import get_base_dir, get_writable_dir
@@ -71,18 +72,13 @@ def main():
     data_dir = base_dir / "data"
 
     # 0. 모드 선택 (모의고사 / 학습)
-    mode_box = QMessageBox()
-    mode_box.setWindowTitle("AICE Simulator")
-    mode_box.setText("무엇을 하시겠습니까?")
-    btn_exam = mode_box.addButton("📝 모의고사 풀기", QMessageBox.AcceptRole)
-    btn_study = mode_box.addButton("📖 학습 모드", QMessageBox.AcceptRole)
-    mode_box.addButton("취소", QMessageBox.RejectRole)
-    mode_box.exec()
+    mode_dialog = ModeSelectDialog()
+    mode_dialog.exec()
 
-    if mode_box.clickedButton() == btn_study:
+    if mode_dialog.selected_mode == "study":
         run_study_mode(app, data_dir, writable_dir)
         return
-    elif mode_box.clickedButton() != btn_exam:
+    elif mode_dialog.selected_mode != "exam":
         return
 
     # 1. 시험 선택
