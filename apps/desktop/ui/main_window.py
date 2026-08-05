@@ -192,6 +192,7 @@ class MainWindow(QMainWindow):
         h_splitter = QSplitter(Qt.Horizontal)
 
         self.md_viewer = QTextBrowser()
+        self.md_viewer.setFrameShape(QFrame.NoFrame)
         self.md_viewer.setOpenLinks(False)
         self.md_viewer.anchorClicked.connect(self._on_inline_code_clicked)
         h_splitter.addWidget(self.md_viewer)
@@ -230,24 +231,27 @@ class MainWindow(QMainWindow):
         self.lock_banner.setVisible(False)
 
         self.code_editor = QPlainTextEdit()
+        self.code_editor.setFrameShape(QFrame.NoFrame)
         self.highlighter = PythonHighlighter(self.code_editor.document())
         self.code_editor.textChanged.connect(self.on_code_typed)
 
         code_layout.addLayout(btn_layout)
         code_layout.addWidget(self.lock_banner)
         code_layout.addWidget(self.code_editor)
-        
+
         v_splitter.addWidget(code_widget)
-        
+
         self.tabs = QTabWidget()
         self.console_output = QTextBrowser()
+        self.console_output.setFrameShape(QFrame.NoFrame)
         self.console_output.setFont(QFont("Consolas", 15))
-        
+
         self.plot_container = QVBoxLayout()
         plot_widget = QWidget()
         plot_widget.setLayout(self.plot_container)
-        
+
         self.answer_output = QTextBrowser()
+        self.answer_output.setFrameShape(QFrame.NoFrame)
         self.answer_output.setFont(QFont("Consolas", 15))
 
         self.tabs.addTab(self.console_output, "콘솔 출력")

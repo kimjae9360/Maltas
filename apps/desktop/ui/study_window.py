@@ -116,6 +116,11 @@ class StudyWindow(QMainWindow):
         top_bar_layout = QHBoxLayout(self.top_bar)
         top_bar_layout.setContentsMargins(24, 14, 24, 14)
 
+        self.btn_sidebar_toggle = QPushButton("☰")
+        self.btn_sidebar_toggle.setFixedWidth(40)
+        self.btn_sidebar_toggle.setToolTip("섹션 목록 접기/펼치기")
+        self.btn_sidebar_toggle.clicked.connect(self.toggle_sidebar)
+
         self.chapter_title_label = QLabel(self.chapter_data.get("title", ""))
         self.chapter_title_label.setFont(QFont("Malgun Gothic", 15, QFont.Bold))
 
@@ -137,6 +142,8 @@ class StudyWindow(QMainWindow):
         self.btn_theme_toggle.clicked.connect(self.toggle_theme)
         self._refresh_theme_toggle_label()
 
+        top_bar_layout.addWidget(self.btn_sidebar_toggle)
+        top_bar_layout.addSpacing(12)
         top_bar_layout.addWidget(self.chapter_title_label)
         top_bar_layout.addStretch()
         top_bar_layout.addWidget(self.btn_font_minus)
@@ -188,23 +195,21 @@ class StudyWindow(QMainWindow):
         sidebar_layout.addWidget(sidebar_scroll)
         body_layout.addWidget(self.sidebar)
 
-        h_splitter = QSplitter(Qt.Horizontal)
-        h_splitter.setHandleWidth(14)
-        self.h_splitter = h_splitter
+        # 화면 하나에 이론+예제+TODO+콘솔을 전부 욱여넣으면 좁은 화면에서 사이드바가 잘리고
+        # 스크롤도 불안정해진다는 피드백을 반영해, "이론/예제 코드/TODO 문제"를 상단 탭으로
+        # 나누고 한 번에 하나만 보여준다. 콘솔/시각화/정답 결과는 어느 탭에 있든 참고할 일이
+        # 많아서 탭 안에 넣지 않고 항상 보이는 아래쪽 패널로 따로 둔다.
+        self.content_tabs = QTabWidget()
+        self.content_tabs.setFont(QFont("Malgun Gothic", 11, QFont.Bold))
 
-        # 좌측: 이론 + 개념 정리 (섹션 전체에서 공통)
+        # 이론 + 개념 정리 (섹션 전체에서 공통)
         self.theory_viewer = QTextBrowser()
+        self.theory_viewer.setFrameShape(QFrame.NoFrame)
         self.theory_viewer.setOpenLinks(False)
         self.theory_viewer.anchorClicked.connect(self._on_inline_code_clicked)
-        h_splitter.addWidget(self.theory_viewer)
+        self.content_tabs.addTab(self.theory_viewer, "📖 이론")
 
-        v_splitter = QSplitter(Qt.Vertical)
-        # 스플리터 핸들 자체를 넓게 잡고 배경색과 같게 칠해서, 예제/TODO/콘솔 세 카드 사이에
-        # 확실한 여백처럼 보이게 한다 — 예제와 문제가 경계 없이 붙어 보인다는 피드백을 반영.
-        v_splitter.setHandleWidth(14)
-        self.v_splitter = v_splitter
-
-        # 우측 상단: 예제 코드 (카드로 감싸서 TODO 카드와 뚜렷하게 분리)
+        # 예제 코드
         self.example_card = QWidget()
         example_layout = QVBoxLayout(self.example_card)
         example_layout.setContentsMargins(16, 14, 16, 14)
@@ -234,9 +239,10 @@ class StudyWindow(QMainWindow):
 
         example_layout.addLayout(example_header)
         example_layout.addWidget(example_scroll)
-        v_splitter.addWidget(self.example_card)
+        example_layout.addStretch()
+        self.content_tabs.addTab(self.example_card, "💻 예제 코드")
 
-        # 우측 중단: TODO 문제 (마찬가지로 카드로 감싼다)
+        # TODO 문제
         self.practice_card = QWidget()
         practice_layout = QVBoxLayout(self.practice_card)
         practice_layout.setContentsMargins(16, 14, 16, 14)
@@ -257,6 +263,7 @@ class StudyWindow(QMainWindow):
         self.practice_nav_layout.addWidget(self.btn_next_practice)
 
         self.practice_prompt_viewer = QTextBrowser()
+        self.practice_prompt_viewer.setFrameShape(QFrame.NoFrame)
         self.practice_prompt_viewer.setMaximumHeight(110)
         self.practice_prompt_viewer.setOpenLinks(False)
         self.practice_prompt_viewer.anchorClicked.connect(self._on_inline_code_clicked)
@@ -286,6 +293,7 @@ class StudyWindow(QMainWindow):
         self.reveal_banner.setVisible(False)
 
         self.code_editor = QPlainTextEdit()
+        self.code_editor.setFrameShape(QFrame.NoFrame)
         self.highlighter = PythonHighlighter(self.code_editor.document())
         self.code_editor.textChanged.connect(self.on_code_typed)
 
@@ -294,11 +302,12 @@ class StudyWindow(QMainWindow):
         practice_layout.addLayout(btn_layout)
         practice_layout.addWidget(self.reveal_banner)
         practice_layout.addWidget(self.code_editor)
-        v_splitter.addWidget(self.practice_card)
+        self.content_tabs.addTab(self.practice_card, "✍️ TODO 문제")
 
-        # 우측 하단: 콘솔/시각화/정답 탭 (예제 실행과 TODO 채점이 공유)
+        # 콘솔/시각화/정답 결과 — 이론/예제/TODO 중 어느 탭에 있든 항상 보이는 아래쪽 패널.
         self.tabs = QTabWidget()
         self.console_output = QTextBrowser()
+        self.console_output.setFrameShape(QFrame.NoFrame)
         self.console_output.setFont(QFont("Consolas", 14))
 
         self.plot_container = QVBoxLayout()
@@ -306,25 +315,26 @@ class StudyWindow(QMainWindow):
         plot_widget.setLayout(self.plot_container)
 
         self.answer_output = QTextBrowser()
+        self.answer_output.setFrameShape(QFrame.NoFrame)
         self.answer_output.setFont(QFont("Consolas", 14))
 
         self.tabs.addTab(self.console_output, "콘솔 출력")
         self.tabs.addTab(plot_widget, "시각화 출력")
         self.tabs.addTab(self.answer_output, "정답 보기")
         self.tabs.setFont(QFont("Malgun Gothic", 12))
-        v_splitter.addWidget(self.tabs)
 
-        v_splitter.setSizes([160, 260, 260])
+        self.main_v_splitter = QSplitter(Qt.Vertical)
+        self.main_v_splitter.setHandleWidth(14)
+        self.main_v_splitter.addWidget(self.content_tabs)
+        self.main_v_splitter.addWidget(self.tabs)
+        self.main_v_splitter.setSizes([520, 240])
 
-        h_splitter.addWidget(v_splitter)
-        h_splitter.setSizes([480, 720])
-
-        # h_splitter를 여백 있는 컨테이너로 한 번 더 감싼다 — 안 그러면 카드들이 창 가장자리에
-        # 딱 붙어서, 둥근 모서리가 잘려 보이는 것처럼 어색해진다.
+        # main_v_splitter를 여백 있는 컨테이너로 한 번 더 감싼다 — 안 그러면 카드들이 창
+        # 가장자리에 딱 붙어서, 둥근 모서리가 잘려 보이는 것처럼 어색해진다.
         content_wrap = QWidget()
         content_wrap_layout = QVBoxLayout(content_wrap)
         content_wrap_layout.setContentsMargins(16, 16, 16, 16)
-        content_wrap_layout.addWidget(h_splitter)
+        content_wrap_layout.addWidget(self.main_v_splitter)
         body_layout.addWidget(content_wrap, 1)
         root_layout.addWidget(body_widget, 1)
 
@@ -368,14 +378,12 @@ class StudyWindow(QMainWindow):
         self.chapter_title_label.setStyleSheet(f"color: {t['panel_text']};")
         self.sidebar_title.setStyleSheet(f"color: {t['muted_text']}; letter-spacing: 1px;")
 
-        # 예제/TODO 카드: 뚜렷한 배경+둥근 모서리로 서로 분리되어 보이게 하고, 스플리터 핸들은
-        # 창 배경색과 같게 칠해서 카드 사이 "여백"처럼 보이게 한다(실제 드래그 바는 그대로 동작).
-        card_style = f"background-color: {t['panel_bg']}; border: 1px solid {t['panel_border']}; border-radius: 12px;"
-        self.example_card.setStyleSheet(card_style)
-        self.practice_card.setStyleSheet(card_style)
+        # 이론/예제/TODO 탭(content_tabs)의 판(pane) 자체가 카드 배경+둥근 모서리를 담당하므로,
+        # 그 안에 들어가는 example_card/practice_card는 따로 테두리를 그리지 않는다(이중 테두리 방지).
+        self.content_tabs.setStyleSheet(self._tab_widget_style(t, active_bg=t['panel_bg']))
+        self.tabs.setStyleSheet(self._tab_widget_style(t, active_bg=t['window_bg']))
         splitter_handle_style = f"QSplitter::handle {{ background-color: {t['window_bg']}; }}"
-        self.h_splitter.setStyleSheet(splitter_handle_style)
-        self.v_splitter.setStyleSheet(splitter_handle_style)
+        self.main_v_splitter.setStyleSheet(splitter_handle_style)
         self.progress_label.setStyleSheet(f"color: {t['muted_text']};")
         self.example_label.setStyleSheet(f"color: {t['panel_text']};")
         self.practice_label.setStyleSheet(f"color: {t['panel_text']};")
@@ -406,11 +414,9 @@ class StudyWindow(QMainWindow):
         """)
         self._reset_answer_placeholder()
 
+        # 탭 판(pane)이 이미 카드 배경+테두리를 그려주므로, 안의 내용은 배경/글자색/여백만.
         self.theory_viewer.setStyleSheet(f"""
-        QTextBrowser {{
-            background-color: {t['panel_bg']}; color: {t['panel_text']}; border: 1px solid {t['panel_border']};
-            border-left: 4px solid {t['accent_blue']}; border-radius: 4px; padding: 15px;
-        }}
+        QTextBrowser {{ background-color: {t['panel_bg']}; color: {t['panel_text']}; padding: 15px; }}
         """)
 
         self.practice_prompt_viewer.setStyleSheet(f"""
@@ -428,8 +434,9 @@ class StudyWindow(QMainWindow):
         QPushButton:hover {{ background-color: {t['btn_hover']}; }}
         QPushButton:pressed {{ background-color: {t['btn_pressed']}; }}
         """
-        for btn in (self.btn_font_minus, self.btn_font_plus, self.btn_review, self.btn_reset_chapter,
-                    self.btn_prev_practice, self.btn_next_practice, self.btn_run_example, self.btn_theme_toggle):
+        for btn in (self.btn_sidebar_toggle, self.btn_font_minus, self.btn_font_plus, self.btn_review,
+                    self.btn_reset_chapter, self.btn_prev_practice, self.btn_next_practice,
+                    self.btn_run_example, self.btn_theme_toggle):
             btn.setStyleSheet(toolbar_btn_style)
 
         # 하단 재생바의 이전/다음 섹션 버튼은 스포티파이 트랜스포트 버튼처럼 알약형으로 도드라지게.
@@ -461,6 +468,20 @@ class StudyWindow(QMainWindow):
             selection-background-color: {t['selection_bg']};
         }}
         """)
+
+    def toggle_sidebar(self):
+        self.sidebar.setVisible(not self.sidebar.isVisible())
+
+    def _tab_widget_style(self, t, active_bg):
+        return f"""
+        QTabWidget::pane {{ background-color: {active_bg}; border: 1px solid {t['panel_border']}; border-radius: 12px; top: -1px; }}
+        QTabBar::tab {{
+            background-color: transparent; color: {t['muted_text']}; font-weight: bold;
+            padding: 8px 16px; border: none;
+        }}
+        QTabBar::tab:selected {{ color: {t['brand_text']}; border-bottom: 2px solid {t['brand']}; }}
+        QTabBar::tab:hover {{ color: {t['panel_text']}; }}
+        """
 
     def _refresh_theme_toggle_label(self):
         self.btn_theme_toggle.setText("☀️" if theme.get_mode() == "dark" else "🌙")
@@ -578,6 +599,7 @@ class StudyWindow(QMainWindow):
         self._reset_console_placeholder()
         self._reset_answer_placeholder()
         self.tabs.setCurrentIndex(0)
+        self.content_tabs.setCurrentIndex(0)  # 새 섹션은 항상 "이론" 탭부터 보여준다
 
         self.btn_prev_section.setEnabled(idx > 0)
         self.btn_next_section.setEnabled(idx < len(self.sections) - 1)
@@ -616,6 +638,7 @@ class StudyWindow(QMainWindow):
                 header.setStyleSheet(f"color: {t['accent_gold']}; font-weight: bold; font-size: 11px;")
                 self._example_cells_layout.addWidget(header)
             editor = QPlainTextEdit()
+            editor.setFrameShape(QFrame.NoFrame)
             editor.setReadOnly(True)
             editor.setPlainText(cell_code)
             PythonHighlighter(editor.document())
