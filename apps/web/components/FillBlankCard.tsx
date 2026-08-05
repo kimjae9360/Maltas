@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { ExamProblem, BlankCheckResult } from "@/lib/api";
 import { GradedResult } from "@/lib/storage";
 import { MarkdownView } from "./MarkdownView";
@@ -14,18 +14,21 @@ import { MarkdownView } from "./MarkdownView";
 // 이 문자열을 "{{b1}}" 같은 마커 기준으로 쪼개서, 마커 자리에는 <input>을, 나머지는 코드 텍스트
 // 그대로 렌더링한다.
 
+// memo()로 감싼 이유는 ExamProblemCard와 동일 — 부모가 안정적인(useCallback으로 감싼) 콜백을
+// "번호가 아직 안 적용된" 형태로 넘기고, 이 카드가 자기 problem.no를 붙여서 호출하는 방식이라
+// 다른 빈칸채우기 카드에 입력해도 이 카드는 리렌더되지 않는다.
 interface Props {
   problem: ExamProblem;
   answers: Record<string, string>;               // blank id -> 지금까지 입력한 값 (부모 상태)
-  onAnswerChange: (blankId: string, value: string) => void;
-  onCheck: () => Promise<void>;
+  onAnswerChange: (no: number, blankId: string, value: string) => void;
+  onCheck: (no: number) => void;
   checking: boolean;
   disabled: boolean;
   result?: GradedResult;                          // 세션에 저장된 채점 결과(정답/오답/점수)
   lastCheck?: BlankCheckResult;                   // 방금 채점 응답 — 빈칸별 정오답 표시에 사용
   flagged: boolean;
-  onToggleFlag: () => void;
-  cardRef: (el: HTMLDivElement | null) => void;
+  onToggleFlag: (no: number) => void;
+  cardRef: (no: number, el: HTMLDivElement | null) => void;
 }
 
 /** code_template을 "{{id}}" 마커 기준으로 [텍스트, 빈칸id, 텍스트, 빈칸id, ...] 형태로 쪼갠다. */
@@ -47,7 +50,7 @@ function splitTemplate(template: string): { text: string; blankId: string | null
   return parts;
 }
 
-export function FillBlankCard({
+export const FillBlankCard = memo(function FillBlankCard({
   problem,
   answers,
   onAnswerChange,
@@ -70,7 +73,7 @@ export function FillBlankCard({
     : "border-l-4 border-l-transparent";
 
   return (
-    <div ref={cardRef} className={`card ${statusColor} p-5`}>
+    <div ref={(el) => cardRef(problem.no, el)} className={`card ${statusColor} p-5`}>
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="pill">문항 {problem.no}</span>
@@ -82,7 +85,7 @@ export function FillBlankCard({
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-[var(--muted)]">{problem.points}점</span>
           <button
-            onClick={onToggleFlag}
+            onClick={() => onToggleFlag(problem.no)}
             className={`rounded-md border px-2 py-1 text-xs font-semibold transition ${
               flagged
                 ? "border-[var(--warn)] bg-[var(--warn-tint)] text-[var(--warn)]"
@@ -108,7 +111,7 @@ export function FillBlankCard({
               <input
                 key={i}
                 value={answers[part.blankId] ?? ""}
-                onChange={(e) => onAnswerChange(part.blankId as string, e.target.value)}
+                onChange={(e) => onAnswerChange(problem.no, part.blankId as string, e.target.value)}
                 disabled={disabled}
                 placeholder="___"
                 // 입력창 너비를 입력된 글자 수에 맞춰 늘어나게 해서, 코드 문장 흐름이 안 어색하도록 함
@@ -130,7 +133,7 @@ export function FillBlankCard({
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
-          onClick={onCheck}
+          onClick={() => onCheck(problem.no)}
           disabled={disabled}
           className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-bold text-white transition hover:bg-[var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -157,4 +160,4 @@ export function FillBlankCard({
       )}
     </div>
   );
-}
+});

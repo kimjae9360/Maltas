@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { ExamProblem, RunResult } from "@/lib/api";
 import { GradedResult } from "@/lib/storage";
 import { CodeEditor } from "./CodeEditor";
@@ -14,26 +14,33 @@ import { PlotViewer } from "./PlotViewer";
 // 이렇게 하면 여러 문제 카드들 사이의 데이터(예: code_by_problem 전체)를 부모 한 곳에서만
 // 관리하면 되고, "이어서 풀기"를 위해 세션 전체를 저장할 때도 부모의 상태 하나만 IndexedDB에
 // 저장하면 된다.
+//
+// memo()로 감싼 이유: 모의고사 한 회당 문제 카드가 최대 17개까지 동시에 화면에 떠 있는데(각
+// 카드마다 CodeMirror 에디터+마크다운 렌더러가 들어있어 결코 가볍지 않다), 콜백들을 모두
+// "번호가 이미 적용된" 안정적인 함수로 부모(page.tsx)에서 받도록 바꿔서(onCodeChange(no, code)
+// 형태), 문제 5번에 타이핑할 때 나머지 16개 카드는 props가 하나도 안 바뀌어 리렌더를 건너뛰게
+// 만든다. (부모가 매 렌더링마다 새 화살표 함수를 만들어 넘기면 memo는 무용지물이 된다는 점이
+// 이 최적화의 핵심 전제)
 interface Props {
   problem: ExamProblem;
-  code: string;                          // 이 문제에 대해 지금까지 작성된 코드 (부모의 code_by_problem[no])
-  onCodeChange: (code: string) => void;  // 에디터에 타이핑할 때마다 호출 — 부모 상태를 갱신
-  onRun: () => Promise<void>;            // "실행" 버튼 클릭 시 호출 — 실제 API 요청은 부모가 담당
-  running: boolean;                      // 지금 이 문제(또는 다른 문제)가 채점 중인지
-  disabled: boolean;                     // 버튼 비활성화 여부 (running 중이거나 시험 제출 후 등)
-  result?: GradedResult;                 // 이 문제의 채점 결과 (없으면 아직 안 풀었거나 안 채점됨)
-  lastRun?: RunResult;                   // 가장 최근 실행의 콘솔 출력/그래프 (result와 별개로 관리)
-  flagged: boolean;                      // "검토 표시"(나중에 다시 볼 문제) 깃발이 켜져 있는지
-  onToggleFlag: () => void;
-  revealed: boolean;                     // 정답 보기를 이미 눌렀는지 (누르면 이 문제는 0점 처리됨)
-  onReveal: () => Promise<void>;
-  answerCode?: string;                   // 정답 보기를 눌렀을 때만 채워지는 실제 정답 코드
-  cardRef: (el: HTMLDivElement | null) => void;
+  code: string;                                          // 이 문제에 대해 지금까지 작성된 코드 (부모의 code_by_problem[no])
+  onCodeChange: (no: number, code: string) => void;      // 에디터에 타이핑할 때마다 호출 — 부모 상태를 갱신
+  onRun: (no: number) => void;                            // "실행" 버튼 클릭 시 호출 — 실제 API 요청은 부모가 담당
+  running: boolean;                                       // 지금 이 문제(또는 다른 문제)가 채점 중인지
+  disabled: boolean;                                      // 버튼 비활성화 여부 (running 중이거나 시험 제출 후 등)
+  result?: GradedResult;                                  // 이 문제의 채점 결과 (없으면 아직 안 풀었거나 안 채점됨)
+  lastRun?: RunResult;                                    // 가장 최근 실행의 콘솔 출력/그래프 (result와 별개로 관리)
+  flagged: boolean;                                       // "검토 표시"(나중에 다시 볼 문제) 깃발이 켜져 있는지
+  onToggleFlag: (no: number) => void;
+  revealed: boolean;                                      // 정답 보기를 이미 눌렀는지 (누르면 이 문제는 0점 처리됨)
+  onReveal: (no: number) => void;
+  answerCode?: string;                                    // 정답 보기를 눌렀을 때만 채워지는 실제 정답 코드
+  cardRef: (no: number, el: HTMLDivElement | null) => void;
   // 문제 번호를 클릭해서 "그 문제로 스크롤 이동"하는 네비게이션 기능을 위해, 부모가 이 DOM
   // 엘리먼트를 참조(ref)로 잡아둘 수 있게 넘겨받는 콜백. React의 ref 콜백 패턴.
 }
 
-export function ExamProblemCard({
+export const ExamProblemCard = memo(function ExamProblemCard({
   problem,
   code,
   onCodeChange,
@@ -63,7 +70,7 @@ export function ExamProblemCard({
     : "border-l-4 border-l-transparent";
 
   return (
-    <div ref={cardRef} className={`card ${statusColor} p-5`}>
+    <div ref={(el) => cardRef(problem.no, el)} className={`card ${statusColor} p-5`}>
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="pill">문항 {problem.no}</span>
@@ -77,7 +84,7 @@ export function ExamProblemCard({
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-[var(--muted)]">{problem.points}점</span>
           <button
-            onClick={onToggleFlag}
+            onClick={() => onToggleFlag(problem.no)}
             className={`rounded-md border px-2 py-1 text-xs font-semibold transition ${
               flagged
                 ? "border-[var(--warn)] bg-[var(--warn-tint)] text-[var(--warn)]"
@@ -93,11 +100,11 @@ export function ExamProblemCard({
         <MarkdownView>{problem.prompt_markdown}</MarkdownView>
       </div>
 
-      <CodeEditor value={code} onChange={onCodeChange} minHeight="180px" />
+      <CodeEditor value={code} onChange={(c) => onCodeChange(problem.no, c)} minHeight="180px" />
 
       <div className="mt-3 flex items-center gap-2">
         <button
-          onClick={onRun}
+          onClick={() => onRun(problem.no)}
           disabled={disabled}
           className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-bold text-white transition hover:bg-[var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -106,7 +113,7 @@ export function ExamProblemCard({
         <button
           onClick={() => {
             setTab("answer");
-            onReveal();
+            onReveal(problem.no);
           }}
           disabled={disabled || revealed}
           className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--muted)] transition hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-50"
@@ -151,4 +158,4 @@ export function ExamProblemCard({
       </div>
     </div>
   );
-}
+});

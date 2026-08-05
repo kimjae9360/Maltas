@@ -64,6 +64,11 @@ export default function ExamPage() {
   // ref(sessionRef.current)를 읽도록 한다.
   const sessionRef = useRef<ExamSession | null>(null);
   const remainingRef = useRef<number>(0);
+  const blankAnswersRef = useRef<Record<number, Record<string, string>>>({});
+  // blankAnswersRef: checkBlanks가 useCallback으로 안정된 함수여야(문제 카드 리렌더 최소화) 하는데,
+  // blankAnswers를 의존성 배열에 넣으면 빈칸에 한 글자만 쳐도 checkBlanks가 매번 새로 만들어져서
+  // 그 아래 모든 FillBlankCard가 다시 리렌더된다. session/remaining과 같은 이유로 ref에 최신값을
+  // 미러링해두고, checkBlanks는 이 ref를 읽는다.
 
   useEffect(() => {
     sessionRef.current = session;
@@ -72,6 +77,10 @@ export default function ExamPage() {
   useEffect(() => {
     remainingRef.current = remaining;
   }, [remaining]);
+
+  useEffect(() => {
+    blankAnswersRef.current = blankAnswers;
+  }, [blankAnswers]);
   // React Strict Mode(개발 모드)에서 effect가 두 번 실행되면, find-or-create 로직이 겹쳐 실행되어
   // 방금 우리가 만든 세션을 "이전에 풀던 세션"으로 잘못 인식하는 경쟁 상태가 생길 수 있다.
   // exam_id별로 한 번만 find-or-create를 실행하도록 막는다.
@@ -195,36 +204,52 @@ export default function ExamPage() {
     return exam?.problems.find((p) => p.no === no)?.starter_code ?? "";
   };
 
-  const setCode = (no: number, code: string) => {
-    const s = sessionRef.current;
-    if (!s) return;
-    persist({ ...s, code_by_problem: { ...s.code_by_problem, [String(no)]: code } });
-  };
+  // setCode/toggleFlag/runProblem/revealAnswer/checkBlanks를 모두 useCallback으로 감싸는 이유:
+  // 이 함수들은 아래 문제 목록 렌더링에서 각 카드(ExamProblemCard/FillBlankCard, 둘 다 memo() 적용됨)에
+  // props로 그대로 전달된다. useCallback 없이 매 렌더링마다 새 함수를 만들면, memo가 아무리
+  // 붙어있어도 "함수 참조가 매번 다르다"는 이유만으로 모든 카드가 매 렌더링마다 다시 그려진다 —
+  // 특히 코드 에디터 하나에 타이핑할 때마다 세션 상태 전체가 바뀌므로, 이 함수들이 안정적이지
+  // 않으면 17개 문제의 CodeMirror 에디터+마크다운이 글자 하나 칠 때마다 전부 다시 렌더링된다.
+  const setCode = useCallback(
+    (no: number, code: string) => {
+      const s = sessionRef.current;
+      if (!s) return;
+      persist({ ...s, code_by_problem: { ...s.code_by_problem, [String(no)]: code } });
+    },
+    [persist]
+  );
 
-  const toggleFlag = (no: number) => {
-    const s = sessionRef.current;
-    if (!s) return;
-    const flagged = s.flagged_problem_nos.includes(no)
-      ? s.flagged_problem_nos.filter((n) => n !== no)
-      : [...s.flagged_problem_nos, no];
-    persist({ ...s, flagged_problem_nos: flagged });
-  };
+  const toggleFlag = useCallback(
+    (no: number) => {
+      const s = sessionRef.current;
+      if (!s) return;
+      const flagged = s.flagged_problem_nos.includes(no)
+        ? s.flagged_problem_nos.filter((n) => n !== no)
+        : [...s.flagged_problem_nos, no];
+      persist({ ...s, flagged_problem_nos: flagged });
+    },
+    [persist]
+  );
 
-  const runProblem = async (no: number) => {
+  const runProblem = useCallback(async (no: number) => {
     const s = sessionRef.current;
     if (!s || !exam || runningNo !== null) return;
     setRunningNo(no);
     try {
+      // getCode(no) 대신 sessionRef.current(s)에서 직접 읽는다 — useCallback으로 안정된 함수 안에서
+      // session state를 직접 참조하면(getCode처럼) 이 함수가 만들어진 시점의 낡은 session을 계속
+      // 기억하는 클로저 문제가 생길 수 있다. ref는 항상 최신값이라 이 문제가 없다.
+      const currentCode = s.code_by_problem[String(no)] ?? exam.problems.find((p) => p.no === no)?.starter_code ?? "";
       // 기출동형이면 kichul 엔드포인트, 모의고사면 일반 엔드포인트를 사용한다.
       const runFn = isKichul
         ? api.runKichulProblem(exam.exam_id, {
             problem_no: no,
-            current_code: getCode(no),
+            current_code: currentCode,
             code_by_problem: s.code_by_problem,
           })
         : api.runProblem(exam.exam_id, {
             problem_no: no,
-            current_code: getCode(no),
+            current_code: currentCode,
             code_by_problem: s.code_by_problem,
           });
       const res = await runFn;
@@ -257,9 +282,9 @@ export default function ExamPage() {
       // 풀어준다 — 이게 없으면 에러가 났을 때 버튼이 영원히 "실행 중..."에 멈춰있게 된다.
       setRunningNo(null);
     }
-  };
+  }, [exam, isKichul, runningNo, persist]);
 
-  const revealAnswer = async (no: number) => {
+  const revealAnswer = useCallback(async (no: number) => {
     const s = sessionRef.current;
     if (!s || !exam) return;
 
@@ -295,23 +320,26 @@ export default function ExamPage() {
         [String(no)]: { is_correct: false, points_earned: 0, detail: "정답 확인함", note: "정답 보기 사용" },
       },
     });
-  };
+  }, [exam, persist]);
 
   /** 빈칸채우기 카드에서 입력창 하나를 고칠 때마다 호출 — 세션 저장은 안 하고 화면 상태로만 들고 있다가,
    * "채점하기"를 눌렀을 때 서버로 한꺼번에 보낸다(코드 채점처럼 결과가 즉시 IndexedDB에 저장될 필요는
    * 없어서, 빈칸 값 자체는 가벼운 로컬 상태로 충분하다). */
-  const setBlankAnswer = (no: number, blankId: string, value: string) => {
+  const setBlankAnswer = useCallback((no: number, blankId: string, value: string) => {
     setBlankAnswers((prev) => ({ ...prev, [no]: { ...prev[no], [blankId]: value } }));
-  };
+  }, []);
 
-  const checkBlanks = async (no: number) => {
+  const checkBlanks = useCallback(async (no: number) => {
     const s = sessionRef.current;
     if (!s || !exam || checkingNo !== null) return;
     setCheckingNo(no);
     try {
+      // blankAnswers state 대신 blankAnswersRef를 읽는다 — 이 함수를 안정적으로 유지해서
+      // 빈칸에 한 글자 입력할 때마다 다른 빈칸채우기 카드들까지 리렌더되는 걸 막기 위함.
+      const currentBlankAnswers = blankAnswersRef.current[no] ?? {};
       const checkFn = isKichul
-        ? api.checkKichulBlanks(exam.exam_id, no, blankAnswers[no] ?? {})
-        : api.checkBlanks(exam.exam_id, no, blankAnswers[no] ?? {});
+        ? api.checkKichulBlanks(exam.exam_id, no, currentBlankAnswers)
+        : api.checkBlanks(exam.exam_id, no, currentBlankAnswers);
       const res = await checkFn;
       setLastBlankChecks((prev) => ({ ...prev, [no]: res }));
 
@@ -333,11 +361,15 @@ export default function ExamPage() {
     } finally {
       setCheckingNo(null);
     }
-  };
+  }, [exam, isKichul, checkingNo, persist]);
 
   const scrollTo = (no: number) => {
     cardRefs.current[no]?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  const setCardRef = useCallback((no: number, el: HTMLDivElement | null) => {
+    cardRefs.current[no] = el;
+  }, []);
 
   // useMemo: session이 바뀔 때만 "작성한 문제 개수"를 다시 세고, 그 외 렌더링에서는
   // 이전 계산값을 재사용한다 (문제 개수가 많아지면 매 렌더링마다 다시 세는 비용이 아까워서).
@@ -538,17 +570,15 @@ export default function ExamPage() {
                   key={p.no}
                   problem={p}
                   answers={blankAnswers[p.no] ?? {}}
-                  onAnswerChange={(blankId, value) => setBlankAnswer(p.no, blankId, value)}
-                  onCheck={() => checkBlanks(p.no)}
+                  onAnswerChange={setBlankAnswer}
+                  onCheck={checkBlanks}
                   checking={checkingNo === p.no}
                   disabled={anyBusy}
                   result={session.graded_results[String(p.no)]}
                   lastCheck={lastBlankChecks[p.no]}
                   flagged={session.flagged_problem_nos.includes(p.no)}
-                  onToggleFlag={() => toggleFlag(p.no)}
-                  cardRef={(el) => {
-                    cardRefs.current[p.no] = el;
-                  }}
+                  onToggleFlag={toggleFlag}
+                  cardRef={setCardRef}
                 />
               );
             }
@@ -557,20 +587,18 @@ export default function ExamPage() {
                 key={p.no}
                 problem={p}
                 code={getCode(p.no)}
-                onCodeChange={(c) => setCode(p.no, c)}
-                onRun={() => runProblem(p.no)}
+                onCodeChange={setCode}
+                onRun={runProblem}
                 running={runningNo === p.no}
                 disabled={anyBusy}
                 result={session.graded_results[String(p.no)]}
                 lastRun={lastRuns[p.no]}
                 flagged={session.flagged_problem_nos.includes(p.no)}
-                onToggleFlag={() => toggleFlag(p.no)}
+                onToggleFlag={toggleFlag}
                 revealed={session.revealed_problem_nos.includes(p.no)}
-                onReveal={() => revealAnswer(p.no)}
+                onReveal={revealAnswer}
                 answerCode={answers[p.no]}
-                cardRef={(el) => {
-                  cardRefs.current[p.no] = el;
-                }}
+                cardRef={setCardRef}
               />
             );
           })}
