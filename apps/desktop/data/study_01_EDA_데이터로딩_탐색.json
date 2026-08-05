@@ -8,7 +8,7 @@
       "title": "필요한 라이브러리 설치 및 불러오기",
       "theory_markdown": "### 📖 이론 설명\nAICE Associate의 1~2번 문항은 거의 항상 '라이브러리를 정확한 별칭으로 불러오세요' 형태로 나옵니다. 채점기는 문자 그대로 `pd`, `np` 같은 alias를 확인하므로, 문제에 적힌 이름을 그대로 써야 합니다. 오픈북 허용 라이브러리는 numpy, pandas, matplotlib, seaborn, scikit-learn, tensorflow, XGBoost 7종입니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 라이브러리 | 표준 alias |\n|---|---|\n| pandas | pd |\n| numpy | np |\n| matplotlib.pyplot | plt |\n| seaborn | sns |\n| sklearn.model_selection.train_test_split | (개별 함수 import) |",
-      "example_code": "import pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nfrom sklearn.model_selection import train_test_split",
+      "example_code": "# AICE 오픈북 허용 라이브러리(numpy/pandas/matplotlib/seaborn/scikit-learn/tensorflow/xgboost)\n# 중 실제로 매 문제에서 거의 항상 쓰는 핵심 4개 + 자주 쓰는 함수 하나를 미리 불러온다.\n# 채점기는 정확한 alias(pd, np, plt, sns)를 그대로 요구하므로 관례를 그대로 따른다.\nimport pandas as pd\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport seaborn as sns\nfrom sklearn.model_selection import train_test_split  # 학습용/테스트용 데이터 분리 함수",
       "practices": [
         {
           "no": 1,
@@ -38,7 +38,7 @@
       "title": "Tabular 데이터 로딩",
       "theory_markdown": "### 📖 이론 설명\n실무에서는 데이터가 csv뿐 아니라 json, excel, tsv 등 다양한 형태로 제공됩니다. 각 포맷에 맞는 `read_*` 함수를 알아두면 어떤 파일이 나와도 당황하지 않습니다. 특히 한국 데이터는 엑셀에서 export한 CSV가 **cp949(euc-kr 계열)**로 인코딩된 경우가 많아, 기본값인 `utf-8`로 읽으면 한글이 깨지거나 `UnicodeDecodeError`가 납니다. 이럴 땐 `encoding='cp949'`를 시도해보는 것이 첫 번째 대처법입니다. 또, 필요한 컬럼만 미리 골라 불러오고 싶다면 `usecols`, 특정 컬럼을 인덱스로 바로 지정하고 싶다면 `index_col`을 씁니다.\n\n실제 시험/실무 데이터는 CSV 한 장으로 끝나지 않는 경우도 많습니다. 엑셀 파일 하나에 시트가 여러 개 있다면 `sheet_name=`으로 원하는 시트를 골라 읽어야 하고(`sheet_name=None`이면 모든 시트를 `{시트이름: DataFrame}` 딕셔너리로 한 번에 받습니다), JSON이 `{'address': {'city': ...}}`처럼 값 안에 또 딕셔너리가 들어있는(중첩된) 구조라면 `pd.json_normalize()`로 평탄화해야 표 형태로 다룰 수 있습니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| pd.read_csv(path, encoding=, usecols=, index_col=) | CSV 로딩 |\n| pd.read_json(path) | JSON 로딩 |\n| pd.read_excel(path) | Excel 로딩 (openpyxl 필요) |\n| pd.read_table(path) | TSV/공백구분 로딩 |\n| pd.read_excel(path, sheet_name='시트명') | 여러 시트 중 하나만 지정해서 로딩 |\n| pd.read_excel(path, sheet_name=None) | 모든 시트를 {시트명: DataFrame} 딕셔너리로 로딩 |\n| pd.json_normalize(data) | 중첩된 JSON(딕셔너리 안의 딕셔너리)을 평탄한 표로 변환 |",
-      "example_code": "# 한글이 깨진다면 encoding='cp949'를 먼저 시도\ndf_train = pd.read_csv('data/train.csv', encoding='utf-8')\n\n# 필요한 컬럼만 골라서, 인덱스까지 지정해서 불러오기\npassenger_df = pd.read_csv('data/train.csv',\n                            usecols=['PassengerId', 'Name', 'Sex', 'Age'],\n                            index_col='PassengerId')\npassenger_df.head()\n\ndf_json = pd.read_json('data/data.json')\ndf_excel = pd.read_excel('data/sample.xlsx')\n\n# 시트가 여러 개인 엑셀: 하나만 지정해서 읽거나, None으로 전부 한번에 읽기\nshops_df = pd.read_excel('data/multi_sheet_sample.xlsx', sheet_name='매장정보')\nall_sheets = pd.read_excel('data/multi_sheet_sample.xlsx', sheet_name=None)\nprint(list(all_sheets.keys()))\n\n# 중첩 JSON: address 안의 city/zipcode가 따로 컬럼으로 풀림(json_normalize)\nimport json\nwith open('data/nested_customers.json', encoding='utf-8') as f:\n    nested_data = json.load(f)\ndf_nested = pd.json_normalize(nested_data)\nprint(df_nested.columns.tolist())",
+      "example_code": "# %% CSV 읽기 — 인코딩 문제 대처\n# 실제 시험 데이터는 한국에서 만든 CSV가 많아서 기본값(utf-8)으로 안 읽히는 경우가 있다.\n# 한글이 깨지거나 UnicodeDecodeError가 나면 encoding='cp949'를 가장 먼저 시도해본다.\ndf_train = pd.read_csv('data/train.csv', encoding='utf-8')\n\n# %% 필요한 컬럼만 골라서, 인덱스까지 지정해서 불러오기\n# usecols: 필요한 컬럼만 골라 읽으면 메모리도 아끼고 다루기도 편하다.\n# index_col: 지정한 컬럼을 그냥 데이터가 아니라 행 인덱스로 바로 지정한다(중복 컬럼 방지).\npassenger_df = pd.read_csv('data/train.csv',\n                            usecols=['PassengerId', 'Name', 'Sex', 'Age'],\n                            index_col='PassengerId')\npassenger_df.head()\n\n# %% JSON·Excel 파일 읽기\n# CSV가 아니면 read_csv가 아니라 파일 형식에 맞는 전용 함수를 쓴다 — read_json, read_excel.\ndf_json = pd.read_json('data/data.json')\ndf_excel = pd.read_excel('data/sample.xlsx')  # 엑셀은 내부적으로 openpyxl 패키지가 필요하다\n\n# %% 시트가 여러 개인 엑셀 파일\n# sheet_name='시트이름'으로 하나만 지정해서 읽거나, sheet_name=None으로 모든 시트를 한 번에\n# {시트이름: DataFrame} 딕셔너리로 받을 수 있다.\nshops_df = pd.read_excel('data/multi_sheet_sample.xlsx', sheet_name='매장정보')\nall_sheets = pd.read_excel('data/multi_sheet_sample.xlsx', sheet_name=None)\nprint(list(all_sheets.keys()))\n\n# %% 중첩된(nested) JSON 평탄화\n# {'address': {'city': ..., 'zipcode': ...}} 처럼 값 안에 딕셔너리가 또 들어있으면 pandas가\n# 그대로 표로 못 다룬다. pd.json_normalize()를 쓰면 address.city, address.zipcode처럼\n# 점(.)으로 이어진 컬럼으로 자동으로 풀어(평탄화해)준다.\nimport json\nwith open('data/nested_customers.json', encoding='utf-8') as f:\n    nested_data = json.load(f)\ndf_nested = pd.json_normalize(nested_data)\nprint(df_nested.columns.tolist())",
       "practices": [
         {
           "no": 1,
@@ -149,7 +149,7 @@
       "title": "데이터 병합",
       "theory_markdown": "### 📖 이론 설명\n여러 개의 파일을 하나로 합쳐서 분석해야 하는 경우가 많습니다. `merge`는 공통 키를 기준으로 조인하고, `concat`은 단순히 이어붙입니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| pd.merge(a, b, on=, how=) | 키 기준 조인 |\n| pd.concat([a, b]) | 이어붙이기 |",
-      "example_code": "df_test = pd.read_csv('data/test.csv')  # PassengerId, LuggageCount, HasPet\ndf_all = pd.merge(df_train, df_test, on='PassengerId', how='inner')\nprint(df_all.shape)\ndf_all.head()",
+      "example_code": "# %% 공통 키로 두 데이터를 이어붙이기\n# pd.merge(a, b, on='공통컬럼', how='조인방식') — SQL의 JOIN과 같은 개념이다.\ndf_test = pd.read_csv('data/test.csv')  # PassengerId, LuggageCount, HasPet\ndf_all = pd.merge(df_train, df_test, on='PassengerId', how='inner')  # inner: 양쪽에 다 있는 행만 남김\nprint(df_all.shape)\ndf_all.head()",
       "practices": [
         {
           "no": 1,
@@ -193,7 +193,7 @@
       "title": "데이터 기본 탐색",
       "theory_markdown": "### 📖 이론 설명\n본격적인 전처리에 들어가기 전에는 항상 데이터의 '뼈대'를 먼저 확인합니다. `info()`로 컬럼별 타입과 결측치 유무를, `describe()`로 수치형 통계를, `select_dtypes()`로 타입별 컬럼만 골라내는 방법을 익혀두면 다음 단계인 전처리(04번 노트북)로 바로 넘어갈 준비가 됩니다. `pd.crosstab`은 두 범주형 컬럼의 관계를 빠르게 보고 싶을 때 유용합니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| df.info() | 타입, 결측치, 메모리 |\n| df.describe() / describe(include='all') | 수치형 / 전체 통계 |\n| df.select_dtypes(include='number'/'object') | 타입별 컬럼 추출 |\n| pd.crosstab(a, b) | 두 범주형 변수의 교차표 |",
-      "example_code": "df_train.info()\nprint(df_train.describe())\n\nobject_cols = df_train.select_dtypes(include='object').columns.tolist()\nprint('문자형 컬럼:', object_cols)\n\nprint(pd.crosstab(df_train['Sex'], df_train['Survived']))",
+      "example_code": "# %% 데이터 뼈대 확인 — info() / describe()\n# 본격적인 전처리에 들어가기 전, 컬럼 타입·결측치·기초 통계부터 훑어보는 게 첫 단계다.\ndf_train.info()          # 컬럼별 타입, 결측치 여부, 메모리 사용량을 한눈에 보여준다\nprint(df_train.describe())  # 수치형 컬럼들의 개수/평균/표준편차/사분위수 등 기초 통계\n\n# %% 타입별 컬럼만 골라내기\nobject_cols = df_train.select_dtypes(include='object').columns.tolist()  # 문자열(범주형) 컬럼만 추출\nprint('문자형 컬럼:', object_cols)\n\n# %% 두 범주형 컬럼의 관계 보기 — crosstab\n# Sex(성별)별로 Survived(생존여부)가 몇 명씩인지 조합별 빈도표로 바로 볼 수 있다.\nprint(pd.crosstab(df_train['Sex'], df_train['Survived']))",
       "practices": [
         {
           "no": 1,

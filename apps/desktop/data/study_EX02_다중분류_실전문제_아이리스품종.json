@@ -8,7 +8,7 @@
       "title": "데이터 로딩 & EDA",
       "theory_markdown": "### 📖 이론 설명\n클래스 불균형 여부를 가장 먼저 확인합니다. Iris는 각 품종이 정확히 50개씩으로, **균형 잡힌 데이터셋**입니다 - `06_머신러닝_분류`/`08_딥러닝`에서 다룬 불균형 문제와 대비해서 보면 좋습니다.",
       "concept_table_markdown": "",
-      "example_code": "print(iris['target'].value_counts())\nsns.countplot(x='target', data=iris)\nplt.title('Class distribution (balanced)')\nplt.show()\n\nsns.pairplot(iris, hue='target', vars=['sepal length (cm)', 'petal length (cm)'])\nplt.show()",
+      "example_code": "# 클래스 불균형 여부를 가장 먼저 확인 — Iris는 품종별로 정확히 50개씩인 균형 데이터셋\nprint(iris['target'].value_counts())\nsns.countplot(x='target', data=iris)\nplt.title('Class distribution (balanced)')\nplt.show()\n\nsns.pairplot(iris, hue='target', vars=['sepal length (cm)', 'petal length (cm)'])  # hue로 품종별 색을 나눠 변수 조합만으로 얼마나 잘 구분되는지 확인\nplt.show()",
       "practices": [
         {
           "no": 1,
@@ -34,7 +34,7 @@
       "title": "전처리",
       "theory_markdown": "### 📖 이론 설명\n결측치가 없고 모든 변수가 비슷한 스케일(cm 단위)이라 전처리 부담이 적은 데이터입니다. 그래도 모델링 습관을 위해 스케일링과 분할은 동일하게 진행합니다.",
       "concept_table_markdown": "",
-      "example_code": "from sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\nX = iris.drop(columns=['target'])\ny = iris['target']\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\nscaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)\nX_train.shape",
+      "example_code": "# 결측치가 없고 모든 변수가 비슷한 스케일(cm 단위)이라 전처리 부담이 적지만,\n# 모델링 습관을 위해 스케일링·분할은 다른 챕터와 동일하게 진행한다.\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\nX = iris.drop(columns=['target'])\ny = iris['target']\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)\nscaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)\nX_train.shape",
       "practices": []
     },
     {
@@ -42,7 +42,7 @@
       "title": "머신러닝 다중분류 모델링",
       "theory_markdown": "### 📖 이론 설명\n`06_머신러닝_분류_다중.ipynb`와 동일한 흐름입니다 - 평가지표에 `average` 옵션을 지정하는 것을 잊지 마세요.",
       "concept_table_markdown": "",
-      "example_code": "from sklearn.linear_model import LogisticRegression\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.metrics import f1_score, classification_report\n\nlogi = LogisticRegression(max_iter=1000)\nlogi.fit(X_train_scaled, y_train)\nlogi_pred = logi.predict(X_test_scaled)\nprint('LogisticRegression f1(macro):', f1_score(y_test, logi_pred, average='macro'))\n\nrf = RandomForestClassifier(n_estimators=100, random_state=42)\nrf.fit(X_train_scaled, y_train)\nrf_pred = rf.predict(X_test_scaled)\nprint(classification_report(y_test, rf_pred))",
+      "example_code": "# 06번 노트북(다중분류)과 동일한 흐름 — 평가지표에 average 옵션을 지정하는 걸 잊지 말 것.\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.metrics import f1_score, classification_report\n\nlogi = LogisticRegression(max_iter=1000)\nlogi.fit(X_train_scaled, y_train)\nlogi_pred = logi.predict(X_test_scaled)\nprint('LogisticRegression f1(macro):', f1_score(y_test, logi_pred, average='macro'))\n\nrf = RandomForestClassifier(n_estimators=100, random_state=42)\nrf.fit(X_train_scaled, y_train)\nrf_pred = rf.predict(X_test_scaled)\nprint(classification_report(y_test, rf_pred))",
       "practices": [
         {
           "no": 1,
@@ -93,7 +93,7 @@
       "title": "딥러닝 다중분류 모델링",
       "theory_markdown": "### 📖 이론 설명\n`08_딥러닝_분류_다중.ipynb`와 동일하게, 출력층 노드=클래스 수(3), activation='softmax'로 설계합니다.",
       "concept_table_markdown": "",
-      "example_code": "import tensorflow as tf\nfrom tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\nfrom tensorflow.keras.callbacks import EarlyStopping\n\ntf.random.set_seed(100)\nclass_num = y.nunique()\n\nmodel = Sequential()\nmodel.add(Dense(16, activation='relu', input_shape=(X_train_scaled.shape[1],)))\nmodel.add(Dense(8, activation='relu'))\nmodel.add(Dense(class_num, activation='softmax'))\nmodel.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])\n\nes = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)\nhistory = model.fit(X_train_scaled, y_train, epochs=100, batch_size=8,\n                     validation_data=(X_test_scaled, y_test), callbacks=[es], verbose=0)\n\npred_label = np.argmax(model.predict(X_test_scaled), axis=1)\nfrom sklearn.metrics import accuracy_score\nprint('DL accuracy:', accuracy_score(y_test, pred_label))",
+      "example_code": "# 08번 노트북(딥러닝 다중분류)과 동일하게 출력층 노드=클래스 수(3), activation='softmax'로 설계.\nimport tensorflow as tf\nfrom tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\nfrom tensorflow.keras.callbacks import EarlyStopping\n\ntf.random.set_seed(100)\nclass_num = y.nunique()\n\nmodel = Sequential()\nmodel.add(Dense(16, activation='relu', input_shape=(X_train_scaled.shape[1],)))\nmodel.add(Dense(8, activation='relu'))\nmodel.add(Dense(class_num, activation='softmax'))\nmodel.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])\n\nes = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)\nhistory = model.fit(X_train_scaled, y_train, epochs=100, batch_size=8,\n                     validation_data=(X_test_scaled, y_test), callbacks=[es], verbose=0)\n\npred_label = np.argmax(model.predict(X_test_scaled), axis=1)  # softmax 확률 벡터를 argmax로 최종 클래스로 변환\nfrom sklearn.metrics import accuracy_score\nprint('DL accuracy:', accuracy_score(y_test, pred_label))",
       "practices": []
     },
     {

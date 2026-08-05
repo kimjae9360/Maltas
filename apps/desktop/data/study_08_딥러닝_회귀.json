@@ -5,18 +5,36 @@
   "sections": [
     {
       "no": 1,
-      "title": "딥러닝 개요와 AICE 시험 범위",
-      "theory_markdown": "",
-      "concept_table_markdown": "",
-      "example_code": "",
-      "practices": []
+      "title": "🧠 딥러닝 회귀 — 분류와 무엇이 다른가 (MSE·MAE·출력층 설계)",
+      "theory_markdown": "### 📖 이론 설명\n\n#### 회귀 DL vs 분류 DL 핵심 차이\n\n딥러닝 회귀는 분류와 **출력층 설계**와 **손실함수/평가지표**만 다릅니다.\n\n| 항목 | 이진분류 | 다중분류 | 회귀 |\n|---|---|---|---|\n| 출력 노드 수 | 1 | 클래스 수 | **1** |\n| 출력층 activation | `sigmoid` | `softmax` | **없음(linear)** |\n| 손실함수 | `binary_crossentropy` | `sparse_categorical_crossentropy` | **`mse`** |\n| 주요 평가지표 | `accuracy` | `accuracy` | **`mae`, `mse`, `rmse`** |\n\n#### 회귀 출력층: activation이 없는 이유\n회귀는 집값($400,000), 온도(26.5°C) 같은 **제한 없는 실수값**을 예측합니다. Sigmoid(0~1)나 Softmax(합=1)처럼 값을 특정 범위로 제한하면 예측이 틀려지므로, 출력층에 활성화 함수를 **지정하지 않습니다(=linear 함수)**.\n\n#### 손실함수 비교: MSE vs MAE\n- **MSE** (Mean Squared Error): 오차의 제곱 평균. 큰 오차에 더 민감(이상치 영향 큼). `loss='mse'`\n- **MAE** (Mean Absolute Error): 오차의 절대값 평균. 이상치에 더 강건. `loss='mae'`\n- **RMSE** (Root MSE): MSE의 제곱근. 원래 단위로 해석 가능. 직접 지정 불가 → MSE로 학습 후 `np.sqrt(mse)`로 계산\n\n#### 평가지표: 회귀는 정확도(accuracy) 대신 R² / MAE 사용\n- **R²**: 1에 가까울수록 좋음. 0이면 평균으로 예측하는 것과 동일.\n- **MAE**: 예측값과 실제값의 평균 절대 오차. 낮을수록 좋음.\n- **RMSE**: MAE보다 큰 오차에 더 민감. 낮을수록 좋음.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 개념 | 회귀에서의 값 | 분류와의 차이 |\n|---|---|---|\n| 출력층 노드 수 | **1** | 동일(이진분류도 1) |\n| 출력층 activation | **없음** | 분류는 sigmoid/softmax |\n| 손실함수 | `mse` 또는 `mae` | 분류는 crossentropy |\n| 평가지표 | `mae`, `mse` | 분류는 `accuracy` |\n| model.predict() | 실수값 1개 | 분류는 확률값 |\n| 성능 평가 | `r2_score`, `mean_squared_error` | 분류는 `accuracy_score` |",
+      "example_code": "# 회귀 vs 분류 출력층 설계 비교\nfrom tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\n\n# 이진분류 출력층\nmodel_clf = Sequential([Dense(8, activation='relu', input_shape=(4,)), Dense(1, activation='sigmoid')])\nmodel_clf.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])\n\n# 회귀 출력층 — activation 없음\nmodel_reg = Sequential([Dense(8, activation='relu', input_shape=(4,)), Dense(1)])  # activation 없음!\nmodel_reg.compile(loss='mse', optimizer='adam', metrics=['mae'])  # 손실함수: mse, 평가: mae\n\nprint('이진분류 출력층 activation:', model_clf.layers[-1].activation.__name__)  # sigmoid\nprint('회귀 출력층 activation:', model_reg.layers[-1].activation.__name__)     # linear",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "회귀 DL 모델 `model_q1`을 설계하세요:\n- 은닉층: `Dense(32, relu)` → `Dense(16, relu)`\n- **출력층**: 회귀 기준으로 올바르게 설계 (노드 수 + activation 결정)\n- compile: 손실함수 `mse`, 평가지표 `mae`",
+          "answer_code": "model_q1 = Sequential([\n    Dense(32, activation='relu', input_shape=(X_train.shape[1],)),\n    Dense(16, activation='relu'),\n    Dense(1)  # 회귀: 노드 1개, activation 없음(linear)\n])\nmodel_q1.compile(\n    optimizer='adam',\n    loss='mse',      # 회귀 손실함수\n    metrics=['mae']  # 회귀 평가지표\n)\nmodel_q1.summary()",
+          "checks": [
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712,
+                4
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
     },
     {
       "no": 2,
       "title": "회귀용 Sequential 모델 설계",
       "theory_markdown": "### 📖 이론 설명\n회귀는 '숫자 하나'를 예측하므로 출력층 노드는 **1개**이고, 그 값을 0~1이나 특정 범위로 제한할 이유가 없으므로 **activation을 지정하지 않습니다**(항등함수, 즉 그대로 출력). 중간(hidden) 레이어는 `relu`를 관용적으로 사용합니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 레이어 | 노드 수 | activation |\n|---|---|---|\n| 입력층 | 특성 개수(input_shape) | - |\n| 은닉층 | 자유롭게 설정 | 보통 'relu' |\n| 출력층(회귀) | 1 | 없음(None) |",
-      "example_code": "from tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\n\nmodel = Sequential()\nmodel.add(Dense(16, activation='relu', input_shape=(X_train.shape[1],)))\nmodel.add(Dense(8, activation='relu'))\nmodel.add(Dense(1))  # 회귀: activation 없음\nmodel.summary()",
+      "example_code": "# 회귀는 '숫자 하나'를 예측하므로 출력 노드 1개, 그 값을 특정 범위로 제한할 이유가 없어\n# activation을 지정하지 않는다(항등함수, 그대로 출력).\nfrom tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\n\nmodel = Sequential()\nmodel.add(Dense(16, activation='relu', input_shape=(X_train.shape[1],)))\nmodel.add(Dense(8, activation='relu'))\nmodel.add(Dense(1))  # 회귀 출력층: activation 없음\nmodel.summary()",
       "practices": [
         {
           "no": 1,
@@ -42,7 +60,7 @@
       "title": "모델 컴파일",
       "theory_markdown": "### 📖 이론 설명\n회귀 문제는 예측값과 실제값의 '차이(오차)'를 줄이는 것이 목표이므로 손실함수로 **`mse`(평균제곱오차)**를 씁니다. `metrics=['mae']`를 추가하면 학습 중 MAE도 함께 확인할 수 있습니다. 옵티마이저는 보통 `Adam`을 기본으로 사용합니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 옵션 | 회귀에서의 값 |\n|---|---|\n| loss | 'mse' 또는 'mean_squared_error' |\n| metrics | ['mae'] |\n| optimizer | 'adam' (또는 Adam(learning_rate=...)) |",
-      "example_code": "model.compile(optimizer='adam', loss='mse', metrics=['mae'])",
+      "example_code": "# 회귀는 예측값과 실제값의 오차를 줄이는 게 목표이므로 손실함수로 mse(평균제곱오차)를 쓴다.\n# metrics=['mae']를 추가하면 학습 중 MAE(평균절대오차)도 함께 확인할 수 있다.\nmodel.compile(optimizer='adam', loss='mse', metrics=['mae'])",
       "practices": [
         {
           "no": 1,
@@ -58,7 +76,7 @@
       "title": "모델 학습",
       "theory_markdown": "### 📖 이론 설명\n`EarlyStopping`은 검증 손실(`val_loss`)이 `patience` epoch 동안 개선되지 않으면 학습을 자동으로 멈춰, 불필요한 학습(과적합)을 막아줍니다. `restore_best_weights=True`를 주면 가장 좋았던 시점의 가중치로 되돌립니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 콜백/옵션 | 설명 |\n|---|---|\n| EarlyStopping(monitor='val_loss', patience=n) | n epoch 개선 없으면 조기종료 |\n| validation_data=(X_test, y_test) | 이미 분리해둔 검증셋을 그대로 사용 |\n| validation_split=0.2 | 검증셋을 따로 안 만들었을 때, 학습 데이터의 뒤쪽 20%를 매 epoch 검증용으로 자동 분리 |\n| epochs / batch_size | 전체 학습 반복 수 / 한 번에 학습할 데이터 개수 |",
-      "example_code": "from tensorflow.keras.callbacks import EarlyStopping\n\nes = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)\nhistory = model.fit(X_train, y_train, epochs=100, batch_size=32,\n                     validation_data=(X_test, y_test), callbacks=[es], verbose=0)\nprint('실제 학습된 epoch 수:', len(history.history['loss']))",
+      "example_code": "# val_loss가 patience epoch 동안 개선되지 않으면 학습을 자동으로 멈춰 불필요한 학습(과적합)을 막는다.\n# restore_best_weights=True를 주면 가장 좋았던 시점의 가중치로 되돌린다.\nfrom tensorflow.keras.callbacks import EarlyStopping\n\nes = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)\nhistory = model.fit(X_train, y_train, epochs=100, batch_size=32,\n                     validation_data=(X_test, y_test), callbacks=[es], verbose=0)\nprint('실제 학습된 epoch 수:', len(history.history['loss']))",
       "practices": [
         {
           "no": 1,

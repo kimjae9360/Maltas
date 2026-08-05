@@ -8,7 +8,7 @@
       "title": "데이터 로딩 & EDA",
       "theory_markdown": "### 📖 이론 설명\n이 데이터는 전부 연속형(수치형) 변수로만 이루어져 있어 Titanic과는 성격이 다릅니다. 결측치나 범주형 인코딩보다는 **변수 간 스케일 차이**와 **분포의 치우침(skew)**을 먼저 살펴봐야 합니다.",
       "concept_table_markdown": "",
-      "example_code": "housing.info()\nprint(housing.describe())\n\nsns.histplot(housing['MedHouseVal'], kde=True)\nplt.title('House Value Distribution')\nplt.show()\n\nsns.heatmap(housing.corr(), annot=True, cmap='coolwarm', fmt='.2f')\nplt.title('Correlation Heatmap')\nplt.show()",
+      "example_code": "# %% 데이터 구조 확인\nhousing.info()\nprint(housing.describe())\n\n# %% 타깃 변수 분포 확인\nsns.histplot(housing['MedHouseVal'], kde=True)  # 집값 분포가 한쪽으로 치우쳤는지(skew) 먼저 눈으로 확인\nplt.title('House Value Distribution')\nplt.show()\n\n# %% 변수 간 상관관계 확인\nsns.heatmap(housing.corr(), annot=True, cmap='coolwarm', fmt='.2f')  # 전부 수치형이라 corr() 계산에 제외할 컬럼이 없음\nplt.title('Correlation Heatmap')\nplt.show()",
       "practices": [
         {
           "no": 1,
@@ -51,7 +51,7 @@
       "title": "전처리",
       "theory_markdown": "### 📖 이론 설명\n결측치가 없는 데이터이므로 스케일링과 분할에 집중합니다. 컬럼마다 범위가 크게 달라(예: `Population`은 수백~수만, `AveRooms`은 한 자리 수) 스케일링이 특히 중요합니다.",
       "concept_table_markdown": "",
-      "example_code": "from sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\nprint(housing.isnull().sum().sum())  # 결측치 없음 확인\n\nX = housing.drop(columns=['MedHouseVal'])\ny = housing['MedHouseVal']\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\nscaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)\nX_train.shape",
+      "example_code": "from sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import StandardScaler\n\nprint(housing.isnull().sum().sum())  # 결측치 없음 확인\n\nX = housing.drop(columns=['MedHouseVal'])\ny = housing['MedHouseVal']\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\nscaler = StandardScaler()  # Population(수백~수만)과 AveRooms(한 자리 수)처럼 범위 차이가 크므로 스케일링이 특히 중요\nX_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)\nX_train.shape",
       "practices": [
         {
           "no": 1,
@@ -95,7 +95,7 @@
       "title": "머신러닝 회귀 모델링",
       "theory_markdown": "### 📖 이론 설명\n05번 노트북과 동일한 5단계 템플릿을 그대로 적용합니다.",
       "concept_table_markdown": "",
-      "example_code": "from sklearn.ensemble import RandomForestRegressor\nfrom xgboost import XGBRegressor\nfrom sklearn.metrics import mean_squared_error, r2_score\n\nrf = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)\nrf.fit(X_train_scaled, y_train)\nrf_pred = rf.predict(X_test_scaled)\nprint('RandomForest R2:', r2_score(y_test, rf_pred))\n\nxgb = XGBRegressor(n_estimators=100, random_state=42)\nxgb.fit(X_train_scaled, y_train)\nxgb_pred = xgb.predict(X_test_scaled)\nprint('XGBoost R2:', r2_score(y_test, xgb_pred))",
+      "example_code": "# 05번 노트북과 동일한 5단계 템플릿(모델 생성 -> fit -> predict)을 그대로 적용한다.\nfrom sklearn.ensemble import RandomForestRegressor\nfrom xgboost import XGBRegressor\nfrom sklearn.metrics import mean_squared_error, r2_score\n\nrf = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)  # n_jobs=-1: 가용 CPU를 모두 사용해 학습 속도 향상\nrf.fit(X_train_scaled, y_train)\nrf_pred = rf.predict(X_test_scaled)\nprint('RandomForest R2:', r2_score(y_test, rf_pred))\n\nxgb = XGBRegressor(n_estimators=100, random_state=42)\nxgb.fit(X_train_scaled, y_train)\nxgb_pred = xgb.predict(X_test_scaled)\nprint('XGBoost R2:', r2_score(y_test, xgb_pred))",
       "practices": [
         {
           "no": 1,
@@ -129,7 +129,7 @@
       "title": "딥러닝 회귀 모델링",
       "theory_markdown": "### 📖 이론 설명\n08번 노트북과 동일하게, 출력층 1노드(활성화 없음), `loss='mse'`로 설계합니다.",
       "concept_table_markdown": "",
-      "example_code": "import tensorflow as tf\nfrom tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\nfrom tensorflow.keras.callbacks import EarlyStopping\n\ntf.random.set_seed(100)\nmodel = Sequential()\nmodel.add(Dense(32, activation='relu', input_shape=(X_train_scaled.shape[1],)))\nmodel.add(Dense(16, activation='relu'))\nmodel.add(Dense(1))\nmodel.compile(optimizer='adam', loss='mse', metrics=['mae'])\n\nes = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)\nhistory = model.fit(X_train_scaled, y_train, epochs=50, batch_size=64,\n                     validation_data=(X_test_scaled, y_test), callbacks=[es], verbose=0)\n\nplt.plot(history.history['loss'], label='train')\nplt.plot(history.history['val_loss'], label='val')\nplt.legend(); plt.title('Loss Curve'); plt.show()\n\ndl_pred = model.predict(X_test_scaled).flatten()\nprint('DL R2:', r2_score(y_test, dl_pred))",
+      "example_code": "# 08번 노트북과 동일하게 회귀 출력층은 노드 1개, activation 없음, loss='mse'로 설계한다.\nimport tensorflow as tf\nfrom tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\nfrom tensorflow.keras.callbacks import EarlyStopping\n\ntf.random.set_seed(100)\nmodel = Sequential()\nmodel.add(Dense(32, activation='relu', input_shape=(X_train_scaled.shape[1],)))\nmodel.add(Dense(16, activation='relu'))\nmodel.add(Dense(1))  # 회귀 출력층\nmodel.compile(optimizer='adam', loss='mse', metrics=['mae'])\n\nes = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)\nhistory = model.fit(X_train_scaled, y_train, epochs=50, batch_size=64,\n                     validation_data=(X_test_scaled, y_test), callbacks=[es], verbose=0)\n\nplt.plot(history.history['loss'], label='train')\nplt.plot(history.history['val_loss'], label='val')\nplt.legend(); plt.title('Loss Curve'); plt.show()\n\ndl_pred = model.predict(X_test_scaled).flatten()\nprint('DL R2:', r2_score(y_test, dl_pred))",
       "practices": []
     },
     {

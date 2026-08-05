@@ -24,7 +24,7 @@
       "title": "회귀 모델 실습",
       "theory_markdown": "### 📖 이론 설명\n위 템플릿을 그대로 적용해 여러 회귀 모델을 학습시켜 봅니다. `y`가 pandas Series일 때 일부 모델은 `.to_numpy().flatten()`으로 1차원 배열로 바꿔줘야 경고 없이 동작하는 경우가 있으니 알아두면 좋습니다.",
       "concept_table_markdown": "",
-      "example_code": "from sklearn.linear_model import LinearRegression\nfrom sklearn.tree import DecisionTreeRegressor\nfrom sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor\nfrom xgboost import XGBRegressor\n\nlr = LinearRegression()\nlr.fit(X_train, y_train)\nlr_pred = lr.predict(X_test)\n\nrf = RandomForestRegressor(n_estimators=100, random_state=42)\nrf.fit(X_train, y_train)\nrf_pred = rf.predict(X_test)\n\nxgb = XGBRegressor(n_estimators=100, random_state=42)\nxgb.fit(X_train, y_train)\nxgb_pred = xgb.predict(X_test)",
+      "example_code": "# 사이킷런 모델은 거의 다 '① 모델 생성 -> ② fit(학습) -> ③ predict(예측)' 순서가 똑같다.\n# 이 템플릿만 익히면 어떤 모델이든 같은 방식으로 다룰 수 있다.\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.tree import DecisionTreeRegressor\nfrom sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor\nfrom xgboost import XGBRegressor\n\nlr = LinearRegression()\nlr.fit(X_train, y_train)\nlr_pred = lr.predict(X_test)\n\nrf = RandomForestRegressor(n_estimators=100, random_state=42)  # n_estimators: 트리(나무) 몇 개를 앙상블할지\nrf.fit(X_train, y_train)\nrf_pred = rf.predict(X_test)\n\nxgb = XGBRegressor(n_estimators=100, random_state=42)\nxgb.fit(X_train, y_train)\nxgb_pred = xgb.predict(X_test)",
       "practices": [
         {
           "no": 1,
@@ -167,7 +167,7 @@
       "title": "정규화 회귀(Ridge/Lasso)와 다항 회귀(PolynomialFeatures)",
       "theory_markdown": "### 📖 이론 설명\n`LinearRegression`은 계수 크기에 아무 제약이 없어서, 변수가 많거나 변수끼리 상관관계가 강하면 (다중공선성) 계수가 불안정해지거나 과적합되기 쉽습니다. **Ridge(L2 정규화)**와 **Lasso(L1 정규화)**는 계수 크기 자체에 페널티를 주어 이를 억제합니다. 특히 Lasso는 중요하지 않은 변수의 계수를 **정확히 0**으로 만들어버려서 자동으로 변수를 선택하는 효과도 있습니다. `PolynomialFeatures`는 기존 변수들의 거듭제곱·곱셈 조합을 새 변수로 추가해, 선형 모델로도 비선형적인 관계를 어느 정도 잡아낼 수 있게 해줍니다(다만 변수가 급격히 늘어나 과적합 위험도 커지므로 Ridge/Lasso와 함께 쓰는 경우가 많습니다).",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| Ridge(alpha=) | L2 정규화 회귀. alpha가 클수록 계수를 더 강하게 억제 |\n| Lasso(alpha=) | L1 정규화 회귀. 일부 계수를 정확히 0으로 만들어 변수 선택 효과 |\n| PolynomialFeatures(degree=) | 기존 변수의 거듭제곱·곱 조합을 새 변수로 추가 |",
-      "example_code": "from sklearn.linear_model import Ridge, Lasso\n\nridge = Ridge(alpha=1.0)\nridge.fit(X_train, y_train)\nridge_pred = ridge.predict(X_test)\n\nlasso = Lasso(alpha=1.0)\nlasso.fit(X_train, y_train)\nlasso_pred = lasso.predict(X_test)\n\nprint('LinearRegression 계수:', lr.coef_)\nprint('Lasso 계수:', lasso.coef_)  # 일부 계수가 0에 가깝거나 정확히 0인지 확인",
+      "example_code": "# LinearRegression은 계수 크기에 제약이 없어 변수가 많거나 서로 상관관계가 강하면\n# 계수가 불안정해지거나 과적합되기 쉽다. Ridge/Lasso는 계수에 페널티를 줘서 이를 억제한다.\nfrom sklearn.linear_model import Ridge, Lasso\n\nridge = Ridge(alpha=1.0)  # L2 정규화: 계수를 0에 가깝게 눌러줌(완전히 0으로 만들진 않음)\nridge.fit(X_train, y_train)\nridge_pred = ridge.predict(X_test)\n\nlasso = Lasso(alpha=1.0)  # L1 정규화: 중요하지 않은 변수의 계수를 정확히 0으로 만들어 변수 선택 효과까지 있음\nlasso.fit(X_train, y_train)\nlasso_pred = lasso.predict(X_test)\n\nprint('LinearRegression 계수:', lr.coef_)\nprint('Lasso 계수:', lasso.coef_)  # 일부 계수가 0에 가깝거나 정확히 0인지 확인",
       "practices": [
         {
           "no": 1,
@@ -261,7 +261,7 @@
       "title": "회귀 평가지표",
       "theory_markdown": "### 📖 이론 설명\n- **MSE(평균제곱오차)**: 오차를 제곱해서 평균 - 큰 오차에 더 민감(패널티가 큼)\n- **MAE(평균절대오차)**: 오차의 절댓값 평균 - MSE보다 이상치에 덜 민감\n- **R²(결정계수)**: 모델이 데이터의 분산을 얼마나 설명하는지, 1에 가까울수록 좋음(0이면 평균만 예측한 것과 비슷, 음수면 평균보다도 못함)",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 낮을수록 좋음/높을수록 좋음 |\n|---|---|\n| mean_squared_error | 낮을수록 좋음 |\n| mean_absolute_error | 낮을수록 좋음 |\n| r2_score | 높을수록 좋음(최대 1) |",
-      "example_code": "from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score\n\nfor name, pred in [('LinearRegression', lr_pred), ('RandomForest', rf_pred), ('XGBoost', xgb_pred)]:\n    mse = mean_squared_error(y_test, pred)\n    mae = mean_absolute_error(y_test, pred)\n    r2 = r2_score(y_test, pred)\n    print(f'{name}: MSE={mse:.2f}, MAE={mae:.2f}, R2={r2:.4f}')",
+      "example_code": "from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score\n\n# MSE: 오차를 제곱해 평균 -> 큰 오차에 더 민감 / MAE: 오차 절댓값 평균 -> 이상치에 덜 민감\n# R2: 1에 가까울수록 좋음(0이면 그냥 평균 예측 수준, 음수면 그보다도 못하다는 뜻)\nfor name, pred in [('LinearRegression', lr_pred), ('RandomForest', rf_pred), ('XGBoost', xgb_pred)]:\n    mse = mean_squared_error(y_test, pred)\n    mae = mean_absolute_error(y_test, pred)\n    r2 = r2_score(y_test, pred)\n    print(f'{name}: MSE={mse:.2f}, MAE={mae:.2f}, R2={r2:.4f}')",
       "practices": [
         {
           "no": 1,
@@ -300,7 +300,7 @@
       "title": "회귀 성능 시각화",
       "theory_markdown": "### 📖 이론 설명\n예측값과 실제값이 얼마나 가까운지는 산점도로, 오차(잔차 = 실제값-예측값)의 분포는 잔차 플롯으로 확인합니다. 산점도에서 점들이 대각선(y=x)에 가까울수록 예측이 잘 맞은 것이고, 잔차 플롯에서 0을 기준으로 점들이 골고루 퍼져 있으면 편향이 없다는 뜻입니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 그래프 | 해석 |\n|---|---|\n| 예측 vs 실제 산점도 | 대각선에 가까울수록 좋은 예측 |\n| 잔차 플롯 (residual) | 0 근처에 무작위로 퍼져 있어야 편향 없음 |",
-      "example_code": "plt.scatter(y_test, rf_pred, alpha=0.5)\nplt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')\nplt.xlabel('Actual Fare')\nplt.ylabel('Predicted Fare')\nplt.title('RandomForest: Actual vs Predicted')\nplt.show()\n\nresiduals = y_test - rf_pred\nplt.scatter(rf_pred, residuals, alpha=0.5)\nplt.axhline(0, color='r', linestyle='--')\nplt.xlabel('Predicted Fare')\nplt.ylabel('Residual')\nplt.title('Residual Plot')\nplt.show()",
+      "example_code": "# %% 예측 vs 실제 산점도 — 점이 대각선(y=x)에 가까울수록 예측이 정확함\nplt.scatter(y_test, rf_pred, alpha=0.5)\nplt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')  # 기준선(y=x)\nplt.xlabel('Actual Fare')\nplt.ylabel('Predicted Fare')\nplt.title('RandomForest: Actual vs Predicted')\nplt.show()\n\n# %% 잔차 플롯 — 0을 기준으로 점들이 무작위로 퍼져 있어야 편향이 없다는 뜻\nresiduals = y_test - rf_pred  # 잔차 = 실제값 - 예측값\nplt.scatter(rf_pred, residuals, alpha=0.5)\nplt.axhline(0, color='r', linestyle='--')\nplt.xlabel('Predicted Fare')\nplt.ylabel('Residual')\nplt.title('Residual Plot')\nplt.show()",
       "practices": [
         {
           "no": 1,
@@ -341,7 +341,7 @@
       "title": "Feature Importance 해석",
       "theory_markdown": "### 📖 이론 설명\n트리 기반 모델(DecisionTree, RandomForest, XGBoost 등)은 학습 후 `model.feature_importances_` 속성으로 각 변수가 예측에 얼마나 기여했는지 알 수 있습니다. '가장 중요한 변수가 무엇인가'를 묻는 문제에서 바로 활용합니다.",
       "concept_table_markdown": "",
-      "example_code": "importances = rf.feature_importances_\nfeat_imp = pd.Series(importances, index=X.columns).sort_values(ascending=False)\nprint(feat_imp)\n\nplt.barh(feat_imp.index, feat_imp.values)\nplt.title('RandomForest Feature Importance')\nplt.show()",
+      "example_code": "# 트리 기반 모델(DecisionTree/RandomForest/XGBoost 등)은 학습 후 feature_importances_로\n# 각 변수가 예측에 얼마나 기여했는지 알 수 있다 — '가장 중요한 변수는?' 문제에 바로 활용.\nimportances = rf.feature_importances_\nfeat_imp = pd.Series(importances, index=X.columns).sort_values(ascending=False)\nprint(feat_imp)\n\nplt.barh(feat_imp.index, feat_imp.values)\nplt.title('RandomForest Feature Importance')\nplt.show()",
       "practices": [
         {
           "no": 1,

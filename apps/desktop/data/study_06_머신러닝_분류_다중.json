@@ -24,7 +24,7 @@
       "title": "다중분류 모델 실습",
       "theory_markdown": "### 📖 이론 설명\n이진분류와 완전히 동일한 템플릿으로 여러 모델을 학습시킵니다. 클래스가 3개라는 것을 모델이 자동으로 인식해서 내부적으로 처리해줍니다.",
       "concept_table_markdown": "",
-      "example_code": "from sklearn.linear_model import LogisticRegression\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.ensemble import RandomForestClassifier\nfrom xgboost import XGBClassifier\n\nmodels = {\n    'LogisticRegression': LogisticRegression(max_iter=1000),\n    'DecisionTree': DecisionTreeClassifier(max_depth=5, random_state=42),\n    'RandomForest': RandomForestClassifier(n_estimators=100, random_state=42),\n    'XGBoost': XGBClassifier(n_estimators=100, random_state=42, eval_metric='mlogloss'),\n}\n\npreds = {}\nfor name, model in models.items():\n    model.fit(X_train_scaled, y_train)\n    preds[name] = model.predict(X_test_scaled)\nprint('학습 완료:', list(models.keys()))",
+      "example_code": "# 이진분류와 완전히 동일한 템플릿 — 클래스가 3개라는 건 모델이 내부적으로 알아서 처리한다.\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.ensemble import RandomForestClassifier\nfrom xgboost import XGBClassifier\n\nmodels = {\n    'LogisticRegression': LogisticRegression(max_iter=1000),\n    'DecisionTree': DecisionTreeClassifier(max_depth=5, random_state=42),\n    'RandomForest': RandomForestClassifier(n_estimators=100, random_state=42),\n    'XGBoost': XGBClassifier(n_estimators=100, random_state=42, eval_metric='mlogloss'),  # 다중분류는 eval_metric도 'mlogloss'\n}\n\npreds = {}\nfor name, model in models.items():\n    model.fit(X_train_scaled, y_train)\n    preds[name] = model.predict(X_test_scaled)\nprint('학습 완료:', list(models.keys()))",
       "practices": [
         {
           "no": 1,
@@ -75,7 +75,7 @@
       "title": "다중분류 평가지표",
       "theory_markdown": "### 📖 이론 설명\n이진분류와 똑같은 함수를 쓰지만 `average` 옵션을 꼭 지정해야 에러 없이 계산됩니다. `classification_report`는 옵션 없이도 클래스별 점수를 모두 보여주므로 다중분류에서 가장 먼저 찍어보기 좋은 함수입니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 옵션값 | 의미 |\n|---|---|\n| average='macro' | 클래스별 점수의 단순 평균 |\n| average='weighted' | 클래스 비율로 가중 평균 |",
-      "example_code": "from sklearn.metrics import accuracy_score, f1_score, classification_report\n\nrf_pred = preds['RandomForest']\nprint('accuracy:', accuracy_score(y_test, rf_pred))\nprint('f1 (macro):', f1_score(y_test, rf_pred, average='macro'))\nprint('f1 (weighted):', f1_score(y_test, rf_pred, average='weighted'))\nprint(classification_report(y_test, rf_pred))",
+      "example_code": "# 이진분류와 같은 함수를 쓰지만, 클래스가 3개 이상이면 average 옵션을 꼭 지정해야 계산된다.\nfrom sklearn.metrics import accuracy_score, f1_score, classification_report\n\nrf_pred = preds['RandomForest']\nprint('accuracy:', accuracy_score(y_test, rf_pred))\nprint('f1 (macro):', f1_score(y_test, rf_pred, average='macro'))        # 클래스 크기 상관없이 단순 평균\nprint('f1 (weighted):', f1_score(y_test, rf_pred, average='weighted'))  # 클래스별 데이터 개수로 가중 평균\nprint(classification_report(y_test, rf_pred))  # 옵션 없이도 클래스별 점수를 다 보여줘서 가장 먼저 찍어보기 좋음",
       "practices": [
         {
           "no": 1,
@@ -108,7 +108,7 @@
       "title": "다중클래스 confusion_matrix 시각화",
       "theory_markdown": "### 📖 이론 설명\n클래스가 3개면 혼동행렬은 3x3이 됩니다. 대각선(왼쪽 위→오른쪽 아래)이 '맞게 예측한 개수'이고, 대각선 밖의 값은 '어떤 클래스를 어떤 클래스로 착각했는지'를 보여줍니다. 예를 들어 (실제=0행, 예측=1열) 칸의 값이 크다면, 클래스 0을 클래스 1로 자주 착각한다는 뜻입니다.",
       "concept_table_markdown": "",
-      "example_code": "from sklearn.metrics import confusion_matrix\n\ncm = confusion_matrix(y_test, rf_pred)\nsns.heatmap(cm, annot=True, fmt='d', cmap='Purples',\n            xticklabels=sorted(y.unique()), yticklabels=sorted(y.unique()))\nplt.xlabel('Predicted'); plt.ylabel('Actual'); plt.title('RandomForest Confusion Matrix (3 classes)')\nplt.show()",
+      "example_code": "# 클래스가 3개면 혼동행렬은 3x3이 된다. 대각선(왼쪽 위->오른쪽 아래)이 '맞게 예측한 개수',\n# 대각선 밖은 '어떤 클래스를 어떤 클래스로 착각했는지'를 보여준다.\nfrom sklearn.metrics import confusion_matrix\n\ncm = confusion_matrix(y_test, rf_pred)\nsns.heatmap(cm, annot=True, fmt='d', cmap='Purples',\n            xticklabels=sorted(y.unique()), yticklabels=sorted(y.unique()))\nplt.xlabel('Predicted'); plt.ylabel('Actual'); plt.title('RandomForest Confusion Matrix (3 classes)')\nplt.show()",
       "practices": [
         {
           "no": 1,
@@ -150,7 +150,7 @@
       "title": "앙상블 개념 복습 + 다중분류 실전 비교 (배깅 vs 부스팅)",
       "theory_markdown": "### 📖 이론 설명\n배깅(RandomForest)과 부스팅(XGBoost, LGBM)의 개념 자체는 이진분류(06 노트북 3절)와 동일합니다. 다중분류에서 실제로 확인해볼 점은, 클래스가 3개로 늘어나도 두 방식이 여전히 잘 작동하는지를 **macro f1 기준으로 나란히 비교**해보는 것입니다.",
       "concept_table_markdown": "",
-      "example_code": "from sklearn.metrics import f1_score\nfor name in ['RandomForest', 'XGBoost']:\n    f1 = f1_score(y_test, preds[name], average='macro')\n    print(f'{name} (macro f1): {f1:.4f}')",
+      "example_code": "# 배깅(RandomForest)/부스팅(XGBoost) 개념 자체는 이진분류와 동일하다 — 클래스가 3개로\n# 늘어나도 두 방식이 잘 작동하는지 macro f1 기준으로 나란히 비교해본다.\nfrom sklearn.metrics import f1_score\nfor name in ['RandomForest', 'XGBoost']:\n    f1 = f1_score(y_test, preds[name], average='macro')\n    print(f'{name} (macro f1): {f1:.4f}')",
       "practices": [
         {
           "no": 1,
@@ -201,7 +201,7 @@
       "title": "Feature Importance 해석",
       "theory_markdown": "### 📖 이론 설명\n트리 계열 모델의 `feature_importances_`로 와인의 어떤 화학 성분이 등급(target) 예측에 가장 크게 기여했는지 확인할 수 있습니다.",
       "concept_table_markdown": "",
-      "example_code": "rf_model = models['RandomForest']\nrf_imp = pd.Series(rf_model.feature_importances_, index=X.columns).sort_values(ascending=False)\nprint(rf_imp)\nplt.barh(rf_imp.index, rf_imp.values)\nplt.title('Feature Importance (RandomForest)')\nplt.show()",
+      "example_code": "# 트리 계열 모델의 feature_importances_로 어떤 화학 성분이 등급 예측에 가장 크게 기여했는지 확인\nrf_model = models['RandomForest']\nrf_imp = pd.Series(rf_model.feature_importances_, index=X.columns).sort_values(ascending=False)\nprint(rf_imp)\nplt.barh(rf_imp.index, rf_imp.values)\nplt.title('Feature Importance (RandomForest)')\nplt.show()",
       "practices": [
         {
           "no": 1,
@@ -235,7 +235,7 @@
       "title": "여러 모델 앙상블 (VotingClassifier)",
       "theory_markdown": "### 📖 이론 설명\n이진분류와 마찬가지로, 서로 다른 모델의 예측을 `VotingClassifier`로 종합하면 개별 모델의 약점이 상쇄되어 더 안정적인 예측을 얻을 수 있습니다. 다중분류에서도 `voting='soft'`는 각 모델이 예측한 클래스별 확률(`predict_proba`)의 평균으로 최종 클래스를 정합니다.",
       "concept_table_markdown": "",
-      "example_code": "from sklearn.ensemble import VotingClassifier\n\nvoting_models = [('logi', LogisticRegression(max_iter=1000)),\n                 ('rf', RandomForestClassifier(n_estimators=100, random_state=42))]\nvoting = VotingClassifier(voting_models, voting='soft')\nvoting.fit(X_train_scaled, y_train)\nvoting_pred = voting.predict(X_test_scaled)\nprint('Voting macro f1:', f1_score(y_test, voting_pred, average='macro'))",
+      "example_code": "# 이진분류와 마찬가지로 서로 다른 모델의 예측을 종합하면 더 안정적인 결과를 얻을 수 있다.\n# 다중분류에서도 voting='soft'는 클래스별 확률(predict_proba)의 평균으로 최종 클래스를 정한다.\nfrom sklearn.ensemble import VotingClassifier\n\nvoting_models = [('logi', LogisticRegression(max_iter=1000)),\n                 ('rf', RandomForestClassifier(n_estimators=100, random_state=42))]\nvoting = VotingClassifier(voting_models, voting='soft')\nvoting.fit(X_train_scaled, y_train)\nvoting_pred = voting.predict(X_test_scaled)\nprint('Voting macro f1:', f1_score(y_test, voting_pred, average='macro'))",
       "practices": [
         {
           "no": 1,
@@ -300,7 +300,7 @@
       "title": "여러 모델 성능 비교 시각화",
       "theory_markdown": "### 📖 이론 설명\n모델을 하나씩 따로 보는 것보다, 여러 모델의 macro f1을 한 번에 막대그래프로 나란히 비교하면 어떤 모델이 이 데이터에 더 잘 맞는지 빠르게 파악할 수 있습니다.",
       "concept_table_markdown": "",
-      "example_code": "score_table = pd.DataFrame({\n    name: {'accuracy': accuracy_score(y_test, pred),\n           'f1_macro': f1_score(y_test, pred, average='macro')}\n    for name, pred in preds.items()\n}).T.sort_values('f1_macro', ascending=False)\nprint(score_table)\n\nscore_table['f1_macro'].plot(kind='barh')\nplt.title('Model Comparison - Macro F1 Score')\nplt.show()",
+      "example_code": "# 모델을 하나씩 보는 대신 여러 모델의 macro f1을 한 번에 막대그래프로 비교하면\n# 어떤 모델이 이 데이터에 더 잘 맞는지 빠르게 파악할 수 있다.\nscore_table = pd.DataFrame({\n    name: {'accuracy': accuracy_score(y_test, pred),\n           'f1_macro': f1_score(y_test, pred, average='macro')}\n    for name, pred in preds.items()\n}).T.sort_values('f1_macro', ascending=False)\nprint(score_table)\n\nscore_table['f1_macro'].plot(kind='barh')\nplt.title('Model Comparison - Macro F1 Score')\nplt.show()",
       "practices": [
         {
           "no": 1,
@@ -342,7 +342,7 @@
       "title": "소프트맥스 직관 & 다중클래스 레이블 인코딩",
       "theory_markdown": "### 📖 이론 설명\n이진분류의 `LogisticRegression`은 시그모이드로 '하나의 확률'만 계산하지만, 다중분류에서는 내부적으로 **소프트맥스(softmax)**를 사용해 **클래스 개수만큼의 확률**을 한 번에 계산하고, 그중 가장 높은 확률의 클래스를 최종 예측으로 선택합니다. 따라서 `predict_proba()`의 각 행(row)을 모두 더하면 항상 1이 됩니다.\n\n또한 `target`이 지금처럼 이미 0,1,2 정수라면 상관없지만, 실제 데이터는 `'setosa'`, `'versicolor'`처럼 **문자열 레이블**로 되어 있는 경우가 많습니다. sklearn 모델은 문자열 레이블을 대부분 그대로 학습할 수 있지만, 나중에 다시 원래 이름으로 되돌리거나 다른 라이브러리와 맞추려면 `LabelEncoder`로 정수 ↔ 문자열을 변환하는 방법을 알아두는 것이 좋습니다.",
       "concept_table_markdown": "",
-      "example_code": "logi_model = models['LogisticRegression']\nproba = logi_model.predict_proba(X_test_scaled)\nprint(proba[:3])  # 클래스 3개에 대한 확률\nprint(proba[:3].sum(axis=1))  # 각 행의 합은 항상 1(소프트맥스의 성질)",
+      "example_code": "# 이진분류의 LogisticRegression은 시그모이드로 확률 1개만 계산하지만, 다중분류는\n# 내부적으로 소프트맥스(softmax)로 클래스 개수만큼의 확률을 한 번에 계산해 가장 높은 것을 고른다.\n# 그래서 predict_proba() 각 행을 더하면 항상 1이 된다.\nlogi_model = models['LogisticRegression']\nproba = logi_model.predict_proba(X_test_scaled)\nprint(proba[:3])              # 클래스 3개에 대한 확률\nprint(proba[:3].sum(axis=1))  # 각 행의 합은 항상 1(소프트맥스의 성질)",
       "practices": [
         {
           "no": 1,

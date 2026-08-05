@@ -8,7 +8,7 @@
       "title": "교차검증 (K-Fold Cross Validation)",
       "theory_markdown": "### 📖 이론 설명\n`train_test_split`을 딱 한 번만 하면, **어쩌다 운 좋게(혹은 나쁘게) 나뉜 데이터**로 평가한 결과일 수 있습니다. K-Fold 교차검증은 데이터를 K개 조각으로 나눠 **K번 서로 다른 조합으로 학습·평가를 반복**하고 평균을 내기 때문에 훨씬 안정적인 성능 추정치를 줍니다. 분류 문제에서는 `StratifiedKFold`를 써서 각 fold의 클래스 비율을 원본과 비슷하게 유지하는 것이 일반적입니다. `cross_val_score`는 이 과정을 한 줄로 처리해주는 편의 함수입니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 설명 |\n|---|---|\n| KFold(n_splits=k) | 단순 K등분 |\n| StratifiedKFold(n_splits=k) | 클래스 비율을 유지하며 K등분 |\n| cross_val_score(model, X, y, cv=k) | K번 학습·평가한 점수 배열 반환 |\n| cross_validate(...) | 여러 지표·학습시간까지 함께 반환 |",
-      "example_code": "from sklearn.model_selection import StratifiedKFold, cross_val_score, cross_validate\nfrom sklearn.ensemble import RandomForestClassifier\n\nmodel = RandomForestClassifier(n_estimators=100, random_state=42)\nskf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\nscores = cross_val_score(model, X, y, cv=skf, scoring='accuracy')\nprint('fold별 accuracy:', scores.round(3))\nprint('평균:', scores.mean().round(3), '표준편차:', scores.std().round(3))",
+      "example_code": "# train_test_split을 딱 한 번만 하면 '어쩌다 운 좋게(혹은 나쁘게) 나뉜' 데이터로 평가한\n# 결과일 수 있다. K-Fold는 데이터를 K조각으로 나눠 K번 서로 다른 조합으로 학습·평가해 평균낸다.\nfrom sklearn.model_selection import StratifiedKFold, cross_val_score, cross_validate\nfrom sklearn.ensemble import RandomForestClassifier\n\nmodel = RandomForestClassifier(n_estimators=100, random_state=42)\nskf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)  # Stratified: 각 fold의 클래스 비율을 원본과 비슷하게 유지\nscores = cross_val_score(model, X, y, cv=skf, scoring='accuracy')\nprint('fold별 accuracy:', scores.round(3))\nprint('평균:', scores.mean().round(3), '표준편차:', scores.std().round(3))",
       "practices": [
         {
           "no": 1,
@@ -42,7 +42,7 @@
       "title": "하이퍼파라미터 튜닝 (GridSearchCV/RandomizedSearchCV)",
       "theory_markdown": "### 📖 이론 설명\n모델의 성능은 `n_estimators`, `max_depth` 같은 하이퍼파라미터에 따라 달라집니다. 이 값들을 하나씩 손으로 바꿔가며 확인하는 대신, `GridSearchCV`는 **지정한 값의 모든 조합**을 교차검증으로 자동 테스트해서 최적의 조합을 찾아줍니다. 조합 수가 너무 많아 시간이 오래 걸릴 때는 무작위로 일부 조합만 테스트하는 `RandomizedSearchCV`를 씁니다. 학습이 끝나면 `best_params_`, `best_score_`, `best_estimator_`로 결과를 확인합니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 함수 | 특징 |\n|---|---|\n| GridSearchCV(estimator, param_grid, cv=) | 모든 조합을 전수 탐색 (느리지만 확실함) |\n| RandomizedSearchCV(estimator, param_distributions, n_iter=) | 일부만 무작위 탐색 (빠름) |\n| .best_params_ / .best_score_ / .best_estimator_ | 최적 조합 / 점수 / 모델 |",
-      "example_code": "from sklearn.model_selection import GridSearchCV\n\nparam_grid = {\n    'n_estimators': [50, 100, 200],\n    'max_depth': [3, 5, 7, None],\n}\ngrid = GridSearchCV(RandomForestClassifier(random_state=42), param_grid, cv=5, scoring='accuracy', n_jobs=-1)\ngrid.fit(X, y)\nprint('최적 파라미터:', grid.best_params_)\nprint('최적 점수:', grid.best_score_.round(4))",
+      "example_code": "# 모델 성능은 n_estimators, max_depth 같은 하이퍼파라미터에 따라 달라진다.\n# GridSearchCV는 지정한 값의 모든 조합을 교차검증으로 자동 테스트해 최적 조합을 찾아준다.\nfrom sklearn.model_selection import GridSearchCV\n\nparam_grid = {\n    'n_estimators': [50, 100, 200],\n    'max_depth': [3, 5, 7, None],\n}\ngrid = GridSearchCV(RandomForestClassifier(random_state=42), param_grid, cv=5, scoring='accuracy', n_jobs=-1)  # n_jobs=-1: 가용 CPU 전부 사용\ngrid.fit(X, y)\nprint('최적 파라미터:', grid.best_params_)\nprint('최적 점수:', grid.best_score_.round(4))",
       "practices": [
         {
           "no": 1,
@@ -127,7 +127,7 @@
       "title": "결측치 심화 - KNNImputer",
       "theory_markdown": "### 📖 이론 설명\n04번 노트북의 평균/중앙값 대체는 '컬럼 하나만' 보고 채우지만, `KNNImputer`는 **결측치가 없는 다른 컬럼들이 비슷한 행(이웃)들을 찾아서**, 그 이웃들의 값을 평균 내어 채웁니다 - 변수 간 관계를 반영하는 더 정교한 방법입니다.",
       "concept_table_markdown": "",
-      "example_code": "from sklearn.impute import KNNImputer\n\nage_fare = df[['Age', 'Fare', 'Pclass']].copy()\nage_fare.loc[age_fare.sample(20, random_state=1).index, 'Age'] = np.nan  # 결측치 임의 생성(실습용)\n\nimputer = KNNImputer(n_neighbors=5)\nfilled = imputer.fit_transform(age_fare)\nprint('결측치 남은 개수:', pd.DataFrame(filled, columns=age_fare.columns)['Age'].isnull().sum())",
+      "example_code": "# 04번 노트북의 평균/중앙값 대체는 컬럼 하나만 보고 채우지만, KNNImputer는 결측치가 없는\n# 다른 컬럼들이 비슷한 행(이웃)을 찾아 그 이웃들의 값을 평균 내어 채운다 — 더 정교한 방법.\nfrom sklearn.impute import KNNImputer\n\nage_fare = df[['Age', 'Fare', 'Pclass']].copy()\nage_fare.loc[age_fare.sample(20, random_state=1).index, 'Age'] = np.nan  # 결측치를 실습용으로 임의 생성\n\nimputer = KNNImputer(n_neighbors=5)  # 가장 가까운 5개 이웃의 값을 평균 내어 채움\nfilled = imputer.fit_transform(age_fare)\nprint('결측치 남은 개수:', pd.DataFrame(filled, columns=age_fare.columns)['Age'].isnull().sum())",
       "practices": []
     },
     {
@@ -135,7 +135,7 @@
       "title": "회귀 심화 - Ridge/Lasso/ElasticNet",
       "theory_markdown": "### 📖 이론 설명\n`LinearRegression`은 훈련 데이터에 대한 오차를 최소화하는 데만 집중하다 보니, 변수가 많거나 다중공선성이 있으면 특정 가중치(weight)가 비정상적으로 커지며 과적합될 수 있습니다. **규제(Regularization)**는 손실함수에 '가중치가 너무 커지면 패널티를 준다'는 항을 추가해 이를 막습니다.\n\n- **Ridge (L2 규제)**: 가중치의 제곱합에 패널티 → 가중치를 0에 가깝게 줄이되 완전히 0으로는 만들지 않음\n- **Lasso (L1 규제)**: 가중치의 절댓값 합에 패널티 → 일부 가중치를 정확히 0으로 만들어 **자동으로 변수를 선택**하는 효과\n- **ElasticNet**: Ridge와 Lasso를 절충(L1+L2 동시 적용)\n\n`alpha`(규제 강도)가 클수록 규제가 강해져 모델이 단순해지고, 작을수록 `LinearRegression`에 가까워집니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 모델 | 규제 종류 | 특징 |\n|---|---|---|\n| Ridge(alpha=) | L2 | 가중치를 0 근처로 축소 |\n| Lasso(alpha=) | L1 | 일부 가중치를 완전히 0으로(변수 선택) |\n| ElasticNet(alpha=, l1_ratio=) | L1+L2 | 두 방식을 절충 |",
-      "example_code": "from sklearn.linear_model import Ridge, Lasso, ElasticNet, LinearRegression\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.metrics import r2_score\n\nXr = df[['Pclass', 'Age', 'SibSp', 'Parch']]\nyr = df['Fare']\nXr_train, Xr_test, yr_train, yr_test = train_test_split(Xr, yr, test_size=0.2, random_state=42)\n\nfor name, m in [('Linear', LinearRegression()), ('Ridge', Ridge(alpha=1.0)),\n                ('Lasso', Lasso(alpha=1.0)), ('ElasticNet', ElasticNet(alpha=1.0, l1_ratio=0.5))]:\n    m.fit(Xr_train, yr_train)\n    print(f'{name}: R2={r2_score(yr_test, m.predict(Xr_test)):.4f}, 가중치={m.coef_.round(2)}')",
+      "example_code": "# LinearRegression은 오차 최소화에만 집중하다 보니 변수가 많거나 다중공선성이 있으면\n# 특정 가중치가 비정상적으로 커지며 과적합될 수 있다 — 규제(Regularization)로 이를 막는다.\nfrom sklearn.linear_model import Ridge, Lasso, ElasticNet, LinearRegression\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.metrics import r2_score\n\nXr = df[['Pclass', 'Age', 'SibSp', 'Parch']]\nyr = df['Fare']\nXr_train, Xr_test, yr_train, yr_test = train_test_split(Xr, yr, test_size=0.2, random_state=42)\n\nfor name, m in [('Linear', LinearRegression()), ('Ridge', Ridge(alpha=1.0)),\n                ('Lasso', Lasso(alpha=1.0)), ('ElasticNet', ElasticNet(alpha=1.0, l1_ratio=0.5))]:\n    m.fit(Xr_train, yr_train)\n    print(f'{name}: R2={r2_score(yr_test, m.predict(Xr_test)):.4f}, 가중치={m.coef_.round(2)}')",
       "practices": [
         {
           "no": 1,

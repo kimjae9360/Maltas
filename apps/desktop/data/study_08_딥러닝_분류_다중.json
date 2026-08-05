@@ -5,18 +5,53 @@
   "sections": [
     {
       "no": 1,
-      "title": "다중분류 DL이란? 이진분류 DL과 무엇이 다른가",
-      "theory_markdown": "",
-      "concept_table_markdown": "",
-      "example_code": "",
-      "practices": []
+      "title": "🧠 다중분류 DL — 이진분류와 무엇이 다른가 (Softmax & 손실함수)",
+      "theory_markdown": "### 📖 이론 설명\n\n#### 이진분류 vs 다중분류 DL 핵심 차이\n\n이진분류와 다중분류는 **출력층**과 **손실함수**만 다르고, 나머지 모델 설계(은닉층, 역전파, 학습 절차)는 완전히 동일합니다.\n\n| 항목 | 이진분류 | 다중분류 |\n|---|---|---|\n| 출력 노드 수 | **1개** | **클래스 수** |\n| 출력층 활성화 함수 | `sigmoid` | `softmax` |\n| 손실함수 | `binary_crossentropy` | `categorical_crossentropy` 또는 `sparse_categorical_crossentropy` |\n| 예측값 형태 | 0~1 사이 확률 1개 | 클래스별 확률 합계 = 1 |\n\n#### Softmax란?\nSoftmax는 출력층의 모든 노드 값을 **확률로 변환**합니다. 예를 들어 클래스가 3개(0/1/2)이면 출력값이 `[0.1, 0.7, 0.2]` 형태로 나오고, 합계가 항상 1입니다. 가장 높은 확률의 인덱스(`argmax`)가 예측 클래스가 됩니다.\n\n#### 손실함수 선택: categorical vs sparse_categorical\n- **`categorical_crossentropy`**: 정답 레이블이 **원핫 인코딩**된 경우 (`[0,1,0]` 형태). `pd.get_dummies()` 또는 `to_categorical()`로 변환 후 사용.\n- **`sparse_categorical_crossentropy`**: 정답 레이블이 **정수**인 경우 (`0`, `1`, `2` 형태). **변환 불필요** — AICE 시험에서 더 자주 출제됩니다.\n\n```\n# y가 정수(0,1,2)이면\nmodel.compile(loss='sparse_categorical_crossentropy', ...)\n\n# y가 원핫([1,0,0] 등)이면  \nmodel.compile(loss='categorical_crossentropy', ...)\n```\n\n#### 역전파(Backpropagation) 복습\n- **순전파**: 입력 → 은닉층 → Softmax 출력 → 예측 클래스\n- **오차 계산**: 예측 확률과 실제 레이블의 차이(cross-entropy loss)\n- **역전파**: 오차를 거꾸로 전파, 가중치 업데이트\n- **반복**: `epochs` 횟수만큼 위 과정 반복",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 개념 | 다중분류에서의 값 | 주의사항 |\n|---|---|---|\n| 출력층 노드 수 | 클래스 수 (= `y.nunique()`) | 이진분류(1개)와 다름 |\n| 출력층 activation | `softmax` | 이진분류(`sigmoid`)와 다름 |\n| 손실함수 (정수 레이블) | `sparse_categorical_crossentropy` | 변환 불필요 |\n| 손실함수 (원핫 레이블) | `categorical_crossentropy` | `to_categorical()` 후 사용 |\n| 평가지표 | `accuracy` | 이진분류와 동일 |\n| 예측: `model.predict(X)` | 클래스별 확률 배열 | `np.argmax(..., axis=1)`로 클래스 인덱스 변환 |",
+      "example_code": "# 이진분류 vs 다중분류 출력층 비교\nfrom tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense\n\n# 이진분류\nmodel_binary = Sequential([Dense(8, activation='relu', input_shape=(13,)), Dense(1, activation='sigmoid')])\nmodel_binary.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])\n\n# 다중분류 (class_num=3)\nmodel_multi = Sequential([Dense(8, activation='relu', input_shape=(13,)), Dense(class_num, activation='softmax')])\nmodel_multi.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])\n\nprint('=== 이진분류 출력층 ===')\nmodel_binary.layers[-1].get_config()  # units=1, activation=sigmoid\nprint('출력층 노드:', model_binary.layers[-1].units)\n\nprint('\\n=== 다중분류 출력층 ===')\nprint('출력층 노드:', model_multi.layers[-1].units, '(클래스 수 =', class_num, ')')",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`wine.csv`의 클래스 수는 `class_num` 변수에 이미 저장되어 있습니다.\n\n다중분류 규칙에 따라 `model_q1`을 설계하세요:\n- 은닉층: `Dense(32, relu)` → `Dense(16, relu)`\n- **출력층**: 다중분류 기준으로 노드 수와 activation을 결정하세요\n- compile: `sparse_categorical_crossentropy`, `adam`, `accuracy`",
+          "answer_code": "model_q1 = Sequential([\n    Dense(32, activation='relu', input_shape=(X_train.shape[1],)),\n    Dense(16, activation='relu'),\n    Dense(class_num, activation='softmax')  # 다중분류: 노드 = 클래스 수, activation = softmax\n])\nmodel_q1.compile(\n    optimizer='adam',\n    loss='sparse_categorical_crossentropy',  # 정수 레이블이므로 sparse_ 버전 사용\n    metrics=['accuracy']\n)\nmodel_q1.summary()",
+          "checks": [
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142,
+                13
+              ]
+            }
+          ],
+          "manual_review": false
+        },
+        {
+          "no": 2,
+          "prompt_markdown": "`model_q1`을 학습한 뒤, `X_test`에 대한 예측 클래스(정수)를 `y_pred_class`에 저장하고 처음 5개를 출력하세요.\n\n(힌트: `model.predict()`는 클래스별 확률을 반환합니다. `np.argmax(..., axis=1)`로 가장 높은 확률의 인덱스를 뽑으세요.)",
+          "answer_code": "history_q1 = model_q1.fit(X_train, y_train, epochs=30, batch_size=32, validation_split=0.2, verbose=0)\ny_pred_prob = model_q1.predict(X_test)\ny_pred_class = np.argmax(y_pred_prob, axis=1)  # 확률 배열에서 가장 큰 값의 인덱스 = 예측 클래스\nprint('예측 클래스 (처음 5개):', y_pred_class[:5])\nprint('실제 클래스 (처음 5개):', y_test.values[:5])",
+          "checks": [
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                142,
+                13
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
     },
     {
       "no": 2,
       "title": "다중분류용 Sequential 모델 설계",
       "theory_markdown": "### 📖 이론 설명\n출력층 노드 수는 `class_num`(=3)으로 지정하고 activation은 'softmax'로 고정합니다. `08_딥러닝_분류_이진.ipynb`에서 다룬 `BatchNormalization`(학습 안정화)과 `Dropout`(과적합 방지)은 이진분류든 다중분류든 동일하게 `Dense` 층 사이에 넣어 조합할 수 있습니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 레이어 | 노드 수 | activation |\n|---|---|---|\n| 은닉층 | 자유 | 'relu' |\n| BatchNormalization | - | 층 출력값 재정규화 |\n| 출력층(다중분류) | 클래스 수 | 'softmax' |",
-      "example_code": "from tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense, Dropout, BatchNormalization\n\nmodel = Sequential()\nmodel.add(Dense(16, activation='relu', input_shape=(X_train.shape[1],)))\nmodel.add(BatchNormalization())\nmodel.add(Dropout(0.2))\nmodel.add(Dense(8, activation='relu'))\nmodel.add(Dense(class_num, activation='softmax'))\nmodel.summary()",
+      "example_code": "from tensorflow.keras.models import Sequential\nfrom tensorflow.keras.layers import Dense, Dropout, BatchNormalization\n\nmodel = Sequential()\nmodel.add(Dense(16, activation='relu', input_shape=(X_train.shape[1],)))\nmodel.add(BatchNormalization())  # 층 출력값을 재정규화해 학습을 안정화\nmodel.add(Dropout(0.2))          # 과적합 방지 — 이진분류와 동일한 방식\nmodel.add(Dense(8, activation='relu'))\nmodel.add(Dense(class_num, activation='softmax'))  # 다중분류 출력층: 노드 수=클래스 수\nmodel.summary()",
       "practices": [
         {
           "no": 1,
@@ -42,7 +77,7 @@
       "title": "모델 컴파일",
       "theory_markdown": "### 📖 이론 설명\n`wine['target']`은 0,1,2 정수 레이블이므로(원-핫 인코딩되지 않은 상태) `sparse_categorical_crossentropy`를 사용합니다. 만약 `y`를 `to_categorical()`로 원-핫 인코딩했다면 `categorical_crossentropy`를 써야 합니다.",
       "concept_table_markdown": "### 🧩 핵심 개념 정리\n| y의 형태 | loss |\n|---|---|\n| 정수 레이블(0,1,2) | sparse_categorical_crossentropy |\n| 원-핫 벡터([1,0,0]) | categorical_crossentropy |",
-      "example_code": "model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])",
+      "example_code": "# wine['target']이 0,1,2 정수 레이블(원-핫 인코딩 안 됨)이므로 sparse_categorical_crossentropy를 쓴다.\n# 만약 y를 to_categorical()로 원-핫 인코딩했다면 categorical_crossentropy를 써야 한다.\nmodel.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])",
       "practices": [
         {
           "no": 1,
@@ -58,7 +93,7 @@
       "title": "모델 학습",
       "theory_markdown": "### 📖 이론 설명\n이진분류와 동일하게 `EarlyStopping`을 사용해 학습시킵니다.",
       "concept_table_markdown": "",
-      "example_code": "from tensorflow.keras.callbacks import EarlyStopping\n\nes = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)\nhistory = model.fit(X_train, y_train, epochs=100, batch_size=16,\n                     validation_data=(X_test, y_test), callbacks=[es], verbose=0)\nprint('학습된 epoch 수:', len(history.history['loss']))",
+      "example_code": "# 이진분류와 동일하게 EarlyStopping으로 학습시킨다.\nfrom tensorflow.keras.callbacks import EarlyStopping\n\nes = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)\nhistory = model.fit(X_train, y_train, epochs=100, batch_size=16,\n                     validation_data=(X_test, y_test), callbacks=[es], verbose=0)\nprint('학습된 epoch 수:', len(history.history['loss']))",
       "practices": [
         {
           "no": 1,
@@ -152,7 +187,7 @@
       "title": "성능 시각화",
       "theory_markdown": "### 📖 이론 설명\nloss curve와 다중클래스 confusion matrix(3x3)로 성능을 확인합니다.",
       "concept_table_markdown": "",
-      "example_code": "from sklearn.metrics import confusion_matrix, classification_report, accuracy_score\n\nplt.plot(history.history['loss'], label='train loss')\nplt.plot(history.history['val_loss'], label='val loss')\nplt.xlabel('Epoch'); plt.ylabel('Loss'); plt.title('Loss Curve'); plt.legend(); plt.show()\n\ncm = confusion_matrix(y_test, y_pred)\nsns.heatmap(cm, annot=True, fmt='d', cmap='Purples')\nplt.xlabel('Predicted'); plt.ylabel('Actual'); plt.title('DL Multi-class Confusion Matrix')\nplt.show()\n\nprint('accuracy:', accuracy_score(y_test, y_pred))\nprint(classification_report(y_test, y_pred))",
+      "example_code": "from sklearn.metrics import confusion_matrix, classification_report, accuracy_score\n\nplt.plot(history.history['loss'], label='train loss')\nplt.plot(history.history['val_loss'], label='val loss')\nplt.xlabel('Epoch'); plt.ylabel('Loss'); plt.title('Loss Curve'); plt.legend(); plt.show()\n\ncm = confusion_matrix(y_test, y_pred)  # y_pred는 이전 셀에서 argmax로 만든 클래스 라벨\nsns.heatmap(cm, annot=True, fmt='d', cmap='Purples')\nplt.xlabel('Predicted'); plt.ylabel('Actual'); plt.title('DL Multi-class Confusion Matrix')\nplt.show()\n\nprint('accuracy:', accuracy_score(y_test, y_pred))\nprint(classification_report(y_test, y_pred))",
       "practices": [
         {
           "no": 1,

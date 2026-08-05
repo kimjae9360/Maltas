@@ -1,0 +1,27 @@
+name: 데스크탑 데이터 동기화 확인
+
+# apps/server/data(문제 콘텐츠 원본) 또는 apps/desktop/data(데스크탑 사본)가 바뀔 때마다,
+# 데스크탑 사본이 서버 원본과 어긋나 있지는 않은지 확인한다. 데스크탑 앱은 "웹을 못 쓰는
+# 상황을 위한 다운로드형 대안"으로 계속 유지하기로 했으므로, 서버 콘텐츠 수정이 데스크탑에
+# 반영되지 않은 채로 방치되는 것을 여기서 막는다. 실제 동기화는
+# `python tools/sync_desktop_data.py`로 수동 실행한다(이 워크플로는 검사만 하고 자동 커밋하지 않음).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/server/data/**"
+      - "apps/desktop/data/**"
+  pull_request:
+    paths:
+      - "apps/server/data/**"
+      - "apps/desktop/data/**"
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 데스크탑 데이터 드리프트 확인
+        run: python tools/sync_desktop_data.py --check
