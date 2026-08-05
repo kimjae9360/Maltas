@@ -28,6 +28,9 @@ interface Props {
   onReveal: (unit: number) => void;
   answerCode?: string;
   cardRef?: (unit: number, el: HTMLDivElement | null) => void;
+  onRemoveFromReview?: (unit: number) => void;
+  // 복습 모드(오답노트)에서만 부모가 이 콜백을 넘겨준다 — 값이 있을 때만 삭제 버튼을 보여준다.
+  // 평소 모드(섹션을 순서대로 풀 때)에는 이 prop 자체를 안 넘기므로 삭제 버튼이 안 보인다.
 }
 
 export const StudyPracticeCard = memo(function StudyPracticeCard({
@@ -44,6 +47,7 @@ export const StudyPracticeCard = memo(function StudyPracticeCard({
   onReveal,
   answerCode,
   cardRef,
+  onRemoveFromReview,
 }: Props) {
   const [tab, setTab] = useState<"console" | "plot" | "answer">("console");
 
@@ -95,11 +99,22 @@ export const StudyPracticeCard = memo(function StudyPracticeCard({
     <div ref={(el) => cardRef?.(unit, el)} className={`card ${statusColor} p-5`}>
       <div className="mb-2 flex items-center justify-between">
         <span className="pill">TODO {practice.no}</span>
-        {result && (
-          <span className={`text-sm font-bold ${result.is_correct ? "text-[var(--ok)]" : "text-[var(--warn)]"}`}>
-            {result.is_correct ? "✅ 정답" : revealed ? "🔎 정답 확인함" : "🙈 다시 시도"}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {result && (
+            <span className={`text-sm font-bold ${result.is_correct ? "text-[var(--ok)]" : "text-[var(--warn)]"}`}>
+              {result.is_correct ? "✅ 정답" : revealed ? "🔎 정답 확인함" : "🙈 다시 시도"}
+            </span>
+          )}
+          {onRemoveFromReview && (
+            <button
+              onClick={() => onRemoveFromReview(unit)}
+              title="오답노트에서 삭제"
+              className="rounded-md border border-[var(--border)] px-2 py-1 text-xs font-semibold text-[var(--muted)] transition hover:border-[var(--bad)] hover:text-[var(--bad)]"
+            >
+              ✕ 삭제
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="mb-3 text-sm leading-relaxed">

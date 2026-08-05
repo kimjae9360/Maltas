@@ -250,11 +250,20 @@ export default function StudyChapterPage() {
           revealed_answer: true,
         },
       },
-      // 정답을 본 문제도 "완전히 못 푼 것"으로 간주해 복습 목록에 넣는다 —
-      // sectionIncomplete 가드는 "채점했거나 정답을 본" 것만 확인하지, 정답 유무는 안 따진다.
+      // 정답을 본 문제도 "완전히 못 푼 것"으로 간주해 복습 목록(오답노트)에 넣는다 —
+      // sectionIncomplete 가드는 "직접 채점을 시도했는지"만 확인하지, 정답 유무는 안 따진다.
       wrong_units: latest.wrong_units.includes(unit) ? latest.wrong_units : [...latest.wrong_units, unit],
     });
   }, [chapter, persist]);
+
+  /** 오답노트(복습 목록)에서 특정 TODO를 지운다 — 다시 안 볼 문제를 목록에서 치우고 싶을 때 쓴다.
+   * practice_results_by_unit 자체는 안 건드린다(채점 기록 자체를 지우는 게 아니라, "복습 목록에
+   * 다시 안 뜨게" 하는 것뿐이라서 — 나중에 그 TODO를 또 틀리면 wrong_units에 다시 추가된다). */
+  const removeFromWrongList = useCallback((unit: number) => {
+    const s = sessionRef.current;
+    if (!s) return;
+    persist({ ...s, wrong_units: s.wrong_units.filter((u) => u !== unit) });
+  }, [persist]);
 
   /** 섹션 이동(이전/다음/완료) — 지금 섹션을 "완료됨"으로 표시하고 목표 섹션으로 넘어간다. */
   const goToSection = (no: number) => {
@@ -316,10 +325,14 @@ export default function StudyChapterPage() {
 
   const hasTheory = section.theory_markdown.trim().length > 0;
   const hasExample = section.example_code.trim().length > 0;
-  // 채점하기(정답 보기 포함)를 한 번도 안 한 TODO가 남아있으면 다음 섹션으로 못 넘어가게 막는다.
-  const sectionIncomplete = section.practices.some(
-    (p) => !session.practice_results_by_unit[String(unitIdx(section.no, p.no))]
-  );
+  // "채점하기"로 직접 코드를 제출한 적(attempts > 0)이 없는 TODO가 남아있으면 다음 섹션으로
+  // 못 넘어가게 막는다. "정답 보기"만 누르고 채점 버튼을 안 눌렀다면(attempts는 여전히 0)
+  // 아직 완료로 안 쳐준다 — 힌트를 봤어도 결국 직접 입력해서 제출해봐야 다음으로 넘어갈 수
+  // 있게 하려는 의도적인 설계다(revealAnswer는 attempts를 절대 올리지 않는다).
+  const sectionIncomplete = section.practices.some((p) => {
+    const result = session.practice_results_by_unit[String(unitIdx(section.no, p.no))];
+    return !result || result.attempts === 0;
+  });
 
   return (
     <div className="flex flex-1">
@@ -417,10 +430,12 @@ export default function StudyChapterPage() {
             <h2 className="text-xl font-extrabold">📝 복습 모드 — 못 풀었거나 정답을 본 문제</h2>
             {wrongItems.length === 0 && <p className="text-[var(--muted)]">복습할 문제가 없어요. 🎉</p>}
             {wrongItems.map(({ practice, unit }) => {
-              // 복습 모드에서는 "과거에 정답을 봤던 기록(session의 revealed_answer)" 때문에
-              // 시작하자마자 "정답 확인함"이 뜨는 것을 막기 위해,
-              // 이번 복습 세션에서 새로 정답을 요청해 answers 객체에 들어있는 경우에만 revealed 처리한다.
-              const isRevealedNow = !!answers[unit];
+              const result = session.practice_results_by_unit[String(unit)];
+              // 예전엔 "이번 복습 세션에서 새로 정답을 요청했는지(answers[unit])"만 봤는데,
+              // 그러면 복습 모드에 들어오자마자는 항상 "🙈 다시 시도"로만 보여서 실제로 예전에
+              // 정답을 봤었는지 알 수가 없었다. session에 이미 저장된 revealed_answer(영구 기록)를
+              // 기준으로 삼아 "힌트 봤음" 상태가 복습 모드 진입 즉시 정확히 보이도록 바꿨다.
+              const wasRevealed = result?.revealed_answer ?? false;
               return (
                 <StudyPracticeCard
                   key={unit}
@@ -431,11 +446,12 @@ export default function StudyChapterPage() {
                   onRun={runPractice}
                   running={runningUnit === unit}
                   disabled={runningUnit !== null}
-                  result={session.practice_results_by_unit[String(unit)]}
+                  result={result}
                   lastRun={lastRuns[unit]}
-                  revealed={isRevealedNow}
+                  revealed={wasRevealed || !!answers[unit]}
                   onReveal={revealAnswer}
                   answerCode={answers[unit]}
+                  onRemoveFromReview={removeFromWrongList}
                 />
               );
             })}
