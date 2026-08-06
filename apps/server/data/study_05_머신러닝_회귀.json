@@ -6,17 +6,60 @@
     {
       "no": 1,
       "title": "머신러닝 모델링 템플릿 구조",
-      "theory_markdown": "",
-      "concept_table_markdown": "",
-      "example_code": "",
-      "practices": []
+      "theory_markdown": "### 📖 이론 설명\n사이킷런(scikit-learn)의 지도학습 모델은 문제 유형(회귀/분류)이나 구체적인 알고리즘과 무관하게 거의 항상 같은 5단계를 따릅니다. 이 순서만 익히면 어떤 모델이든 같은 방식으로 다룰 수 있습니다.\n\n1. **데이터 준비**: 예측에 쓸 특성(X)과 맞추려는 정답(y)을 나눕니다.\n2. **train_test_split**: 데이터를 학습용(train)과 평가용(test)으로 나눕니다 — 모델이 한 번도 안 본 데이터로 성능을 확인하기 위함입니다.\n3. **모델 생성**: `LinearRegression()`, `RandomForestClassifier()`처럼 원하는 알고리즘의 객체를 만듭니다.\n4. **fit(학습)**: `model.fit(X_train, y_train)`으로 학습용 데이터의 패턴을 모델에 학습시킵니다.\n5. **predict(예측) & 평가**: `model.predict(X_test)`로 평가용 데이터에 대한 예측을 만들고, 실제값(y_test)과 비교해 성능을 확인합니다.\n\n이 챕터 전체와 다음 챕터(분류)에서 이 5단계 템플릿이 계속 반복됩니다 — 바뀌는 건 3번(모델 종류)뿐입니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 단계 | 코드 예시 | 하는 일 |\n|---|---|---|\n| 1. 데이터 준비 | `X = df[cols]`, `y = df['target']` | 특성과 정답 분리 |\n| 2. train_test_split | `train_test_split(X, y, test_size=0.2)` | 학습/평가용 데이터 분리 |\n| 3. 모델 생성 | `model = LinearRegression()` | 알고리즘 객체 생성 |\n| 4. fit | `model.fit(X_train, y_train)` | 학습 |\n| 5. predict | `model.predict(X_test)` | 예측 & 평가 |",
+      "example_code": "# 이미 이 챕터 setup 코드에서 1~2단계(데이터 준비, train_test_split)는 끝나 있다.\n# 여기서는 3~5단계(모델 생성 -> fit -> predict)만 실제로 돌려본다.\nfrom sklearn.linear_model import LinearRegression\n\n# 3. 모델 생성\ntemplate_model = LinearRegression()\n# 4. fit(학습) — 학습용 데이터(X_train, y_train)의 패턴을 모델에 학습시킨다\ntemplate_model.fit(X_train, y_train)\n# 5. predict(예측) — 모델이 한 번도 보지 못한 X_test에 대해 예측한다\ntemplate_pred = template_model.predict(X_test)\n\nprint('예측 개수:', len(template_pred))\nprint('실제값 개수:', len(y_test))  # 예측 개수와 실제값 개수가 항상 같아야 비교(평가)가 가능하다",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "5단계 템플릿을 그대로 적용해 `DecisionTreeRegressor(random_state=42)`를 학습시키고, 예측값을 `template_pred2`에 저장하세요.",
+          "answer_code": "from sklearn.tree import DecisionTreeRegressor\n\ntemplate_model2 = DecisionTreeRegressor(random_state=42)  # 3. 모델 생성\ntemplate_model2.fit(X_train, y_train)  # 4. fit\ntemplate_pred2 = template_model2.predict(X_test)  # 5. predict\nprint(len(template_pred2))",
+          "checks": [
+            {
+              "var": "X_test",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                179,
+                4
+              ]
+            },
+            {
+              "var": "X_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712,
+                4
+              ]
+            },
+            {
+              "var": "template_pred2",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                179
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
     },
     {
       "no": 2,
       "title": "회귀 문제란? 모델·모듈·평가함수 총정리표",
-      "theory_markdown": "",
-      "concept_table_markdown": "",
-      "example_code": "",
+      "theory_markdown": "### 📖 이론 설명\n**회귀(regression)** 문제는 예측하려는 정답(y)이 '연속적인 숫자'인 경우를 말합니다 — 예: 운임(Fare), 집값, 매출액, 온도처럼 정해진 몇 개의 범주가 아니라 이론적으로 어떤 값이든 가능한 숫자입니다. 반대로 정답이 '생존/사망'처럼 정해진 범주 중 하나라면 회귀가 아니라 분류(classification) 문제입니다 (다음 챕터에서 다룹니다). 문제 지문이 '~을 예측하세요', '~을 구하세요'라고 하면서 정답이 소수점이 나올 수 있는 숫자라면 대부분 회귀입니다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n**모델**\n\n| 모델 | import 경로 | 특징 |\n|---|---|---|\n| LinearRegression | `sklearn.linear_model` | 가장 단순한 선형 모델, 해석이 쉬움 |\n| Ridge / Lasso | `sklearn.linear_model` | 정규화로 과적합 억제 |\n| DecisionTreeRegressor | `sklearn.tree` | 비선형 패턴 학습 가능 |\n| RandomForestRegressor | `sklearn.ensemble` | 배깅(여러 트리 평균) |\n| GradientBoostingRegressor | `sklearn.ensemble` | 부스팅(순차 보완) |\n| XGBRegressor | `xgboost` | 부스팅, 시험에서 자주 사용 |\n\n**평가함수**\n\n| 함수 | import 경로 | 좋은 방향 |\n|---|---|---|\n| mean_squared_error | `sklearn.metrics` | 낮을수록 좋음 |\n| mean_absolute_error | `sklearn.metrics` | 낮을수록 좋음 |\n| r2_score | `sklearn.metrics` | 높을수록(최대 1) 좋음 |",
+      "example_code": "# 회귀 문제에서 자주 쓰는 모델·평가함수를 한 번에 모아 불러온다 — 위 표와 순서를 맞춰뒀다.\nfrom sklearn.linear_model import LinearRegression, Ridge, Lasso\nfrom sklearn.tree import DecisionTreeRegressor\nfrom sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor\nfrom xgboost import XGBRegressor\nfrom sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score\nprint('회귀 모델/평가함수 임포트 완료')",
       "practices": []
     },
     {

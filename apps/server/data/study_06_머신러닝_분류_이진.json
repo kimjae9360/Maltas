@@ -6,26 +6,83 @@
     {
       "no": 1,
       "title": "이진분류란? 다중분류와 무엇이 다른가",
-      "theory_markdown": "",
-      "concept_table_markdown": "",
-      "example_code": "",
-      "practices": []
+      "theory_markdown": "### 📖 이론 설명\n**분류(classification)** 문제는 예측하려는 정답(y)이 '정해진 범주(카테고리)' 중 하나인 경우입니다. 그중에서도 범주가 딱 2개면 **이진분류(binary classification)**, 3개 이상이면 **다중분류(multiclass classification)**라고 부릅니다.\n\n- 이진분류 예시: Titanic 생존(0/1), 스팸 여부(0/1), 이탈 여부(0/1)\n- 다중분류 예시: 와인 등급(0/1/2), 손글씨 숫자(0~9), 아이리스 품종(3종)\n\n둘은 모델 코드는 거의 똑같지만(5단계 템플릿 동일) 몇 가지가 달라집니다:\n- **확률 출력**: 이진분류는 확률이 보통 '양성 클래스일 확률' 하나로 요약되지만(`predict_proba`의 두 번째 열), 다중분류는 클래스 개수만큼 확률이 나옵니다.\n- **평가지표**: precision/recall/f1은 원래 '어느 클래스를 양성으로 볼지'가 명확한 이진분류에서 자연스럽고, 다중분류에서는 클래스별로 계산한 뒤 평균(macro/weighted 등)을 내야 합니다.\n- **활성화 함수**: 내부적으로 이진분류는 시그모이드(sigmoid), 다중분류는 소프트맥스(softmax)를 사용해 확률을 계산합니다(직접 구현할 일은 거의 없지만 알아두면 이해가 쉽습니다).",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 구분 | 이진분류 | 다중분류 |\n|---|---|---|\n| 클래스 개수 | 2개 | 3개 이상 |\n| 예시 | 생존 여부, 스팸 여부 | 와인 등급, 손글씨 숫자 |\n| 확률 출력 | 양성 클래스 확률 1개로 요약 가능 | 클래스별 확률 전부 필요 |\n| 내부 활성화 함수 | 시그모이드(sigmoid) | 소프트맥스(softmax) |\n| precision/recall 계산 | 그대로 사용 | 클래스별 계산 후 평균 필요 |",
+      "example_code": "# 지금 이 데이터(Titanic)의 target이 실제로 몇 가지 값을 갖는지 확인해보면 '이진분류'라는 게 바로 확인된다.\nprint('고유값:', sorted(y.unique()))\nprint('클래스 개수:', y.nunique())\nprint(y.value_counts(normalize=True).round(3))  # normalize=True: 개수 대신 비율로 보여줌",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`y`의 고유 클래스 개수를 세어 `num_classes`에 저장하세요.",
+          "answer_code": "num_classes = y.nunique()  # nunique(): 중복을 제외한 고유값 개수\nprint(num_classes)",
+          "checks": [
+            {
+              "var": "num_classes",
+              "op": "eq",
+              "expected": 2
+            },
+            {
+              "var": "y",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
     },
     {
       "no": 2,
       "title": "이진분류 모델·모듈·평가함수 총정리표",
-      "theory_markdown": "",
-      "concept_table_markdown": "",
-      "example_code": "",
+      "theory_markdown": "### 📖 이론 설명\n이진분류에서 자주 쓰는 모델과 평가함수를 모듈 경로와 함께 정리했습니다. 본격적인 실습(다음 섹션)에 들어가기 전에 한 번 훑어보고, 문제를 풀다가 막히면 다시 돌아와 확인하세요.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n**모델**\n\n| 모델 | import 경로 | 특징 |\n|---|---|---|\n| LogisticRegression | `sklearn.linear_model` | 이름은 회귀지만 분류 모델, 확률 기반 |\n| DecisionTreeClassifier | `sklearn.tree` | 이해하기 쉬운 트리 구조 |\n| RandomForestClassifier | `sklearn.ensemble` | 배깅(트리 여러 개 다수결) |\n| XGBClassifier | `xgboost` | 부스팅, 시험에서 자주 사용 |\n| LGBMClassifier | `lightgbm` | 부스팅, XGBoost보다 빠른 경우가 많음 |\n| KNeighborsClassifier | `sklearn.neighbors` | 가까운 이웃 다수결, 스케일링 필수 |\n| SVC | `sklearn.svm` | 마진을 최대화하는 경계선을 찾음 |\n\n**평가함수**\n\n| 함수 | import 경로 | 좋은 방향 |\n|---|---|---|\n| accuracy_score | `sklearn.metrics` | 높을수록 좋음 |\n| precision_score | `sklearn.metrics` | 높을수록 좋음 |\n| recall_score | `sklearn.metrics` | 높을수록 좋음 |\n| f1_score | `sklearn.metrics` | 높을수록 좋음 |\n| roc_auc_score | `sklearn.metrics` | 높을수록(최대 1) 좋음 |",
+      "example_code": "# 이진분류에서 자주 쓰는 모델·평가함수를 한 번에 모아 불러온다 — 위 표와 순서를 맞춰뒀다.\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.ensemble import RandomForestClassifier\nfrom xgboost import XGBClassifier\nfrom lightgbm import LGBMClassifier\nfrom sklearn.neighbors import KNeighborsClassifier\nfrom sklearn.svm import SVC\nfrom sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score\nprint('분류 모델/평가함수 임포트 완료')",
       "practices": []
     },
     {
       "no": 3,
       "title": "앙상블 개념: 배깅 vs 부스팅",
-      "theory_markdown": "",
-      "concept_table_markdown": "",
-      "example_code": "",
-      "practices": []
+      "theory_markdown": "### 📖 이론 설명\n**앙상블(ensemble)**은 여러 개의 모델을 조합해서 하나의 모델보다 더 안정적이고 정확한 예측을 만드는 방법입니다. 트리 기반 앙상블은 조합 방식에 따라 크게 두 가지로 나뉩니다.\n\n- **배깅(Bagging, Bootstrap Aggregating)**: 원본 데이터에서 중복을 허용해 여러 번 샘플링(부트스트랩)한 뒤, 각 샘플로 트리를 **독립적으로·병렬로** 학습시키고 예측을 평균(회귀)/다수결(분류)로 합칩니다. 트리마다 보는 데이터가 조금씩 달라서 개별 트리의 과적합·분산이 평균을 내는 과정에서 줄어듭니다. 대표 모델: `RandomForest`.\n- **부스팅(Boosting)**: 트리를 **순차적으로** 학습시키되, 이전 트리가 잘못 예측한 부분(오차)에 가중치를 두어 다음 트리가 그 오차를 보완하도록 만듭니다. 트리들이 서로의 실수를 이어받아 고치는 구조라 배깅보다 성능이 좋은 경우가 많지만, 순서대로 학습해야 해서 병렬화가 어렵고 과적합에 조금 더 취약합니다. 대표 모델: `GradientBoosting`, `XGBoost`, `LightGBM`.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 구분 | 배깅(Bagging) | 부스팅(Boosting) |\n|---|---|---|\n| 학습 방식 | 병렬(트리끼리 독립) | 순차(이전 트리의 오차를 다음이 보완) |\n| 주로 줄이는 것 | 분산(variance) | 편향(bias) |\n| 예측 합치는 법 | 평균/다수결 | 가중합 |\n| 대표 모델 | RandomForest | GradientBoosting, XGBoost, LightGBM |\n| 과적합 경향 | 상대적으로 덜함 | 상대적으로 더 주의 필요 |",
+      "example_code": "# 같은 트리 100개를 쓰더라도 '병렬로 독립 학습(배깅)'과 '순차로 오차 보완(부스팅)'은 결과가 다르다.\nfrom sklearn.ensemble import RandomForestClassifier\nfrom xgboost import XGBClassifier\n\n# 배깅: 트리 100개를 각자 다른 부트스트랩 샘플로 독립적으로 학습 후 다수결\nbagging_model = RandomForestClassifier(n_estimators=100, random_state=42)\nbagging_model.fit(X_train_scaled, y_train)\n\n# 부스팅: 트리 100개를 순차적으로 학습, 매번 이전 트리들의 오차를 보완\nboosting_model = XGBClassifier(n_estimators=100, random_state=42, eval_metric='logloss')\nboosting_model.fit(X_train_scaled, y_train)\n\nprint('배깅(RandomForest) accuracy:', bagging_model.score(X_test_scaled, y_test))\nprint('부스팅(XGBoost) accuracy   :', boosting_model.score(X_test_scaled, y_test))",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`GradientBoostingClassifier(n_estimators=100, random_state=42)`를 학습시키고 accuracy를 구해, 위 배깅/부스팅 모델과 비교하세요.",
+          "answer_code": "from sklearn.ensemble import GradientBoostingClassifier\n\ngb_ensemble = GradientBoostingClassifier(n_estimators=100, random_state=42)  # 부스팅 계열: XGBoost보다 앞서 등장한 고전적인 부스팅 구현\ngb_ensemble.fit(X_train_scaled, y_train)\nprint('부스팅(GradientBoosting) accuracy:', gb_ensemble.score(X_test_scaled, y_test))",
+          "checks": [
+            {
+              "var": "X_test_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                179,
+                8
+              ]
+            },
+            {
+              "var": "X_train_scaled",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712,
+                8
+              ]
+            },
+            {
+              "var": "y_train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                712
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
     },
     {
       "no": 4,

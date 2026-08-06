@@ -6,10 +6,33 @@
     {
       "no": 1,
       "title": "시각화 해석의 기본 원칙",
-      "theory_markdown": "",
-      "concept_table_markdown": "",
-      "example_code": "",
-      "practices": []
+      "theory_markdown": "### 📖 이론 설명\nAICE 시험에서 시각화 문제는 '데이터를 보고 예쁜 그림을 그리는 것'이 목적이 아니라, **그래프를 통해 데이터의 특징을 정확히 해석하는 것**이 목적입니다. 그래프를 그리기 전에 먼저 '이 변수가 범주형인지 수치형인지', '변수 하나를 보는 건지 두 변수의 관계를 보는 건지'를 파악하면 어떤 그래프를 써야 할지 자연스럽게 정해집니다.\n\n- **범주형 변수 하나**의 빈도 → `countplot`\n- **수치형 변수 하나**의 분포 → `histplot`, `kdeplot`, `boxplot`\n- **범주형 vs 수치형**(그룹별 비교) → `boxplot`, `barplot`, `violinplot`\n- **수치형 vs 수치형**(관계) → `scatterplot`\n- **여러 수치형 변수 간 상관관계** → `heatmap`\n\n어떤 그래프를 그리든 다음 원칙을 지키면 해석하기 쉽고 감점도 피할 수 있습니다:\n1. `plt.title()`로 무엇을 그린 그래프인지 항상 밝힌다.\n2. 축이 무엇을 의미하는지(`xlabel`/`ylabel`) 헷갈리지 않게 한다.\n3. 극단적으로 튀는 값(이상치)이 있으면 전체 해석을 왜곡할 수 있으니 먼저 확인한다.\n4. `plt.show()`를 반드시 호출해야 그래프가 실제로 출력된다.",
+      "concept_table_markdown": "### 🧩 핵심 개념 정리\n| 보려는 것 | 변수 유형 | 추천 그래프 |\n|---|---|---|\n| 빈도(개수) | 범주형 1개 | countplot |\n| 분포(퍼진 모양) | 수치형 1개 | histplot, kdeplot, boxplot |\n| 그룹별 비교 | 범주형 + 수치형 | boxplot, barplot, violinplot |\n| 두 변수의 관계 | 수치형 2개 | scatterplot |\n| 여러 변수 간 상관관계 | 수치형 여러 개 | heatmap |",
+      "example_code": "# 그래프를 그리기 전에 컬럼이 범주형인지 수치형인지부터 확인하는 습관을 들이면 어떤 그래프를 써야 할지 바로 정해진다.\nprint(train.dtypes)  # object는 대체로 범주형, int/float는 수치형인 경우가 많음(단 Pclass처럼 숫자로 저장된 범주형도 있어 의미까지 확인해야 함)\nprint()\nprint('Sex는 범주형 예시:', train['Sex'].unique())\nprint('Fare는 수치형 예시:')\nprint(train['Fare'].describe())",
+      "practices": [
+        {
+          "no": 1,
+          "prompt_markdown": "`train['Embarked']` 컬럼이 범주형인지 판단하기 위해, 고유값 개수를 `num_embarked`에 저장하세요.",
+          "answer_code": "num_embarked = train['Embarked'].nunique()  # nunique(): 결측치를 제외한 고유값 개수 — 값이 몇 안 되면 범주형일 가능성이 높음\nprint(num_embarked)",
+          "checks": [
+            {
+              "var": "num_embarked",
+              "op": "eq",
+              "expected": 3
+            },
+            {
+              "var": "train",
+              "attr": "shape",
+              "op": "eq",
+              "expected": [
+                891,
+                12
+              ]
+            }
+          ],
+          "manual_review": false
+        }
+      ]
     },
     {
       "no": 2,
